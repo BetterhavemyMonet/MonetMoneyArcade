@@ -1,0 +1,22 @@
+{
+  "name": "monet-app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "server": "node server.js",
+    "build": "mkdir -p dist && cp *.html styles.css script.js wallet.js gamepad.js dist/ 2>/dev/null; cp *.jpg *.png *.svg dist/ 2>/dev/null; echo 'Build complete'",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^8.0.10"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.98.4",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "stripe": "^22.1.1",
+    "ws": "^8.20.0"
+  }
+}

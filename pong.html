@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Monet Pong</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<style>
+.game-title {
+  background: linear-gradient(90deg, #00f0ff, #a855ff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.game-hud { font-size: 10px; color: #aaa; }
+.canvas-wrap canvas { border: 2px solid #00f0ff; box-shadow: 0 0 24px #00f0ff44; }
+.dpad-left  { opacity: 0.3; pointer-events: none; }
+.dpad-right { opacity: 0.3; pointer-events: none; }
+.ctrl-btn-a, .ctrl-btn-b { font-size: 11px; }
+</style>
+<script src="https://unpkg.com/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
+<script src="/wallet.js"></script>
+<script src="/lobby.js"></script>
+<script src="/gamepad.js"></script>
+</head>
+<body class="game-page">
+<div class="game-wrap">
+  <div class="game-header">
+    <span class="game-title">MONET PONG</span>
+    <span class="game-hud">↑/↓ or A/B to move &nbsp;|&nbsp; First to 7 wins</span>
+  </div>
+  <div class="game-msg" id="msg">Press START or SPACE</div>
+  <div class="canvas-wrap">
+    <canvas id="c"></canvas>
+  </div>
+</div>
+
+<div class="ctrl-area">
+  <div class="ctrl-body">
+    <div class="ctrl-dpad">
+      <div class="ctrl-dpad-center"></div>
+      <button class="dpad-up"    ontouchstart="startPadHold(-1,event)" ontouchend="stopPadHold(event)" onmousedown="startPadHold(-1)" onmouseup="stopPadHold()" onmouseleave="stopPadHold()">&#9650;</button>
+      <button class="dpad-down"  ontouchstart="startPadHold(1,event)"  ontouchend="stopPadHold(event)" onmousedown="startPadHold(1)"  onmouseup="stopPadHold()" onmouseleave="stopPadHold()">&#9660;</button>
+      <button class="dpad-left"  style="opacity:0.3;pointer-events:none">&#9664;</button>
+      <button class="dpad-right" style="opacity:0.3;pointer-events:none">&#9654;</button>
+    </div>
+    <div class="ctrl-mid">
+      <button class="ctrl-start" ontouchstart="ctrlStart(event)" onmousedown="ctrlStart()">START</button>
+      <a class="ctrl-home" href="arcade.html">&#8962;</a>
+    </div>
+    <div class="ctrl-ab">
+      <button class="ctrl-btn-a" ontouchstart="startPadHold(-1,event)" ontouchend="stopPadHold(event)" onmousedown="startPadHold(-1)" onmouseup="stopPadHold()" onmouseleave="stopPadHold()">UP</button>
+      <button class="ctrl-btn-b" ontouchstart="startPadHold(1,event)"  ontouchend="stopPadHold(event)" onmousedown="startPadHold(1)"  onmouseup="stopPadHold()" onmouseleave="stopPadHold()">DN</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 520, H = 380;
+canvas.width = W; canvas.height = H;
+
+const PAD_W = 12, PAD_H = 72, BALL_R = 9, WIN_SCORE = 7;
+const CPU_MAX_SPD = 3.5;
+
+const bgImg = new Image(); bgImg.src = '/title.jpg';
+const charImg = new Image(); charImg.src = '/dino-sprite.png';
+
+let ball, playerPad, cpuPad, playerScore, cpuScore, gameRunning, animId;
+let touchY = null;
+
+// Continuous paddle movement via held buttons
+let padInterval = null;
+
+function startPadHold(dir, e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  if (!gameRunning) { startGame(); return; }
+  stopPadHold();
+  // Move immediately on first press, then repeat
+  if (playerPad) playerPad.y = Math.max(0, Math.min(H - PAD_H, playerPad.y + dir * 14));
+  padInterval = setInterval(() => {
+    if (!gameRunning || !playerPad) return;
+    playerPad.y = Math.max(0, Math.min(H - PAD_H, playerPad.y + dir * 10));
+  }, 30);
+}
+function stopPadHold(e) {
+  if (e) e.preventDefault();
+  if (padInterval) { clearInterval(padInterval); padInterval = null; }
+}
+
+function startGame() {
+  playerPad = {x:18, y:H/2-PAD_H/2};
+  cpuPad    = {x:W-18-PAD_W, y:H/2-PAD_H/2};
+  playerScore = 0; cpuScore = 0;
+  launchBall(); gameRunning = true;
+  document.getElementById('msg').textContent = '';
+  if (animId) cancelAnimationFrame(animId);
+  loop();
+}
+
+function launchBall() {
+  const angle = (Math.random()*60-30) * (Math.PI/180);
+  const dir = Math.random()<0.5 ? 1 : -1;
+  ball = { x:W/2, y:H/2, vx:dir*5*Math.cos(angle), vy:5*Math.sin(angle), r:BALL_R };
+}
+
+function loop() {
+  draw();
+  if (gameRunning) update();
+  animId = requestAnimationFrame(loop);
+}
+
+function update() {
+  ball.x += ball.vx; ball.y += ball.vy;
+  if (ball.y-ball.r < 0) { ball.y = ball.r; ball.vy *= -1; }
+  if (ball.y+ball.r > H) { ball.y = H-ball.r; ball.vy *= -1; }
+
+  if (ball.x-ball.r < playerPad.x+PAD_W && ball.x > playerPad.x &&
+      ball.y > playerPad.y && ball.y < playerPad.y+PAD_H) {
+    ball.x = playerPad.x+PAD_W+ball.r;
+    const rel = (ball.y-(playerPad.y+PAD_H/2))/(PAD_H/2);
+    const angle = rel*60*(Math.PI/180);
+    const spd = Math.min(Math.sqrt(ball.vx**2+ball.vy**2)*1.05, 14);
+    ball.vx = Math.abs(Math.cos(angle)*spd);
+    ball.vy = Math.sin(angle)*spd;
+  }
+
+  if (ball.x+ball.r > cpuPad.x && ball.x < cpuPad.x+PAD_W &&
+      ball.y > cpuPad.y && ball.y < cpuPad.y+PAD_H) {
+    ball.x = cpuPad.x-ball.r;
+    const rel = (ball.y-(cpuPad.y+PAD_H/2))/(PAD_H/2);
+    const angle = rel*60*(Math.PI/180);
+    const spd = Math.min(Math.sqrt(ball.vx**2+ball.vy**2)*1.05, 14);
+    ball.vx = -Math.abs(Math.cos(angle)*spd);
+    ball.vy = Math.sin(angle)*spd;
+  }
+
+  // CPU AI — hard cap at CPU_MAX_SPD px/frame to stay beatable
+  const cpuCenter = cpuPad.y + PAD_H/2;
+  const diff = ball.y - cpuCenter;
+  const cpuSpd = Math.min(Math.abs(diff), CPU_MAX_SPD);
+  cpuPad.y += Math.sign(diff) * cpuSpd;
+  cpuPad.y = Math.max(0, Math.min(H-PAD_H, cpuPad.y));
+
+  if (ball.x < 0) { cpuScore++; checkWin(); if (gameRunning) launchBall(); }
+  if (ball.x > W) { playerScore++; checkWin(); if (gameRunning) launchBall(); }
+}
+
+function checkWin() {
+  if (playerScore >= WIN_SCORE) {
+    gameRunning = false; document.getElementById('msg').textContent = 'YOU WIN! 🏆'; saveScore(playerScore*100); arcadeSubmitScore('pong', playerScore*100);
+  }
+  if (cpuScore >= WIN_SCORE) {
+    gameRunning = false; document.getElementById('msg').textContent = 'CPU WINS!'; saveScore(playerScore*50); arcadeSubmitScore('pong', playerScore*50);
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  if (bgImg.complete) { ctx.globalAlpha=0.07; ctx.drawImage(bgImg,0,0,W,H); ctx.globalAlpha=1; }
+  ctx.fillStyle = 'rgba(2,4,10,0.75)'; ctx.fillRect(0,0,W,H);
+
+  ctx.setLineDash([8,12]); ctx.strokeStyle='#ffffff22'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke();
+  ctx.setLineDash([]);
+
+  if (charImg.complete) { ctx.globalAlpha=0.18; ctx.drawImage(charImg,0,H/2-60,80,80); ctx.globalAlpha=1; }
+
+  ctx.font='bold 32px Orbitron'; ctx.textAlign='center';
+  ctx.fillStyle='#00f0ff'; ctx.shadowColor='#00f0ff'; ctx.shadowBlur=10;
+  ctx.fillText(playerScore, W/4, 50);
+  ctx.fillStyle='#ff4488'; ctx.shadowColor='#ff4488';
+  ctx.fillText(cpuScore, 3*W/4, 50);
+  ctx.shadowBlur=0; ctx.font='10px Orbitron'; ctx.fillStyle='#888';
+  ctx.fillText('YOU', W/4, 68); ctx.fillText('CPU', 3*W/4, 68);
+
+  if (playerPad) {
+    ctx.fillStyle='#00f0ff'; ctx.shadowColor='#00f0ff'; ctx.shadowBlur=12;
+    ctx.beginPath(); ctx.roundRect(playerPad.x,playerPad.y,PAD_W,PAD_H,4); ctx.fill(); ctx.shadowBlur=0;
+    if (charImg.complete) {
+      ctx.save(); ctx.beginPath(); ctx.roundRect(playerPad.x,playerPad.y,PAD_W,PAD_H,4); ctx.clip();
+      ctx.drawImage(charImg,playerPad.x,playerPad.y,PAD_W,PAD_H); ctx.restore();
+    }
+  }
+  if (cpuPad) {
+    ctx.fillStyle='#ff4488'; ctx.shadowColor='#ff4488'; ctx.shadowBlur=12;
+    ctx.beginPath(); ctx.roundRect(cpuPad.x,cpuPad.y,PAD_W,PAD_H,4); ctx.fill(); ctx.shadowBlur=0;
+  }
+  if (ball) {
+    ctx.fillStyle='#fff'; ctx.shadowColor='#fff'; ctx.shadowBlur=16;
+    ctx.beginPath(); ctx.arc(ball.x,ball.y,BALL_R,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+  }
+  ctx.textAlign='left';
+}
+
+function ctrlStart(e) { if (e) e.preventDefault(); startGame(); }
+
+document.addEventListener('keydown', e => {
+  if (window.isLobbyOpen && window.isLobbyOpen()) return;
+  if (!gameRunning && (e.code==='Space'||e.code==='Enter')) { startGame(); return; }
+  if (!gameRunning || !playerPad) return;
+  const spd = 14;
+  if (e.code==='KeyW'||e.code==='ArrowUp')   { playerPad.y=Math.max(0,playerPad.y-spd); }
+  if (e.code==='KeyS'||e.code==='ArrowDown') { playerPad.y=Math.min(H-PAD_H,playerPad.y+spd); }
+  e.preventDefault();
+});
+
+canvas.addEventListener('touchstart', e => {
+  if (!gameRunning) { startGame(); return; }
+  touchY = e.touches[0].clientY; e.preventDefault();
+}, {passive:false});
+canvas.addEventListener('touchmove', e => {
+  if (touchY===null||!playerPad) return;
+  const dy = e.touches[0].clientY - touchY;
+  playerPad.y = Math.max(0, Math.min(H-PAD_H, playerPad.y+dy));
+  touchY = e.touches[0].clientY; e.preventDefault();
+}, {passive:false});
+
+// Initial draw
+ctx.fillStyle='#02040a'; ctx.fillRect(0,0,W,H);
+ctx.fillStyle='#00f0ff'; ctx.font='18px Orbitron'; ctx.textAlign='center';
+ctx.fillText('Press START to play', W/2, H/2); ctx.textAlign='left';
+
+function saveScore(s) {
+  let lb=JSON.parse(localStorage.getItem('leaderboard')||'[]');
+  lb.push({name:localStorage.getItem('player_name')||'Player',game:'Pong',score:s,date:new Date().toLocaleDateString()});
+  lb.sort((a,b)=>b.score-a.score);
+  localStorage.setItem('leaderboard',JSON.stringify(lb.slice(0,20)));
+}
+
+// ─── Gamepad support ──────────────────────────────────────────────────────────
+GamepadMgr.on('hold_up',   () => { if (gameRunning && playerPad) playerPad.y = Math.max(0, playerPad.y - 4); });
+GamepadMgr.on('hold_down', () => { if (gameRunning && playerPad) playerPad.y = Math.min(H - PAD_H, playerPad.y + 4); });
+GamepadMgr.on('up',        () => { if (gameRunning && playerPad) playerPad.y = Math.max(0, playerPad.y - 14); });
+GamepadMgr.on('down',      () => { if (gameRunning && playerPad) playerPad.y = Math.min(H - PAD_H, playerPad.y + 14); });
+GamepadMgr.on('a',         () => { if (!gameRunning) startGame(); });
+GamepadMgr.on('start',     () => startGame());
+
+// ─── Game Lobby ───────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  showGameLobby('pong', () => startGame());
+});
+</script>
+</body>
+</html>

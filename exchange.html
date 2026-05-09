@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monet Exchange</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<style>
+body {
+  background-image: url('/title.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  min-height:100vh;
+}
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background:rgba(2,4,10,0.86);
+  pointer-events:none;
+  z-index:0;
+}
+.page { position:relative; z-index:1; padding-bottom:40px; }
+.wallet-bar { max-width:600px; margin:0 auto 12px; padding:10px 16px; background:rgba(0,0,0,0.4); border-radius:10px; border:1px solid #333; display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; }
+.nav-row { display:flex; justify-content:center; gap:10px; margin:8px 0 16px; flex-wrap:wrap; }
+.nav-btn { padding:7px 18px; border-radius:8px; border:2px solid #a855ff; background:transparent; color:#a855ff; font-family:'Orbitron',sans-serif; font-size:11px; font-weight:bold; cursor:pointer; text-decoration:none; display:inline-block; }
+.nav-btn:hover { background:#a855ff; color:#000; }
+.monet-info { max-width:500px; margin:0 auto 16px; background:rgba(168,85,255,0.1); border:1px solid #a855ff33; border-radius:12px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+.monet-info .label { font-family:'Orbitron',sans-serif; font-size:11px; color:#a855ff; }
+.monet-info .value { font-size:20px; font-weight:bold; color:#fff; }
+
+/* Terminal wrapper */
+#jup-wrap {
+  max-width:500px; margin:0 auto;
+  border-radius:16px; border:1px solid #a855ff44;
+  overflow:hidden; min-height:420px;
+  position:relative;
+  background:rgba(0,0,0,0.45);
+}
+/* Loading overlay */
+#jup-loading {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:16px; padding:30px;
+  background:rgba(2,4,10,0.92);
+  z-index:10;
+  transition:opacity 0.3s;
+}
+.jup-spinner {
+  width:40px; height:40px;
+  border:3px solid #a855ff33;
+  border-top-color:#a855ff;
+  border-radius:50%;
+  animation:spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.jup-status {
+  color:#888; font-size:12px;
+  font-family:'Orbitron',sans-serif;
+  text-align:center; line-height:1.6;
+}
+
+/* Always-visible Jupiter.ag fallback link */
+.jup-direct {
+  display:block;
+  max-width:500px; margin:14px auto 0;
+  padding:13px 20px;
+  background:linear-gradient(135deg,#a855ff,#7c3aed);
+  color:#fff; font-family:'Orbitron',sans-serif;
+  font-size:12px; font-weight:800;
+  border-radius:12px; text-align:center;
+  text-decoration:none;
+  box-shadow:0 0 24px #a855ff33;
+  letter-spacing:.5px;
+}
+.jup-direct:hover { filter:brightness(1.15); }
+
+.swap-hint {
+  max-width:500px; margin:0 auto 10px;
+  font-size:11px; color:#a78bfa;
+  text-align:center; font-family:'Orbitron',sans-serif;
+}
+.rpc-badge { text-align:center; font-size:10px; color:#444; padding:6px; font-family:monospace; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h2>MONET EXCHANGE</h2>
+  <div class="wallet-bar" id="walletBar"></div>
+
+  <div class="monet-info">
+    <div>
+      <div class="label">YOUR MONET BALANCE</div>
+      <div class="value" id="monetBal">—</div>
+    </div>
+    <div style="text-align:right">
+      <div class="label">TOKEN ADDRESS</div>
+      <div style="font-size:10px;color:#888;font-family:monospace;max-width:200px;word-break:break-all">6eACLGXCGdw9D5zb5eBKyFnFNTX9pTihDEpZQ7gYAX1b</div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <a class="nav-btn" href="arcade.html">&#127918; Arcade</a>
+    <a class="nav-btn" href="portfolio.html">&#128188; Portfolio</a>
+    <a class="nav-btn" href="index.html">&#8592; Home</a>
+  </div>
+
+  <p class="swap-hint">Swap SOL &#8646; MONET using Jupiter</p>
+
+  <div id="jup-wrap">
+    <div id="jup-loading">
+      <div class="jup-spinner"></div>
+      <div class="jup-status" id="jup-status">Loading swap widget…</div>
+    </div>
+    <div id="integrated-terminal"></div>
+  </div>
+
+  <!-- Always-visible direct link — works even if widget fails -->
+  <a class="jup-direct"
+     href="https://jup.ag/swap/SOL-6eACLGXCGdw9D5zb5eBKyFnFNTX9pTihDEpZQ7gYAX1b"
+     target="_blank" rel="noopener">
+    &#9654; Open Full Jupiter Swap
+  </a>
+
+  <p class="rpc-badge" id="rpcBadge"></p>
+</div>
+
+<script src="https://unpkg.com/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
+<script src="/wallet.js"></script>
+<script>
+renderWalletBar('walletBar');
+
+const MONET_MINT = '6eACLGXCGdw9D5zb5eBKyFnFNTX9pTihDEpZQ7gYAX1b';
+const SOL_MINT   = 'So11111111111111111111111111111111111111112';
+
+function updateBal() {
+  const el = document.getElementById('monetBal');
+  if (!el) return;
+  el.textContent = WalletState.connected
+    ? WalletState.monetBalance.toFixed(2) + ' MONET'
+    : '—';
+}
+document.addEventListener('walletConnected',  updateBal);
+document.addEventListener('balanceUpdated',   updateBal);
+document.addEventListener('walletDisconnected', updateBal);
+
+// ── Jupiter Terminal ──────────────────────────────────────────────────────────
+let _rpcEndpoint = 'https://api.mainnet-beta.solana.com';
+let _inited = false;
+
+function _hideLoading() {
+  const el = document.getElementById('jup-loading');
+  if (el) { el.style.opacity = '0'; setTimeout(() => el.style.display = 'none', 300); }
+}
+
+function _setStatus(msg) {
+  const el = document.getElementById('jup-status');
+  if (el) el.textContent = msg;
+}
+
+function _init() {
+  if (_inited || !window.Jupiter) return;
+  try {
+    window.Jupiter.init({
+      displayMode:        'integrated',
+      integratedTargetId: 'integrated-terminal',
+      endpoint:           _rpcEndpoint,
+      defaultExplorer:    'SolanaFM',
+      formProps: {
+        initialInputMint:  SOL_MINT,
+        initialOutputMint: MONET_MINT,
+      },
+    });
+    _inited = true;
+    _hideLoading();
+    document.getElementById('rpcBadge').textContent = 'RPC: ' + new URL(_rpcEndpoint).hostname;
+  } catch(e) {
+    console.error('[Exchange] Jupiter.init error:', e);
+    _setStatus('Widget failed to start — use the button below to swap on Jupiter.');
+    document.querySelector('.jup-spinner').style.display = 'none';
+  }
+}
+
+// Load in order: fetch RPC → inject script → init
+fetch('/api/rpc-url')
+  .then(r => r.json())
+  .then(d => { if (d && d.url) _rpcEndpoint = d.url; })
+  .catch(() => {})
+  .finally(() => {
+    // Try v4 first (stable), fall back to v3
+    _loadScript(
+      'https://terminal.jup.ag/main-v4.js',
+      () => setTimeout(_init, 500),
+      () => _loadScript(
+        'https://terminal.jup.ag/main-v3.js',
+        () => setTimeout(_init, 500),
+        () => {
+          _setStatus('Could not load swap widget — use the button below.');
+          document.querySelector('.jup-spinner').style.display = 'none';
+        }
+      )
+    );
+  });
+
+function _loadScript(src, onload, onerror) {
+  const s = document.createElement('script');
+  s.src = src;
+  s.setAttribute('data-preload', '');
+  s.onload  = onload;
+  s.onerror = onerror;
+  document.body.appendChild(s);
+}
+
+// Safety net — show status if still not loaded after 12 s
+setTimeout(() => {
+  if (!_inited) _setStatus('Taking longer than expected — use the button below to swap.');
+}, 12000);
+</script>
+</body>
+</html>

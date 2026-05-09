@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monet Money Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://unpkg.com/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
+<script src="/wallet.js"></script>
+<style>
+body {
+  background-image: url('/title.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  min-height:100vh;
+}
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background:rgba(2,4,10,0.83);
+  pointer-events:none;
+  z-index:0;
+}
+.page { position:relative; z-index:1; padding:10px 0 30px; }
+.subtitle { color:#aaa; font-size:12px; margin:-6px 0 16px; font-family:'Orbitron',sans-serif; }
+
+.grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap:16px;
+  max-width:700px;
+  margin:0 auto;
+  padding:0 16px;
+}
+
+.card {
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px;
+  padding:20px 12px 16px;
+  cursor:pointer;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  text-decoration:none;
+  display:block;
+}
+.card:hover {
+  transform:translateY(-4px);
+  box-shadow:0 0 24px var(--glow);
+  border-color: var(--accent);
+}
+.card-icon { font-size:36px; margin-bottom:8px; }
+.card-title {
+  font-family:'Orbitron',sans-serif;
+  font-size:12px;
+  font-weight:800;
+  color:#fff;
+  margin-bottom:4px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2, var(--accent)));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.card-desc { font-size:10px; color:#888; line-height:1.4; }
+.badge {
+  display:inline-block;
+  font-size:9px;
+  padding:2px 6px;
+  border-radius:20px;
+  margin-top:6px;
+  font-family:'Orbitron',sans-serif;
+  font-weight:bold;
+  background:rgba(168,85,255,0.2);
+  color:#a855ff;
+  border:1px solid #a855ff44;
+}
+.badge-h2h {
+  background:rgba(0,240,255,0.12);
+  color:#00f0ff;
+  border:1px solid #00f0ff44;
+}
+
+.nav-row { display:flex; justify-content:center; gap:10px; margin:20px 0 10px; flex-wrap:wrap; }
+.nav-btn {
+  padding:8px 20px;
+  border-radius:8px;
+  border:2px solid #a855ff;
+  background:transparent;
+  color:#a855ff;
+  font-family:'Orbitron',sans-serif;
+  font-size:11px;
+  font-weight:bold;
+  cursor:pointer;
+}
+.nav-btn:hover { background:#a855ff; color:#000; }
+
+.section-label {
+  color:#a855ff;
+  font-family:'Orbitron',sans-serif;
+  font-size:11px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  margin:20px 0 10px;
+  padding-left:16px;
+  text-align:left;
+  max-width:700px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.pot-banner {
+  max-width:700px; margin:10px auto 4px; padding:0 16px;
+}
+.pot-inner {
+  background:linear-gradient(135deg,rgba(168,85,255,0.12),rgba(0,240,255,0.08));
+  border:1px solid #a855ff44; border-radius:14px;
+  padding:14px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+}
+.pot-num  { font-family:'Orbitron',sans-serif; font-size:22px; font-weight:800; color:#ffd700; }
+.pot-sub  { font-size:10px; color:#888; margin-top:1px; }
+.pot-btns { display:flex; gap:8px; }
+.pot-btn  { padding:7px 14px; border-radius:8px; border:none; cursor:pointer; font-family:'Orbitron',sans-serif; font-size:10px; font-weight:800; }
+.pot-btn-h2h    { background:linear-gradient(135deg,#00f0ff22,#00f0ff11); color:#00f0ff; border:1px solid #00f0ff44; }
+.pot-btn-tourny { background:linear-gradient(135deg,#ffd70022,#ffd70011); color:#ffd700; border:1px solid #ffd70044; }
+.pot-btn:hover  { filter:brightness(1.3); }
+
+.compete-grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:12px; max-width:700px; margin:0 auto; padding:0 16px;
+}
+.compete-card {
+  border-radius:14px; padding:18px 14px; cursor:pointer;
+  text-decoration:none; display:block; transition:transform .15s, box-shadow .15s;
+}
+.compete-card:hover { transform:translateY(-3px); }
+.compete-card.h2h     { background:rgba(0,240,255,0.06); border:1px solid #00f0ff33; box-shadow:0 0 0 #00f0ff00; }
+.compete-card.h2h:hover { box-shadow:0 0 20px #00f0ff33; }
+.compete-card.tourney { background:rgba(255,215,0,0.06); border:1px solid #ffd70033; }
+.compete-card.tourney:hover { box-shadow:0 0 20px #ffd70033; }
+.cc-icon  { font-size:28px; margin-bottom:6px; }
+.cc-title { font-family:'Orbitron',sans-serif; font-size:12px; font-weight:800; margin-bottom:4px; }
+.cc-h2h   { color:#00f0ff; }
+.cc-gold  { color:#ffd700; }
+.cc-desc  { font-size:10px; color:#888; line-height:1.4; }
+.cc-badge { display:inline-block; font-size:9px; padding:2px 7px; border-radius:20px; margin-top:6px; font-family:'Orbitron',sans-serif; font-weight:bold; }
+.cc-badge-h2h   { background:rgba(0,240,255,0.1); color:#00f0ff; border:1px solid #00f0ff33; }
+.cc-badge-gold  { background:rgba(255,215,0,0.1); color:#ffd700; border:1px solid #ffd70033; }
+
+.wallet-bar { text-align:right; padding:6px 16px; background:rgba(0,0,0,0.3); font-size:12px; }
+
+.card.loading,
+.compete-card.loading {
+  pointer-events: none;
+  opacity: 0.7;
+  position: relative;
+}
+.card.loading::after,
+.compete-card.loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: rgba(2,4,10,0.45);
+  z-index: 1;
+}
+.card.loading .card-icon,
+.compete-card.loading .cc-icon {
+  position: relative;
+  z-index: 2;
+}
+.card.loading .card-icon::after,
+.compete-card.loading .cc-icon::after {
+  content: '';
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid transparent;
+  border-top-color: var(--accent, #a855ff);
+  border-radius: 50%;
+  animation: card-spin 0.7s linear infinite;
+  margin: 4px auto 0;
+}
+@keyframes card-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Game Mode Modal Buttons ── */
+.gm-btn {
+  display:flex; align-items:center; gap:10px;
+  width:100%; padding:11px 12px; border-radius:12px;
+  border:1px solid color-mix(in srgb, var(--c) 30%, transparent);
+  background:color-mix(in srgb, var(--c) 8%, transparent);
+  cursor:pointer; text-align:left; transition:background .15s, border-color .15s;
+}
+.gm-btn:hover {
+  background:color-mix(in srgb, var(--c) 16%, transparent);
+  border-color:color-mix(in srgb, var(--c) 60%, transparent);
+}
+.gm-btn-icon { font-size:20px; flex-shrink:0; }
+.gm-btn-body { flex:1; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.gm-btn-title {
+  font-family:'Orbitron',sans-serif; font-size:10px; font-weight:800;
+  color:#fff; display:block;
+}
+.gm-btn-desc { font-size:9px; color:#777; display:block; line-height:1.4; }
+.gm-btn-badge {
+  flex-shrink:0; font-size:8px; padding:2px 7px; border-radius:20px;
+  font-family:'Orbitron',sans-serif; font-weight:bold; border:1px solid;
+  white-space:nowrap;
+}
+</style>
+</head>
+<body>
+<div class="wallet-bar" id="wbar"></div>
+<div class="page">
+<img src="/logo.png" style="width:80px;display:block;margin:12px auto 6px;filter:drop-shadow(0 0 16px #a855ff)">
+<h1>MONET ARCADE</h1>
+<div class="subtitle">Every game costs <span style="color:#ffd700">$0.50 USD</span> · Pay in MONET or SOL</div>
+
+<div class="nav-row">
+  <button class="nav-btn" onclick="location.href='index.html'">&#8592; Home</button>
+  <button class="nav-btn" onclick="location.href='exchange.html'">&#8645; Exchange</button>
+  <button class="nav-btn" onclick="location.href='portfolio.html'">&#128188; Portfolio</button>
+  <button class="nav-btn" onclick="location.href='leaderboard.html'">&#127942; Scores</button>
+  <button class="nav-btn" onclick="location.href='terms.html'" style="border-color:#a855ff44;color:#a855ff">&#128274; Terms</button>
+</div>
+
+<!-- Treasury Pot Banner -->
+<div class="pot-banner">
+  <div class="pot-inner" style="justify-content:center;text-align:center">
+    <div>
+      <div class="pot-num" id="pot-balance">— MONET</div>
+      <div class="pot-sub">Treasury pot · live balance</div>
+    </div>
+  </div>
+</div>
+
+<!-- Pricing Info Strip -->
+<div id="pricing-strip" style="
+  max-width:700px;margin:0 auto 12px;padding:0 16px;
+">
+  <div style="
+    background:linear-gradient(135deg,rgba(168,85,255,0.10),rgba(0,240,255,0.06));
+    border:1px solid rgba(168,85,255,0.25);border-radius:14px;
+    padding:12px 18px;display:flex;align-items:center;justify-content:center;
+    gap:24px;flex-wrap:wrap;text-align:center;
+    font-family:'Orbitron',sans-serif;
+  ">
+    <div>
+      <div style="font-size:18px;font-weight:800;color:#ffd700">$0.50 <span style="font-size:11px;color:#aaa;font-weight:normal">USD per game</span></div>
+      <div style="font-size:9px;color:#666;margin-top:2px;letter-spacing:1px">ENTRY FEE · ALL MODES</div>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center">
+      <div style="text-align:center">
+        <div style="font-size:11px;color:#a855ff;font-weight:800">💎 MONET</div>
+        <div style="font-size:10px;color:#ccc;margin-top:2px"><span id="strip-monet-fee">—</span> MONET</div>
+        <div style="font-size:8px;color:#555;margin-top:1px">live market rate</div>
+      </div>
+      <div style="color:#333;font-size:18px;align-self:center">·</div>
+      <div style="text-align:center">
+        <div style="font-size:11px;color:#3b82f6;font-weight:800">◎ SOL</div>
+        <div style="font-size:10px;color:#ccc;margin-top:2px">~$0.25 in SOL</div>
+        <div style="font-size:8px;color:#555;margin-top:1px">≈ 0.001 SOL</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-label">&#127918; Pick a Game</div>
+<div class="grid">
+
+  <a class="card" data-href="mario.html" data-game="mario" data-icon="🍄" data-title="Monet Bros" style="--accent:#e03c2d;--accent2:#ffd700;--glow:#e03c2d44">
+    <div class="card-icon">🍄</div>
+    <div class="card-title">Monet Bros</div>
+    <div class="card-desc">Run, jump &amp; stomp Goombas. Reach the flag to win MONET!</div>
+    <span class="badge" style="background:linear-gradient(135deg,#e03c2d,#ffd700);color:#000">PLATFORMER</span>
+  </a>
+
+  <a class="card" data-href="pacman.html" data-game="pacman" data-icon="🐱" data-title="Rawr-man" style="--accent:#ffdd00;--accent2:#ff8800;--glow:#ffdd0044">
+    <div class="card-icon">&#128049;</div>
+    <div class="card-title">Rawr-man</div>
+    <div class="card-desc">Eat dots, dodge ghosts. Power up and turn the tables!</div>
+    <span class="badge badge-h2h">H2H</span>
+  </a>
+
+  <a class="card" data-href="dino.html" data-game="dino" data-icon="⚡" data-title="Monet Runner" style="--accent:#a855ff;--accent2:#00f0ff;--glow:#a855ff44">
+    <div class="card-icon">&#9889;</div>
+    <div class="card-title">Monet Runner</div>
+    <div class="card-desc">Jump over obstacles. Build &amp; share your own levels!</div>
+    <span class="badge badge-h2h">H2H</span>
+  </a>
+
+  <a class="card" data-href="frogger.html" data-game="frogger" data-icon="🐸" data-title="Feelin' Froggy" style="--accent:#00ff9d;--accent2:#00f0ff;--glow:#00ff9d44">
+    <div class="card-icon">&#128056;</div>
+    <div class="card-title">Feelin' Froggy</div>
+    <div class="card-desc">Cross traffic and river. Don't get squashed!</div>
+    <span class="badge badge-h2h">H2H</span>
+  </a>
+
+  <a class="card" data-href="snake.html" data-game="snake" data-icon="🐍" data-title="Slithering Serpent" style="--accent:#00ff9d;--glow:#00ff9d44">
+    <div class="card-icon">&#128013;</div>
+    <div class="card-title">Slithering Serpent</div>
+    <div class="card-desc">Eat coins and grow. Don't bite yourself!</div>
+    <span class="badge badge-h2h">H2H</span>
+  </a>
+
+  <a class="card" data-href="invaders.html" data-game="invaders" data-icon="👾" data-title="Space Invaders" style="--accent:#00f0ff;--accent2:#a855ff;--glow:#00f0ff44">
+    <div class="card-icon">&#128125;</div>
+    <div class="card-title">Space Invaders</div>
+    <div class="card-desc">Blast the alien waves! Defend Earth for MONET!</div>
+    <span class="badge badge-h2h">H2H</span>
+  </a>
+
+  <a class="card" data-href="pong.html" data-game="pong" data-icon="🏓" data-title="Monet Pong" style="--accent:#00f0ff;--glow:#00f0ff44">
+    <div class="card-icon">&#127934;</div>
+    <div class="card-title">Monet Pong</div>
+    <div class="card-desc">Classic pong vs CPU. First to 7 wins!</div>
+    <span class="badge badge-h2h">H2H</span>
+  </a>
+
+  <a class="card" data-href="fighter.html" data-game="fighter" data-icon="🥊" data-title="Ready. Set. Fight." style="--accent:#ff4400;--accent2:#ffd700;--glow:#ff440044">
+    <div class="card-icon">&#129354;</div>
+    <div class="card-title">Ready. Set. Fight.</div>
+    <div class="card-desc">1v1 brawler. Punch, kick &amp; unleash specials. Beat the CPU!</div>
+    <span class="badge" style="background:linear-gradient(135deg,#ff4400,#ffd700);color:#000">FIGHTER</span>
+  </a>
+
+  <a class="card" href="dino.html#create" style="--accent:#a855ff;--glow:#a855ff44" onclick="sessionStorage.setItem('dino_tab','create')">
+    <div class="card-icon">&#127959;</div>
+    <div class="card-title">Monet Maker</div>
+    <div class="card-desc">Design custom Runner levels and challenge friends!</div>
+    <span class="badge">CREATOR</span>
+  </a>
+
+</div>
+</div>
+
+<!-- ── Join Friend by Code ── -->
+<div style="max-width:700px;margin:24px auto 0;padding:0 16px">
+  <div id="join-code-box" style="background:rgba(0,240,255,0.06);border:1px solid #00f0ff33;border-radius:16px;padding:18px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+    <div style="flex:1;min-width:200px">
+      <div style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:800;color:#00f0ff;margin-bottom:4px">&#128273; JOIN A FRIEND'S GAME</div>
+      <div style="font-size:11px;color:#888">Enter the 6-character code your friend shared</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="arcade-code-input"
+             maxlength="8" placeholder="XXXXXX"
+             autocapitalize="characters" autocorrect="off" spellcheck="false"
+             style="width:130px;padding:10px 14px;border-radius:10px;border:1px solid #00f0ff55;background:#060d1a;color:#00f0ff;font-family:'Orbitron',sans-serif;font-size:14px;font-weight:800;letter-spacing:3px;text-align:center;text-transform:uppercase"
+             oninput="this.value=this.value.toUpperCase()"
+             onkeydown="if(event.key==='Enter')joinByCode()">
+      <button onclick="joinByCode()"
+              style="padding:10px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,#00f0ff,#0088bb);color:#000;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">
+        JOIN &#9654;
+      </button>
+    </div>
+    <div id="arcade-code-err" style="width:100%;font-size:11px;color:#ff6b6b;font-family:'Orbitron',sans-serif;display:none"></div>
+  </div>
+</div>
+
+<!-- ── Game Mode Modal ── -->
+<div id="gm-overlay" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(2,4,10,0.88);align-items:center;justify-content:center;padding:12px">
+<div id="gm-modal" style="background:#0d0f1a;border:1px solid #a855ff55;border-radius:20px;max-width:360px;width:100%;padding:22px 18px 18px;position:relative;box-shadow:0 0 40px #a855ff22">
+  <button id="gm-close" style="position:absolute;top:12px;right:14px;background:none;border:none;color:#555;font-size:18px;cursor:pointer;line-height:1" onclick="closeModal()">&#10005;</button>
+  <div style="text-align:center;margin-bottom:16px">
+    <div id="gm-icon" style="font-size:32px;margin-bottom:4px"></div>
+    <div id="gm-title" style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:800;background:linear-gradient(90deg,#a855ff,#00f0ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent"></div>
+    <div style="font-size:10px;color:#555;margin-top:3px;font-family:'Orbitron',sans-serif">SELECT GAME MODE</div>
+    <div style="margin-top:8px;padding:6px 12px;background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.2);border-radius:8px;display:inline-block">
+      <span style="font-size:10px;color:#ffd700;font-family:'Orbitron',sans-serif;font-weight:800">$0.50 USD entry</span>
+      <span style="font-size:9px;color:#666;margin-left:6px">· <span id="gm-monet-fee">—</span> MONET or ~$0.25 SOL</span>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:9px" id="gm-modes">
+
+    <button class="gm-btn" style="--c:#a855ff" onclick="goMode('practice')">
+      <span class="gm-btn-icon">🎮</span>
+      <span class="gm-btn-body">
+        <span class="gm-btn-title">PRACTICE</span>
+        <span class="gm-btn-desc">Free play · no entry fee · no prize · just for fun</span>
+      </span>
+      <span class="gm-btn-badge" style="background:rgba(168,85,255,0.15);color:#a855ff;border-color:#a855ff44">FREE</span>
+    </button>
+
+    <button class="gm-btn" style="--c:#ff4488" onclick="goMode('cpu')">
+      <span class="gm-btn-icon">🤖</span>
+      <span class="gm-btn-body">
+        <span class="gm-btn-title">VS CPU</span>
+        <span class="gm-btn-desc">Expert AI · $0.50 entry · Win double if you beat it</span>
+      </span>
+      <span class="gm-btn-badge" style="background:rgba(255,68,136,0.15);color:#ff4488;border-color:#ff448844" id="gm-cpu-badge">$0.50</span>
+    </button>
+
+    <button class="gm-btn" style="--c:#00f0ff" onclick="goMode('wait')">
+      <span class="gm-btn-icon">👥</span>
+      <span class="gm-btn-body">
+        <span class="gm-btn-title">WAIT FOR LIVE PLAYER</span>
+        <span class="gm-btn-desc">$0.50 entry · open a challenge · wait for a real opponent</span>
+      </span>
+      <span class="gm-btn-badge" style="background:rgba(0,240,255,0.12);color:#00f0ff;border-color:#00f0ff44">LIVE</span>
+    </button>
+
+    <button class="gm-btn" style="--c:#00f0ff" onclick="goMode('h2h')">
+      <span class="gm-btn-icon">⚔️</span>
+      <span class="gm-btn-body">
+        <span class="gm-btn-title">H2H CHALLENGE</span>
+        <span class="gm-btn-desc">$0.50 entry · challenge a friend · winner takes 80% pot</span>
+      </span>
+      <span class="gm-btn-badge" style="background:rgba(0,240,255,0.12);color:#00f0ff;border-color:#00f0ff44">1v1</span>
+    </button>
+
+    <button class="gm-btn" style="--c:#ffd700" onclick="goMode('tournament')">
+      <span class="gm-btn-icon">🏆</span>
+      <span class="gm-btn-body">
+        <span class="gm-btn-title">TOURNAMENT</span>
+        <span class="gm-btn-desc">$0.50 entry · multi-player bracket · top 3 share prize pool</span>
+      </span>
+      <span class="gm-btn-badge" style="background:rgba(255,215,0,0.12);color:#ffd700;border-color:#ffd70044">PRIZE POOL</span>
+    </button>
+
+    <button class="gm-btn" style="--c:#00ff9d" onclick="goMode('join')">
+      <span class="gm-btn-icon">🎲</span>
+      <span class="gm-btn-body">
+        <span class="gm-btn-title">JOIN RANDOM GAME</span>
+        <span class="gm-btn-desc">Browse open live challenges · jump in &amp; play instantly</span>
+      </span>
+      <span class="gm-btn-badge" style="background:rgba(0,255,157,0.12);color:#00ff9d;border-color:#00ff9d44">OPEN</span>
+    </button>
+
+  </div>
+</div>
+</div>
+
+<script>
+// ── Dynamic pricing — fetch MONET fee and populate strip + modal ──────────────
+let _arcadeEntryFee = null;
+async function loadEntryFee() {
+  try {
+    const r = await fetch('/api/monet-price');
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.entryFeeMonet > 0) {
+      _arcadeEntryFee = d.entryFeeMonet;
+      const fmt = d.entryFeeMonet.toLocaleString();
+      // Update pricing strip
+      const stripEl = document.getElementById('strip-monet-fee');
+      if (stripEl) stripEl.textContent = fmt;
+      // Update modal fee display
+      const gmEl = document.getElementById('gm-monet-fee');
+      if (gmEl) gmEl.textContent = fmt;
+      // Update VS CPU badge
+      const cpuBadge = document.getElementById('gm-cpu-badge');
+      if (cpuBadge) cpuBadge.textContent = fmt + ' M';
+    }
+  } catch(_) {}
+}
+loadEntryFee();
+
+// ── Modal state ──────────────────────────────────────────────────────────────
+let _curHref = '', _curGame = '';
+
+function openModal(card) {
+  _curHref  = card.dataset.href  || '';
+  _curGame  = card.dataset.game  || '';
+  document.getElementById('gm-icon').textContent  = card.dataset.icon  || '🎮';
+  document.getElementById('gm-title').textContent = card.dataset.title || '';
+  const ov = document.getElementById('gm-overlay');
+  ov.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('gm-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function goMode(mode) {
+  if (!_curHref) return;
+  closeModal();
+  const g = _curGame;
+  if      (mode === 'practice')    location.href = _curHref + '?practice=1';
+  else if (mode === 'cpu')         location.href = `challenge.html?game=${g}&tab=cpu&diff=expert`;
+  else if (mode === 'wait')        location.href = `challenge.html?game=${g}&tab=h2h&wait=1`;
+  else if (mode === 'h2h')         location.href = `challenge.html?game=${g}&tab=h2h`;
+  else if (mode === 'tournament')  location.href = `tournament.html?game=${g}`;
+  else if (mode === 'join')        location.href = `challenge.html?game=${g}&tab=lobby`;
+}
+
+// Close on overlay click outside modal
+document.getElementById('gm-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+// Close on Escape
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── Join by code ──────────────────────────────────────────────────────────────
+async function joinByCode() {
+  const inp  = document.getElementById('arcade-code-input');
+  const err  = document.getElementById('arcade-code-err');
+  const code = (inp ? inp.value.trim().toUpperCase() : '');
+  err.style.display = 'none';
+  if (!code || code.length < 4) {
+    err.textContent = 'Enter a valid challenge code (4–6 characters)';
+    err.style.display = 'block';
+    return;
+  }
+  err.textContent = 'Looking up challenge…';
+  err.style.color = '#00f0ff';
+  err.style.display = 'block';
+  try {
+    const res = await fetch(`/api/challenge/${code}`);
+    if (!res.ok) throw new Error('Challenge not found');
+    const data = await res.json();
+    const game = data.challenge && data.challenge.game;
+    if (!game) throw new Error('Invalid challenge data');
+    if (data.challenge.status !== 'open') {
+      throw new Error(`Challenge is ${data.challenge.status} — it may have already started or expired`);
+    }
+    // Redirect to the correct game page; lobby.js detects ?challenge= and auto-opens join screen
+    location.href = `${game}.html?challenge=${code}`;
+  } catch(e) {
+    err.textContent = e.message || 'Challenge not found — check the code and try again';
+    err.style.color = '#ff6b6b';
+    err.style.display = 'block';
+  }
+}
+
+// ── Pot balance ───────────────────────────────────────────────────────────────
+// Use /api/balance/:treasury directly — same battle-tested path used for player
+// balances, with server-side RPC fallback + stale-cache support. Avoids the
+// separate getTreasuryBalance() cache that resets to 0 on every server restart.
+const TREASURY_ADDR = 'BmEAUUkKcj7BLNAxTF6wqFx6r25wbX5josw4voMbin9z';
+let _lastPotBal = null;
+
+async function loadPotBalance() {
+  const el = document.getElementById('pot-balance');
+  try {
+    const res = await fetch(`/api/balance/${TREASURY_ADDR}`);
+    if (!res.ok) throw new Error('non-ok');
+    const data = await res.json();
+    if (typeof data.monet === 'number') {
+      _lastPotBal = data.monet;
+      if (el) el.textContent = data.monet.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' MONET';
+    } else if (_lastPotBal !== null && el) {
+      el.textContent = _lastPotBal.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' MONET';
+    }
+  } catch {
+    // Keep last known value; don't blank out on transient RPC errors
+    if (_lastPotBal !== null && el) {
+      el.textContent = _lastPotBal.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' MONET';
+    }
+  }
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  renderWalletBar('wbar');
+  loadPotBalance();
+  setInterval(loadPotBalance, 30000);
+
+  // Intercept game card clicks → open mode modal
+  document.querySelectorAll('a.card[data-href]').forEach(card => {
+    card.addEventListener('click', e => {
+      e.preventDefault();
+      openModal(card);
+    });
+  });
+
+  window.addEventListener('pageshow', e => {
+    if (e.persisted) closeModal();
+  });
+});
+</script>
+</body>
+</html>
