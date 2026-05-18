@@ -222,20 +222,20 @@
           <div class="lb-mc-name">PRACTICE</div>
           <div class="lb-mc-sub">Free · No entry fee<br>No prize pool</div>
         </button>
-        <button class="lb-mode-card cpu" onclick="window._lbCpuExpert()">
-          <span class="lb-mc-icon">🤖</span>
-          <div class="lb-mc-name">CPU EXPERT</div>
-          <div class="lb-mc-sub">≈$0.50 entry · Win 80% back<br>(~${CPU_WIN_PAYOUT} MONET if you win)</div>
+        <button class="lb-mode-card cpu" onclick="window._lbSoloPaid()">
+          <span class="lb-mc-icon">🏅</span>
+          <div class="lb-mc-name">SOLO PLAY</div>
+          <div class="lb-mc-sub">≈$0.99 entry · Score goes on<br>leaderboard · Chance at bonus</div>
         </button>
         <button class="lb-mode-card live" onclick="window._lbJoinLive()">
           <span class="lb-mc-icon">⚡</span>
           <div class="lb-mc-name">JOIN LIVE</div>
-          <div class="lb-mc-sub">Browse open H2H<br>80/20 pot split</div>
+          <div class="lb-mc-sub">Browse open H2H<br>90/10 pot split</div>
         </button>
         <button class="lb-mode-card create" onclick="window._lbCreate()">
           <span class="lb-mc-icon">⚔</span>
           <div class="lb-mc-name">CREATE H2H</div>
-          <div class="lb-mc-sub">Challenge a friend<br>80/20 pot split</div>
+          <div class="lb-mc-sub">Challenge a friend<br>90/10 pot split</div>
         </button>
       </div>
       <button class="lb-mode-card tourney full-row" style="width:100%;display:block" onclick="window._lbTournament()">
@@ -421,7 +421,7 @@
           return `<div class="lb-live-item" onclick="window._lbJoinChallenge('${c.code}')">
             <div>
               <div style="color:#fff;font-weight:800">${c.code}</div>
-              <div style="color:#888;font-size:9px;margin-top:2px">${short} · ≈$0.50 each (${c.entryFee} MONET)</div>
+              <div style="color:#888;font-size:9px;margin-top:2px">${short} · ≈$0.99 each (${c.entryFee} MONET)</div>
             </div>
             <div style="text-align:right">
               <div style="color:#ffd700;font-weight:800;font-size:12px">${pot} MONET</div>
@@ -463,7 +463,7 @@
           return `<div class="lb-tourney-item" onclick="window._lbJoinTournament('${t.id}', ${t.entryFee})">
             <div>
               <div style="color:#fff;font-weight:800;font-size:11px">${t.title}</div>
-              <div style="color:#888;font-size:9px;margin-top:2px">${t.players.length}/${t.maxPlayers} players · ≈$0.50 entry (${t.entryFee} MONET)</div>
+              <div style="color:#888;font-size:9px;margin-top:2px">${t.players.length}/${t.maxPlayers} players · ≈$0.99 entry (${t.entryFee} MONET)</div>
             </div>
             <div style="text-align:right">
               <div style="color:#ffd700;font-weight:800;font-size:11px">${t.prizePool.toFixed(1)} POT</div>
@@ -503,47 +503,36 @@
 
   // ─── Actions ─────────────────────────────────────────────────────────────────
 
-  // PRACTICE — free, skip payment
+  // PRACTICE — free, no wallet required
   async function _doSolo() {
-    try { await _ensureWallet(); } catch(e) { _setErr(e.message); return; }
     sessionStorage.removeItem('challenge_session');
     _remove();
     if (_onStart) _onStart({ mode: 'solo' });
   }
 
-  // CPU EXPERT — currency picker then pay → launch via showPayGate
-  function _doCpuExpert() {
-    _screenCurrency('CPU EXPERT', '🤖',
-      () => { _paymentType = 'monet'; _doPayAndLaunchCpu(); },
-      () => { _paymentType = 'sol';   _doPayAndLaunchCpu(); }
+  // SOLO PLAY (paid) — currency picker then pay → start game solo
+  function _doSoloPaid() {
+    _screenCurrency('SOLO PLAY', '🏅',
+      () => { _paymentType = 'monet'; _doPayAndLaunchSolo(); },
+      () => { _paymentType = 'sol';   _doPayAndLaunchSolo(); }
     );
   }
 
-  async function _doPayAndLaunchCpu() {
+  async function _doPayAndLaunchSolo() {
     try { await _ensureWallet(); } catch(e) { _setErr(e.message); return; }
     _screenPaying('CHECKING WALLET...');
     _setSpinStep(1);
     let txId;
     try { txId = await _pay(_selectedWager); }
-    catch(e) { _doCpuExpert(); _setErr(e.message); return; }
+    catch(e) { _doSoloPaid(); _setErr(e.message); return; }
 
-    _setSpinLabel('LAUNCHING CPU GAME...');
-    try {
-      const wallet = WalletState.address;
-      const res = await api('/api/cpu/start', 'POST', {
-        wallet, txId, game: _gameName, paymentType: _paymentType,
-      });
-      sessionStorage.setItem('cpu_session', JSON.stringify({
-        cpuGameId: res.cpuGameId, cpuScore: res.cpuScore,
-        difficulty: 'expert', game: _gameName, txId,
-      }));
-      _remove();
-      if (_onStart) _onStart({ mode: 'cpu', cpuGameId: res.cpuGameId, cpuScore: res.cpuScore });
-      if (typeof showCpuTarget === 'function') setTimeout(() => showCpuTarget(res.cpuScore, 'expert'), 300);
-    } catch(e) {
-      _doCpuExpert();
-      _setErr('Failed to start CPU game: ' + e.message);
-    }
+    _setSpinLabel('STARTING GAME...');
+    _setSpinStep(2);
+    sessionStorage.setItem('solo_session', JSON.stringify({
+      game: _gameName, txId, entryFee: _selectedWager, paymentType: _paymentType,
+    }));
+    _remove();
+    if (_onStart) _onStart({ mode: 'solo_paid', txId });
   }
 
   // JOIN LIVE — browse then currency pick → pay → join
@@ -729,7 +718,7 @@
 
   // ─── Expose on window ────────────────────────────────────────────────────────
   window._lbSolo            = _doSolo;
-  window._lbCpuExpert       = _doCpuExpert;
+  window._lbSoloPaid        = _doSoloPaid;
   window._lbJoinLive        = _doJoinLive;
   window._lbCreate          = _doCreate;
   window._lbTournament      = _doTournament;

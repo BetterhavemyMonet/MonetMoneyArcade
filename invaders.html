@@ -3,7 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Monet Space Invaders</title>
+<title>Monet Space Invaders — Crypto Shooter | Monet Money Arcade</title>
+<meta name="description" content="Play Monet Space Invaders on Solana — blast alien waves, climb the leaderboard, and win MONET token prizes. $0.99 entry, pay with crypto or card.">
+<meta name="keywords" content="Space Invaders crypto, Solana shooter game, MONET Space Invaders, Web3 arcade shooter, blockchain Space Invaders, earn crypto Space Invaders">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://betterhavemymonet.com/invaders.html">
+<meta property="og:title" content="Monet Space Invaders — Crypto Shooter on Solana">
+<meta property="og:description" content="Blast alien waves. Win MONET crypto prizes. Compete on leaderboards.">
+<meta property="og:image" content="https://betterhavemymonet.com/logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
 <style>
@@ -53,6 +60,7 @@
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
+const dinoImg = new Image(); dinoImg.src = '/dino-sprite.png';
 
 const W = 560, H = 380;
 canvas.width = W; canvas.height = H;
@@ -349,18 +357,20 @@ function drawInvader(ctx, inv) {
 }
 
 function drawPlayer(ctx) {
-  if (player.hit > 0) {
-    player.hit--;
-    ctx.fillStyle = player.hit % 6 < 3 ? '#ff4488' : '#fff';
+  const flash = player.hit > 0 && Math.floor(player.hit / 3) % 2 === 1;
+  if (player.hit > 0) player.hit--;
+  ctx.save();
+  if (flash) { ctx.filter = 'brightness(3) saturate(0)'; }
+  ctx.shadowColor = '#00f0ff'; ctx.shadowBlur = 10;
+  if (dinoImg.complete && dinoImg.naturalWidth) {
+    ctx.drawImage(dinoImg, player.x, player.y - 4, PLAYER_W, PLAYER_H + 8);
   } else {
-    ctx.fillStyle = '#00f0ff';
+    ctx.fillStyle = flash ? '#ff4488' : '#00f0ff';
+    ctx.fillRect(player.x, player.y + 10, PLAYER_W, 12);
+    ctx.fillRect(player.x + PLAYER_W / 2 - 3, player.y, 6, 12);
   }
-  ctx.shadowColor = '#00f0ff'; ctx.shadowBlur = 12;
-  // Cannon base
-  ctx.fillRect(player.x, player.y + 10, PLAYER_W, 12);
-  // Barrel
-  ctx.fillRect(player.x + PLAYER_W / 2 - 3, player.y, 6, 12);
   ctx.shadowBlur = 0;
+  ctx.restore();
 }
 
 function draw() {

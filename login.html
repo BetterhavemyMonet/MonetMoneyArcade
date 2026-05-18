@@ -4,6 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Monet Arcade — Login</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#7c00ff">
+<meta name="description" content="Sign in to Monet Money Arcade — the Web3 Solana arcade where you play classic games and earn MONET tokens. No wallet required to get started.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://betterhavemymonet.com/login.html">
+<meta property="og:title" content="Monet Money Arcade — Sign In">
+<meta property="og:description" content="Join Monet Money Arcade. Play 16 arcade games on Solana and earn MONET crypto prizes.">
+<meta property="og:image" content="https://betterhavemymonet.com/logo.png">
+<meta property="og:url" content="https://betterhavemymonet.com/login.html">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Monet Arcade">
+<link rel="apple-touch-icon" href="/logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -629,5 +643,6 @@ async function handleStart() {
 const last = localStorage.getItem('player_name');
 if (last) document.getElementById('inp-user').value = last;
 </script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js');}</script>
 </body>
 </html>

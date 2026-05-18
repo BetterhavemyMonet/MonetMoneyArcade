@@ -1,6 +1,6 @@
 # Monet Money Arcade
 
-A Web3 Solana arcade with MONET token payment gating. Entry fee is ≈$0.50 USD (dynamically priced in MONET). Three payment methods: MONET tokens, SOL (~$0.25), or credit/debit card via Stripe. Solo play returns 80% to the high-score holder; Head-to-Head and Tournaments use a 90% payout pool. Players can also fund their crypto wallet via the Transak on-ramp widget.
+A Web3 Solana arcade with MONET token payment gating. Entry fee is ≈$0.99 USD (dynamically priced in MONET). Three payment methods: MONET tokens, SOL (~$0.25), or credit/debit card via Stripe. Solo play returns 80% to the high-score holder; Head-to-Head and Tournaments use a 90% payout pool. Players can also fund their crypto wallet via the Transak on-ramp widget.
 
 ## Token Details
 - **MONET Mint:** `6eACLGXCGdw9D5zb5eBKyFnFNTX9pTihDEpZQ7gYAX1b`
@@ -25,10 +25,21 @@ Active games (arcade.html displays in this order):
 5. **Snake** (`snake.html`) — Classic snake
 6. **Space Invaders** (`invaders.html`) — Alien wave shooter
 7. **Pong** (`pong.html`) — vs CPU paddle game
-8. **Level Builder** (links to `dino.html` create tab) — Custom level designer
+8. **Monet Kombat** (`fighter.html`) — MK-style best-of-3 brawler; combos, specials, Finish Him, X-ray effects
+9. **Duck Season** (`duckhunt.html`) — Duck hunt shooter
+10. **Asteroid Dodger** (`dodger.html`) — Space shooter; dodge & auto-fire through waves
+11. **Reaction Blitz** (`reaction.html`) — Tap glowing targets fast; build combo multipliers; 30-sec challenge
+12. **Tap Frenzy** (`tap.html`) — Tap as fast as possible in 20 seconds; graded S/A/B/C
+13. **Blockchain Blitz** (`tetris.html`) — Crypto-themed Tetris; stack transaction blocks, confirm chains, mine rows
+14. **Token Kong** (`kong.html`) — Donkey Kong spoof; dino character climbs blockchain layers, jumps over FAILED TX barrels thrown by Kong boss, reach TOP CHAIN to win
+15. **Hash Racer** (`racer.html`) — Excitebike spoof; side-scrolling crypto motorcycle race; throttle vs turbo, overheat bar (HASH TEMP), ramps, obstacles
+16. **Arcade Gator** (`gator.html`) — Phaser 3 platformer; hoodie gator collects M-Coins in 60 sec; jump, hold UP to glide, hold CHARGE to headbutt-dash; uses `showGameLobby`
+17. **Monet Maker** (links to `dino.html` create tab) — Custom level designer
 
-**Monet Bros** uses the direct pay-gate pattern (`showPayGate` → `/api/cpu/start` → play → `/api/cpu/submit`).  
-All other games use `showGameLobby()` (lobby.js) which presents Solo or H2H modes before play.
+**Monet Bros** and **Monet Kombat** use the direct pay-gate pattern (`showPayGate` → play → `arcadeSubmitScore`).  
+**Asteroid Dodger**, **Reaction Blitz**, and **Tap Frenzy** also use `showPayGate` directly (solo-only games).  
+All other games use `showGameLobby()` (lobby.js) which presents Practice · Solo Play · Join Live · Create H2H · Tournament.  
+**No CPU opponent games** — lobby shows Solo Play (paid, leaderboard) instead of CPU Expert.
 
 ## Project Structure
 

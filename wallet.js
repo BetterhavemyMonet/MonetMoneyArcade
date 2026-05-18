@@ -1,11 +1,11 @@
 // ─── MONET ARCADE WALLET UTILITIES ───────────────────────────────────────────
-// Multi-wallet adapter: Phantom, Solflare, Backpack, Glow, Coin98, Trust
+// Multi-wallet adapter: Phantom, Coinbase Wallet, Solflare, Backpack, Glow, Coin98, Trust
 
 const MONET_CONFIG = {
   MINT:         '6eACLGXCGdw9D5zb5eBKyFnFNTX9pTihDEpZQ7gYAX1b',
   TREASURY:     'BmEAUUkKcj7BLNAxTF6wqFx6r25wbX5josw4voMbin9z',
   ENTRY_FEE:    5,      // updated dynamically by fetchEntryFee()
-  ENTRY_FEE_USD: 0.50,  // target USD value per entry
+  ENTRY_FEE_USD: 0.99,  // target USD value per entry
   PAYOUT_RATE:  0.80,
   DECIMALS:     6,
   SYMBOL:       'MONET',
@@ -13,7 +13,7 @@ const MONET_CONFIG = {
 
 // ─── Dynamic entry fee ────────────────────────────────────────────────────────
 // Fetches the current MONET price from the server and updates MONET_CONFIG.ENTRY_FEE
-// so that it always equals $0.50 worth of MONET. Cached by the server for 5 min.
+// so that it always equals $0.99 worth of MONET. Cached by the server for 5 min.
 let _entryFeeFetched = false;
 async function fetchEntryFee() {
   try {
@@ -24,9 +24,13 @@ async function fetchEntryFee() {
       MONET_CONFIG.ENTRY_FEE = d.entryFeeMonet;
       MONET_CONFIG._priceUsd  = d.priceUsd;
       _entryFeeFetched = true;
-      // Notify pay gate if it's already open
-      document.dispatchEvent(new CustomEvent('entryFeeUpdated', { detail: d }));
     }
+    if (d.solEntryLamports && d.solEntryLamports > 0) {
+      MONET_CONFIG.SOL_ENTRY_LAMPORTS = d.solEntryLamports;
+      MONET_CONFIG._solPriceUsd = d.solPriceUsd;
+    }
+    // Notify pay gate if it's already open
+    document.dispatchEvent(new CustomEvent('entryFeeUpdated', { detail: d }));
   } catch(_) {}
 }
 
@@ -57,6 +61,21 @@ const WALLET_DEFS = [
                   : null,
     install:  'https://phantom.app/',
     deeplink: () => `https://phantom.app/ul/browse/${encodeURIComponent(location.href)}?ref=${encodeURIComponent(location.origin)}`,
+  },
+  {
+    name:     'Coinbase Wallet',
+    icon:     'https://images.ctfassets.net/q5ulk4bp65r7/3TBS4oVkD1ghowTqylkAtz/ceeb33e43f8e3e3b4e2baf4c2d46d2e7/product-identity-cb-wallet-logo.svg',
+    detect:   () => {
+      // Extension injects window.coinbaseSolana
+      if (window.coinbaseSolana)                       return window.coinbaseSolana;
+      // Some versions nest under coinbaseWalletExtension
+      if (window.coinbaseWalletExtension?.solana)      return window.coinbaseWalletExtension.solana;
+      // Fallback: generic solana provider flagged by Coinbase
+      if (window.solana?.isCoinbaseWallet)             return window.solana;
+      return null;
+    },
+    install:  'https://www.coinbase.com/wallet',
+    deeplink: () => `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(location.href)}`,
   },
   {
     name:     'Solflare',
@@ -331,7 +350,7 @@ function showWalletPicker() {
     }
 
     if (available.length === 0 && !isMobile) {
-      buttonsHtml = `<p style="color:#888;font-size:12px">No Solana wallet detected.<br>Install <a href="https://phantom.app" target="_blank" style="color:#a855ff">Phantom</a> or <a href="https://solflare.com" target="_blank" style="color:#a855ff">Solflare</a> to continue.</p>`;
+      buttonsHtml = `<p style="color:#888;font-size:12px">No Solana wallet detected.<br>Install <a href="https://phantom.app" target="_blank" style="color:#a855ff">Phantom</a>, <a href="https://www.coinbase.com/wallet" target="_blank" style="color:#2563eb">Coinbase Wallet</a>, or <a href="https://solflare.com" target="_blank" style="color:#a855ff">Solflare</a> to continue.</p>`;
     }
 
     overlay.innerHTML = `
@@ -716,11 +735,12 @@ window.ensureMonetAccount = ensureMonetAccount;
 window.refreshBalances    = refreshBalances;
 
 // ─── Pay Entry Fee (SOL) ──────────────────────────────────────────────────────
-// Sends native SOL to treasury (~$0.25 worth) as an alternative to MONET.
-const SOL_ENTRY_LAMPORTS = 1_500_000; // 0.0015 SOL ≈ $0.25 at ~$167/SOL
+// Sends native SOL to treasury (~$0.99 worth) as an alternative to MONET.
+// Default lamports updated dynamically via fetchEntryFee() → MONET_CONFIG.SOL_ENTRY_LAMPORTS
+MONET_CONFIG.SOL_ENTRY_LAMPORTS = 5_000_000; // fallback ~$0.99 at ~$100/SOL
 
 async function payEntryFeeSOL(gameName, onProgress, lamports) {
-  const lam    = (lamports && lamports > 0) ? lamports : SOL_ENTRY_LAMPORTS;
+  const lam    = (lamports && lamports > 0) ? lamports : (MONET_CONFIG.SOL_ENTRY_LAMPORTS || 5_000_000);
   const report = (step) => { try { onProgress && onProgress(step); } catch(_) {} };
 
   report('checking');
@@ -1122,13 +1142,13 @@ async function showPayGate(gameName, onSuccess, opts = {}) {
     const conn     = WalletState.connected;
     const bal      = WalletState.monetBalance;
     const fee      = MONET_CONFIG.ENTRY_FEE;
-    const feeUsd   = MONET_CONFIG._priceUsd ? (fee * MONET_CONFIG._priceUsd).toFixed(2) : '0.50';
+    const feeUsd   = MONET_CONFIG._priceUsd ? (fee * MONET_CONFIG._priceUsd).toFixed(2) : '0.99';
     const hasEnough = bal >= fee;
     const short    = conn ? WalletState.address.slice(0,4)+'...'+WalletState.address.slice(-4) : '';
     const potAmt   = opts.pot        ? opts.pot
                    : challengeCode  ? (fee * 2 * (1 - 0.20)).toFixed(1) + ' MONET'
                    : tournamentId   ? 'Pool grows with players'
-                   : (fee * MONET_CONFIG.PAYOUT_RATE).toFixed(1) + ' MONET';
+                   : 'Leaderboard entry';
 
     overlay.innerHTML = `
       <div id="pg-box">
@@ -1149,7 +1169,7 @@ async function showPayGate(gameName, onSuccess, opts = {}) {
         </div>
         <div class="pg-row">
           <span class="pg-label">House Rake</span>
-          <span class="pg-val" style="color:#888">${opts.rake !== undefined ? opts.rake : (challengeCode || tournamentId ? '20%' : Math.round((1 - MONET_CONFIG.PAYOUT_RATE) * 100) + '%')}</span>
+          <span class="pg-val" style="color:#888">${opts.rake !== undefined ? opts.rake : (challengeCode || tournamentId ? '10%' : '100% — no auto payout')}</span>
         </div>
 
         ${conn ? `
@@ -1168,7 +1188,7 @@ async function showPayGate(gameName, onSuccess, opts = {}) {
           <button id="pg-pay-sol-btn" onclick="pgPaySOL()"
             style="margin-top:8px;width:100%;padding:11px;border-radius:12px;border:1px solid ${WalletState.solBalance>=0.003?'#3b82f6':'#333'};cursor:${WalletState.solBalance>=0.003?'pointer':'not-allowed'};background:${WalletState.solBalance>=0.003?'rgba(59,130,246,0.12)':'rgba(255,255,255,0.03)'};color:${WalletState.solBalance>=0.003?'#60a5fa':'#555'};font-family:Orbitron,sans-serif;font-size:11px;font-weight:800;letter-spacing:0.5px"
             ${WalletState.solBalance>=0.003?'':'disabled'}>
-            ◎ PAY ~$0.25 IN SOL &amp; PLAY${WalletState.solBalance<0.003?' (need ~0.003 SOL)':''}
+            ◎ PAY ~$0.99 IN SOL &amp; PLAY${WalletState.solBalance<0.003?' (need ~0.003 SOL)':''}
           </button>
         ` : `
           <button id="pg-connect-btn" onclick="pgConnect()">CONNECT WALLET</button>
@@ -1177,7 +1197,7 @@ async function showPayGate(gameName, onSuccess, opts = {}) {
           <div style="flex:1;height:1px;background:#1a1a2a"></div>OR<div style="flex:1;height:1px;background:#1a1a2a"></div>
         </div>
         <button id="pg-card-btn" onclick="pgPayCard()" style="margin-top:10px;width:100%;padding:11px;border-radius:12px;border:1px solid #22c55e;cursor:pointer;background:rgba(34,197,94,0.08);color:#22c55e;font-family:Orbitron,sans-serif;font-size:11px;font-weight:800;letter-spacing:0.5px">
-          &#128179; PAY $0.50 WITH CARD
+          &#128179; PAY $0.99 WITH CARD
         </button>
         <button id="pg-transak-btn" onclick="pgOpenTransak()" style="margin-top:8px;width:100%;padding:9px;border-radius:10px;border:1px solid #3b82f633;cursor:pointer;background:rgba(59,130,246,0.05);color:#3b82f6;font-family:Orbitron,sans-serif;font-size:10px;font-weight:800;letter-spacing:0.5px">
           &#127974; FUND WALLET WITH CARD
@@ -1393,7 +1413,7 @@ async function pgPayCard() {
     <div id="pg-star">&#128179;</div>
     <div id="pg-title">PAY WITH CARD</div>
     <div id="pg-game">${gameName.toUpperCase()}</div>
-    <div style="color:#888;font-size:11px;margin:6px 0 16px">$0.50 USD · No crypto wallet needed</div>
+    <div style="color:#888;font-size:11px;margin:6px 0 16px">$0.99 USD · No crypto wallet needed</div>
     <div id="pg-card-form-wrap" style="width:100%;text-align:left">
       <div style="color:#888;font-size:11px;text-align:center">Loading payment form…</div>
     </div>
@@ -1449,7 +1469,7 @@ async function pgPayCard() {
                background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;
                font-family:Orbitron,sans-serif;font-size:13px;font-weight:800;letter-spacing:0.5px;
                box-shadow:0 4px 20px #22c55e44">
-        PAY $0.50 NOW &#8594;
+        PAY $0.99 NOW &#8594;
       </button>
     `);
   } catch(e) {
@@ -1488,7 +1508,7 @@ async function pgCardSubmit() {
     if (window._pgOnSuccess) window._pgOnSuccess('card-payment');
   } catch(e) {
     if (err) err.textContent = e.message;
-    if (btn) { btn.disabled = false; btn.textContent = 'PAY $0.50 NOW →'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'PAY $0.99 NOW →'; }
   }
 }
 
@@ -1546,8 +1566,24 @@ function _showSubmitToast(msg) {
   setTimeout(() => t.remove(), 5000);
 }
 
+// ─── Solscan helper ───────────────────────────────────────────────────────────
+function _solscanTxLink(txId, label) {
+  if (!txId) return '';
+  const short = txId.slice(0,8) + '…' + txId.slice(-4);
+  return `<a href="https://solscan.io/tx/${txId}" target="_blank" rel="noopener"
+    style="display:inline-flex;align-items:center;gap:5px;margin-top:10px;
+           padding:6px 12px;border-radius:8px;border:1px solid #00f0ff33;
+           background:rgba(0,240,255,0.06);color:#00f0ff;
+           font-size:9px;font-family:Orbitron,sans-serif;text-decoration:none;
+           letter-spacing:0.5px;transition:border-color .15s"
+    onmouseover="this.style.borderColor='#00f0ff88'"
+    onmouseout="this.style.borderColor='#00f0ff33'">
+    &#128279; ${label || 'View on Solscan'} · ${short}
+  </a>`;
+}
+
 // ─── H2H challenge result overlay ────────────────────────────────────────────
-function _showChallengeResult(iWon, myScore, opScore, pot) {
+function _showChallengeResult(iWon, myScore, opScore, pot, payoutTxId) {
   if (document.getElementById('challenge-result-overlay')) return;
   const box = document.createElement('div');
   box.id = 'challenge-result-overlay';
@@ -1559,7 +1595,8 @@ function _showChallengeResult(iWon, myScore, opScore, pot) {
       <div style="font-size:18px;font-weight:800;color:${iWon ? '#ffd700' : '#ff4488'};margin-bottom:14px">${iWon ? 'YOU WIN!' : 'OPPONENT WINS'}</div>
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ffffff0d;font-size:12px"><span style="color:#888">Your Score</span><span style="color:#00ff9d;font-weight:700">${fmt(myScore)}</span></div>
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ffffff0d;font-size:12px"><span style="color:#888">Opponent</span><span style="color:#ff4488;font-weight:700">${fmt(opScore)}</span></div>
-      ${iWon ? `<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:12px"><span style="color:#888">Payout</span><span style="color:#ffd700;font-weight:700">+${pot} MONET</span></div>` : `<div style="padding:8px 0;font-size:11px;color:#888">Better luck next time!</div>`}
+      ${iWon ? `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ffffff0d;font-size:12px"><span style="color:#888">Payout</span><span style="color:#ffd700;font-weight:700">+${pot} MONET</span></div>` : `<div style="padding:8px 0;font-size:11px;color:#888">Better luck next time!</div>`}
+      ${iWon && payoutTxId ? `<div style="text-align:center">${_solscanTxLink(payoutTxId, 'Payout TX on Solscan')}</div>` : ''}
       <button onclick="location.href='arcade.html'" style="margin-top:14px;width:100%;padding:12px;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(135deg,#a855ff,#7c3aed);color:#fff;font-family:Orbitron,sans-serif;font-size:12px;font-weight:800">&#8592; BACK TO ARCADE</button>
       <button onclick="location.href='challenge.html'" style="margin-top:8px;width:100%;padding:10px;border-radius:12px;border:1px solid #333;cursor:pointer;background:transparent;color:#888;font-family:Orbitron,sans-serif;font-size:10px">CHALLENGE AGAIN</button>
     </div>`;
@@ -1581,7 +1618,8 @@ function _showCpuResult(result, playerScore) {
       <div style="font-size:18px;font-weight:800;color:${won?'#ffd700':'#ff4488'};margin-bottom:14px">${won?'YOU BEAT THE CPU!':'CPU WINS'}</div>
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ffffff0d;font-size:12px"><span style="color:#888">Your Score</span><span style="color:#00ff9d;font-weight:700">${playerScore}</span></div>
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ffffff0d;font-size:12px"><span style="color:#888">CPU Score</span><span style="color:#ff4488;font-weight:700">${result.cpuScore}</span></div>
-      ${won ? `<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:12px"><span style="color:#888">Payout</span><span style="color:#ffd700;font-weight:700">+${result.payout} MONET</span></div>` : `<div style="padding:8px 0;font-size:11px;color:#888">Better luck next time!</div>`}
+      ${won ? `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ffffff0d;font-size:12px"><span style="color:#888">Payout</span><span style="color:#ffd700;font-weight:700">+${result.payout} MONET</span></div>` : `<div style="padding:8px 0;font-size:11px;color:#888">Better luck next time!</div>`}
+      ${won && result.payoutTxId ? `<div style="text-align:center">${_solscanTxLink(result.payoutTxId, 'Payout TX on Solscan')}</div>` : ''}
       <button onclick="location.href='arcade.html'" style="margin-top:14px;width:100%;padding:12px;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(135deg,#a855ff,#7c3aed);color:#fff;font-family:Orbitron,sans-serif;font-size:12px;font-weight:800">&#8592; BACK TO ARCADE</button>
       <button onclick="location.href='challenge.html'" style="margin-top:8px;width:100%;padding:10px;border-radius:12px;border:1px solid #333;cursor:pointer;background:transparent;color:#888;font-family:Orbitron,sans-serif;font-size:10px">PLAY AGAIN</button>
     </div>`;
@@ -1607,7 +1645,8 @@ async function arcadeSubmitScore(gameName, score) {
 
   if (cpuGameId) {
     try {
-      const result = await api('/api/cpu/submit', 'POST', { cpuGameId, wallet: WalletState.address, playerScore: score });
+      const scoreSecret = cpuSession?.scoreSecret || null;
+      const result = await api('/api/cpu/submit', 'POST', { cpuGameId, wallet: WalletState.address, playerScore: score, scoreSecret });
       sessionStorage.removeItem('cpu_session');
       _showCpuResult(result, score);
     } catch(e) { console.warn('[ARCADE] CPU submit error:', e.message); }
@@ -1636,8 +1675,48 @@ async function arcadeSubmitScore(gameName, score) {
       await api('/api/tournament/submit', 'POST', { tournamentId, wallet: WalletState.address, score });
     } catch(e) { console.warn('[ARCADE] Tournament submit error:', e.message); }
   } else {
-    if (score > 0 && WalletState.connected) recordWin(gameName, score);
+    // Solo play — record score to leaderboard only, no automatic treasury payout
+    if (score > 0 && WalletState.connected) {
+      const soloSession = JSON.parse(sessionStorage.getItem('solo_session') || 'null');
+      const txId = soloSession?.txId || null;
+      sessionStorage.removeItem('solo_session');
+      try {
+        await api('/api/leaderboard/submit', 'POST', { wallet: WalletState.address, game: gameName, score, txId });
+      } catch(e) { console.warn('[SOLO] leaderboard submit failed:', e.message); }
+      _showSoloResult(score, gameName);
+    }
   }
+}
+
+// ─── Solo result overlay (score recorded, no auto-payout) ─────────────────────
+function _showSoloResult(score, gameName) {
+  const existing = document.getElementById('solo-result-overlay');
+  if (existing) existing.remove();
+  const box = document.createElement('div');
+  box.id = 'solo-result-overlay';
+  box.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9999;display:flex;align-items:center;justify-content:center;font-family:Orbitron,sans-serif';
+  box.innerHTML = `
+    <div style="background:#0d0d1a;border:1px solid #a855ff44;border-radius:18px;padding:28px 30px;max-width:320px;width:90%;text-align:center">
+      <div style="font-size:36px;margin-bottom:8px">🏅</div>
+      <div style="font-size:16px;font-weight:900;color:#a855ff;letter-spacing:1px;margin-bottom:4px">SCORE RECORDED</div>
+      <div style="font-size:11px;color:#555;letter-spacing:1px;margin-bottom:18px">${(gameName||'').toUpperCase()}</div>
+      <div style="font-size:32px;font-weight:900;color:#ffd700;margin-bottom:6px">${score.toLocaleString()}</div>
+      <div style="font-size:10px;color:#888;margin-bottom:18px">Your score is on the leaderboard.<br>Top scorers may receive a random MONET bonus paid manually.</div>
+      <button onclick="document.getElementById('solo-result-overlay').remove()"
+        style="width:100%;padding:11px;border-radius:10px;border:none;cursor:pointer;
+               background:linear-gradient(135deg,#a855ff,#7c3aed);color:#fff;
+               font-family:Orbitron,sans-serif;font-size:12px;font-weight:800">
+        VIEW LEADERBOARD &#8594;
+      </button>
+      <button onclick="document.getElementById('solo-result-overlay').remove()"
+        style="width:100%;padding:9px;border-radius:10px;border:1px solid #333;background:transparent;color:#555;
+               font-family:Orbitron,sans-serif;font-size:11px;cursor:pointer;margin-top:8px">
+        CLOSE
+      </button>
+    </div>`;
+  document.body.appendChild(box);
+  box.querySelector('button').onclick = () => { box.remove(); location.href = 'leaderboard.html'; };
+  box.querySelectorAll('button')[1].onclick = () => box.remove();
 }
 
 window.arcadeSubmitScore = arcadeSubmitScore;

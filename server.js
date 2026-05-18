@@ -14,8 +14,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR   = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-// ─── Stripe (Replit connector — sandbox in dev, live in production) ───────────
+// ─── Stripe (env vars take priority; Replit connector as fallback) ───────────
 async function _getStripeCredentials() {
+  // Explicit env vars always win — use these for live/production keys
+  const sk = process.env.STRIPE_SECRET_KEY;
+  const pk = process.env.STRIPE_PUBLISHABLE_KEY;
+  if (sk && pk) return { secretKey: sk, publishableKey: pk };
+
   const hostname     = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? 'repl ' + process.env.REPL_IDENTITY
@@ -23,29 +28,36 @@ async function _getStripeCredentials() {
       ? 'depl ' + process.env.WEB_REPL_RENEWAL
       : null;
 
-  // Fallback: honour plain env vars if Replit connector isn't available
-  if (!hostname || !xReplitToken) {
-    const sk = process.env.STRIPE_SECRET_KEY;
-    const pk = process.env.STRIPE_PUBLISHABLE_KEY;
-    if (!sk || !pk) throw new Error('Stripe not configured');
-    return { secretKey: sk, publishableKey: pk };
+  if (!hostname || !xReplitToken) throw new Error('Stripe not configured');
+
+  const fetchConn = async (env) => {
+    const url = new URL(`https://${hostname}/api/v2/connection`);
+    url.searchParams.set('include_secrets',  'true');
+    url.searchParams.set('connector_names',  'stripe');
+    url.searchParams.set('environment',      env);
+    const resp = await fetch(url.toString(), {
+      headers: { Accept: 'application/json', 'X-Replit-Token': xReplitToken },
+    });
+    const data = await resp.json();
+    return data.items?.[0];
+  };
+
+  // Try production first (when deployed), fall back to development
+  const envOrder = process.env.REPLIT_DEPLOYMENT === '1'
+    ? ['production', 'development']
+    : ['development'];
+
+  let conn;
+  for (const env of envOrder) {
+    conn = await fetchConn(env);
+    if (conn?.settings?.secret) break;
   }
 
-  const env = process.env.REPLIT_DEPLOYMENT === '1' ? 'production' : 'development';
-  const url = new URL(`https://${hostname}/api/v2/connection`);
-  url.searchParams.set('include_secrets',  'true');
-  url.searchParams.set('connector_names',  'stripe');
-  url.searchParams.set('environment',      env);
-
-  const resp = await fetch(url.toString(), {
-    headers: { Accept: 'application/json', 'X-Replit-Token': xReplitToken },
-  });
-  const data   = await resp.json();
-  const conn   = data.items?.[0];
-  if (!conn?.settings?.secret || !conn?.settings?.publishable) {
-    throw new Error(`Stripe ${env} connection not found`);
-  }
-  return { secretKey: conn.settings.secret, publishableKey: conn.settings.publishable };
+  if (!conn?.settings?.secret) throw new Error('Stripe connection not found');
+  // publishable key may be in different fields depending on connector version
+  const publishableKey = conn.settings.publishable || conn.settings.publishableKey
+    || conn.settings.pk || conn.settings.public_key || '';
+  return { secretKey: conn.settings.secret, publishableKey };
 }
 
 // Never cache — always call this to get a fresh client (per Replit guidelines)
@@ -79,14 +91,19 @@ app.use(cors({ origin: '*' }));
 // Stripe webhook — raw body MUST come before express.json()
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) {
+    // Without a webhook secret we cannot verify the signature — reject to prevent
+    // unsigned payload spoofing. Sessions are confirmed lazily via direct Stripe
+    // API lookup in /api/card-session/validate instead.
+    console.warn('[STRIPE] Webhook received but STRIPE_WEBHOOK_SECRET not set — rejecting');
+    return res.status(400).json({ error: 'Webhook secret not configured' });
+  }
   if (!sig) return res.status(400).json({ error: 'Missing stripe-signature header' });
   try {
     const stripe = await _getStripeClient().catch(() => null);
     if (!stripe) return res.status(503).json({ error: 'Stripe not configured' });
-    const secret = process.env.STRIPE_WEBHOOK_SECRET;
-    const event  = secret
-      ? stripe.webhooks.constructEvent(req.body, sig, secret)
-      : JSON.parse(req.body.toString());
+    const event = stripe.webhooks.constructEvent(req.body, sig, secret);
     if (event.type === 'payment_intent.succeeded') {
       const pi    = event.data.object;
       const token = pi.metadata?.sessionToken;
@@ -108,9 +125,42 @@ app.use(express.json());
 // ─── Config ───────────────────────────────────────────────────────────────────
 const MINT_ADDRESS    = '6eACLGXCGdw9D5zb5eBKyFnFNTX9pTihDEpZQ7gYAX1b';
 const TREASURY_ADDR   = 'BmEAUUkKcj7BLNAxTF6wqFx6r25wbX5josw4voMbin9z';
-const ENTRY_FEE       = 5;   // fallback only — dynamic fee targets $0.50 USD
-const TARGET_USD      = 0.50; // entry fee target in USD
+const ENTRY_FEE       = 5;   // fallback only — dynamic fee targets $0.99 USD
+const TARGET_USD      = 0.99; // entry fee target in USD
 const PRICE_CACHE_MS  = 5 * 60 * 1000; // cache MONET price for 5 minutes
+
+// ─── Dynamic SOL pricing ───────────────────────────────────────────────────
+let _solPriceUsd = null;
+let _solPriceTs  = 0;
+
+async function fetchSolPrice() {
+  try {
+    const r = await fetch(
+      'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd',
+      { headers: { 'User-Agent': 'monet-arcade/1.0' } }
+    );
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    const p = d?.solana?.usd;
+    if (p > 0) { _solPriceUsd = p; _solPriceTs = Date.now(); }
+  } catch(e) {
+    console.warn('[PRICE] CoinGecko SOL fetch failed:', e.message);
+  }
+  return _solPriceUsd;
+}
+
+async function getSolPrice() {
+  if (_solPriceUsd && Date.now() - _solPriceTs < PRICE_CACHE_MS) return _solPriceUsd;
+  return fetchSolPrice();
+}
+
+// Returns lamports equivalent to TARGET_USD worth of SOL ($0.99)
+// Falls back to 5_000_000 lamports (~$0.99 at ~$100/SOL) if price unavailable
+async function getDynamicSolLamports() {
+  const p = await getSolPrice();
+  if (!p) return 5_000_000;
+  return Math.max(100_000, Math.round((TARGET_USD / p) * 1e9));
+}
 
 // ─── Dynamic MONET pricing ─────────────────────────────────────────────────
 let _monetPriceUsd = null;
@@ -141,7 +191,7 @@ async function getMonetPrice() {
   return fetchMonetPrice();
 }
 
-// Returns the current MONET entry fee (how many MONET = $0.50 USD)
+// Returns the current MONET entry fee (how many MONET = $0.99 USD)
 // Falls back to ENTRY_FEE (5) if price cannot be fetched.
 async function getDynamicEntryFee() {
   const p = await getMonetPrice();
@@ -157,12 +207,123 @@ fetchMonetPrice().then(p => {
 const DECIMALS        = 6;
 const HOUSE_RAKE      = 0.20;
 const CPU_PAYOUT_MAX  = 9;
-const SOL_ENTRY_LAMPORTS = 1_500_000;   // ~0.0015 SOL ≈ $0.25 at ~$167/SOL
+const SOL_ENTRY_LAMPORTS = 5_000_000;   // fallback only — dynamic fee targets $0.99 USD
 const PRIZE_CUTS      = [0.50, 0.30, 0.20];
 const CHALLENGE_TTL   = 24 * 60 * 60 * 1000;
 const TOURNEY_WINDOW  = 60 * 60 * 1000;
 const MIN_PLAYERS     = 2;
 const MAX_PLAYERS     = 16;
+
+// ─── Anti-cheat config ────────────────────────────────────────────────────────
+// Hard caps: scores above these are physically impossible and are hard-rejected.
+// Based on known game mechanics (e.g. Pac-Man max is 3,333,360; a single session
+// is much shorter so session caps are lower).
+const SCORE_HARD_CAP = {
+  pacman:   500_000,
+  snake:    10_000,
+  frogger:  50_000,
+  pong:     500,
+  dino:     100_000,
+  invaders: 100_000,
+  mario:    999_999,
+  duckhunt: 999_999,
+  fighter:  999_999,
+};
+const SCORE_DEFAULT_HARD_CAP = 999_999;
+
+// Soft caps: scores above these are flagged as suspicious but still accepted
+// (to avoid blocking genuine high-scorers while we monitor).
+const SCORE_SOFT_CAP = {
+  pacman:   100_000,
+  snake:    3_000,
+  frogger:  15_000,
+  pong:     200,
+  dino:     30_000,
+  invaders: 30_000,
+  mario:    100_000,
+  duckhunt: 100_000,
+  fighter:  100_000,
+};
+const SCORE_DEFAULT_SOFT_CAP = 100_000;
+
+// Minimum seconds a game session must exist before a score can be submitted.
+// Prevents instant bot-speed submissions.
+const MIN_GAME_DURATION_S = {
+  pacman:   8,
+  snake:    5,
+  frogger:  5,
+  pong:     10,
+  dino:     5,
+  invaders: 8,
+  mario:    10,
+  duckhunt: 8,
+  fighter:  8,
+};
+const MIN_GAME_DURATION_DEFAULT_S = 5;
+
+// Per-wallet rate limit: max submissions per window
+const SUBMIT_RATE_LIMIT   = 5;   // max N submissions …
+const SUBMIT_RATE_WINDOW  = 60_000; // … per 60 s per wallet
+const _submitRateMap      = new Map(); // wallet -> [timestamp, ...]
+
+// Score-secret HMAC key — stays stable per server process.
+// Even if an attacker learns the key from a previous game, each session uses
+// a fresh one-time scoreSecret so old keys cannot be replayed.
+const SCORE_HMAC_KEY = crypto.randomBytes(32);
+
+function genScoreSecret() {
+  return crypto.randomBytes(16).toString('hex');
+}
+
+function verifyScoreHash(scoreSecret, score, hash) {
+  if (!hash || !scoreSecret) return false;
+  const expected = crypto.createHmac('sha256', SCORE_HMAC_KEY)
+    .update(`${scoreSecret}:${Math.round(score)}`)
+    .digest('hex');
+  try {
+    return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(expected, 'hex'));
+  } catch { return false; }
+}
+
+function makeScoreHash(scoreSecret, score) {
+  return crypto.createHmac('sha256', SCORE_HMAC_KEY)
+    .update(`${scoreSecret}:${Math.round(score)}`)
+    .digest('hex');
+}
+
+// Returns { ok, reason } — reason is set only when ok === false
+function checkScoreSanity(game, score, sessionStartMs) {
+  const s = Number(score);
+  if (!Number.isFinite(s) || s < 0) return { ok: false, reason: 'invalid score value' };
+  if (!Number.isInteger(s))          return { ok: false, reason: 'score must be an integer' };
+
+  const hardCap = SCORE_HARD_CAP[game] ?? SCORE_DEFAULT_HARD_CAP;
+  if (s > hardCap) return { ok: false, reason: `score ${s} exceeds hard cap ${hardCap} for ${game}` };
+
+  if (sessionStartMs) {
+    const elapsedS = (Date.now() - sessionStartMs) / 1000;
+    const minS     = MIN_GAME_DURATION_S[game] ?? MIN_GAME_DURATION_DEFAULT_S;
+    if (elapsedS < minS) return { ok: false, reason: `submitted too fast (${elapsedS.toFixed(1)}s < ${minS}s min)` };
+  }
+  return { ok: true };
+}
+
+function flagSuspicious(ctx) {
+  try {
+    const line = JSON.stringify({ ...ctx, ts: Date.now() }) + '\n';
+    fs.appendFileSync(path.join(DATA_DIR, 'suspicious_scores.log'), line);
+  } catch {}
+  console.warn('[ANTI-CHEAT] suspicious score:', JSON.stringify(ctx));
+}
+
+function checkRateLimit(wallet) {
+  const now  = Date.now();
+  const hits  = (_submitRateMap.get(wallet) || []).filter(t => now - t < SUBMIT_RATE_WINDOW);
+  if (hits.length >= SUBMIT_RATE_LIMIT) return false;
+  hits.push(now);
+  _submitRateMap.set(wallet, hits);
+  return true;
+}
 
 const TOKEN_PROG   = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
 const ASSOC_PROG   = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bT3');
@@ -283,9 +444,19 @@ async function sendPayout(toAddress, amount) {
     if (dstAccounts.value.length) {
       dstATA = new PublicKey(dstAccounts.value[0].pubkey);
     } else {
-      // Recipient has no MONET account — create a standard ATA (treasury pays rent)
+      // Recipient has no MONET account — creating ATA costs ~0.002 SOL rent from treasury
+      const MIN_SOL_FOR_ATA = 0.0025; // 0.002 rent + buffer for tx fees
+      const tSOL = await getTreasurySOLBalance();
+      if (tSOL < MIN_SOL_FOR_ATA) {
+        throw new Error(
+          `Treasury SOL too low (${tSOL.toFixed(5)} SOL) to create recipient token account. ` +
+          `Please top up the treasury with at least 0.01 SOL, or have the recipient create a MONET ` +
+          `token account first by receiving any MONET or using a wallet like Phantom.`
+        );
+      }
       dstATA = getATA(mint, winner);
       tx.add(makeCreateATAIx(treasury, dstATA, winner, mint));
+      console.log(`[PAYOUT] Creating MONET ATA for ${toAddress.slice(0,8)}… (treasury SOL: ${tSOL.toFixed(5)})`);
     }
 
     tx.add(makeTransferIx(srcATA, dstATA, treasury, rawAmt));
@@ -312,6 +483,19 @@ async function sendPayout(toAddress, amount) {
     }
   }
   return sig;
+}
+
+// ─── Treasury SOL balance (cached 30 s) ───────────────────────────────────────
+let _tSOL = 0, _tSOLTs = 0;
+async function getTreasurySOLBalance(force = false) {
+  if (!force && Date.now() - _tSOLTs < 30_000) return _tSOL;
+  try {
+    const treasury = new PublicKey(TREASURY_ADDR);
+    const lamports = await withRpc(conn => conn.getBalance(treasury), 8000);
+    _tSOL   = lamports / 1e9;
+    _tSOLTs = Date.now();
+  } catch(e) { console.warn('[TREASURY-SOL] balance fetch failed:', e.message); }
+  return _tSOL;
 }
 
 let _tBal = 0, _tBalTs = 0;
@@ -360,9 +544,20 @@ async function verifyEntryFee(txId, expectedFee = ENTRY_FEE) {
   }
 
   if (!tx) {
-    // Tx not found — may still be propagating; allow through but log
-    console.warn(`[VERIFY] tx ${txId.slice(0,12)}… not found on-chain yet — allowing through`);
-    return { ok: true, rpcFailed: true };
+    // Tx not found — retry up to 3× with 2 s delay (tx may still be propagating)
+    for (let retry = 0; retry < 3; retry++) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        tx = await withRpc(async conn =>
+          conn.getParsedTransaction(txId, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' })
+        , 8000);
+        if (tx) break;
+      } catch(_) {}
+    }
+    if (!tx) {
+      console.warn(`[VERIFY] tx ${txId.slice(0,12)}… not found after retries — allowing through`);
+      return { ok: true, rpcFailed: true };
+    }
   }
 
   if (tx.meta?.err) {
@@ -428,8 +623,19 @@ async function verifySOLPayment(txId, expectedLamports = SOL_ENTRY_LAMPORTS) {
     return { ok: true, rpcFailed: true };
   }
   if (!tx) {
-    console.warn(`[VERIFY-SOL] tx ${txId.slice(0,12)}… not found — allowing through`);
-    return { ok: true, rpcFailed: true };
+    for (let retry = 0; retry < 3; retry++) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        tx = await withRpc(async conn =>
+          conn.getParsedTransaction(txId, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' })
+        , 8000);
+        if (tx) break;
+      } catch(_) {}
+    }
+    if (!tx) {
+      console.warn(`[VERIFY-SOL] tx ${txId.slice(0,12)}… not found after retries — allowing through`);
+      return { ok: true, rpcFailed: true };
+    }
   }
   if (tx.meta?.err) throw new Error(`Transaction ${txId.slice(0,12)}… failed on-chain`);
 
@@ -605,7 +811,7 @@ app.post('/api/stripe/create-payment-intent', async (req, res) => {
     const game         = (req.body.game || 'game').toLowerCase();
     const sessionToken = crypto.randomUUID();
     const pi = await stripe.paymentIntents.create({
-      amount:   50,          // $0.50 USD in cents
+      amount:   99,          // $0.99 USD in cents
       currency: 'usd',
       metadata: { game, sessionToken, source: 'monet-arcade' },
     });
@@ -656,19 +862,20 @@ app.get('/api/rpc-url', (_req, res) => {
 // ─── Routes: MONET price / dynamic entry fee ──────────────────────────────
 app.get('/api/monet-price', async (_req, res) => {
   try {
-    const priceUsd     = await getMonetPrice();
-    const entryFeeMonet = priceUsd
-      ? Math.max(1, Math.round(TARGET_USD / priceUsd))
-      : ENTRY_FEE;
+    const [priceUsd, solPriceUsd] = await Promise.all([getMonetPrice(), getSolPrice()]);
+    const entryFeeMonet  = priceUsd   ? Math.max(1, Math.round(TARGET_USD / priceUsd))   : ENTRY_FEE;
+    const solEntryLamports = solPriceUsd ? Math.max(100_000, Math.round((TARGET_USD / solPriceUsd) * 1e9)) : SOL_ENTRY_LAMPORTS;
     res.json({
       ok: true,
       priceUsd,
       entryFeeMonet,
       entryFeeUsd: TARGET_USD,
+      solPriceUsd,
+      solEntryLamports,
       cached: !!(priceUsd && Date.now() - _monetPriceTs < PRICE_CACHE_MS),
     });
   } catch(e) {
-    res.json({ ok: true, priceUsd: null, entryFeeMonet: ENTRY_FEE, entryFeeUsd: TARGET_USD });
+    res.json({ ok: true, priceUsd: null, entryFeeMonet: ENTRY_FEE, entryFeeUsd: TARGET_USD, solPriceUsd: null, solEntryLamports: SOL_ENTRY_LAMPORTS });
   }
 });
 
@@ -774,8 +981,9 @@ app.post('/api/challenge/join', async (req, res) => {
     else { await verifyEntryFee(txId, c.entryFee || ENTRY_FEE); }
   } catch(e) { return res.status(402).json({ error: `Payment verification failed: ${e.message}` }); }
 
-  c.player2 = { wallet, txId, paymentType: paymentType || 'monet', score: null, submittedAt: null };
-  c.status  = 'active';
+  c.player2      = { wallet, txId, paymentType: paymentType || 'monet', score: null, submittedAt: null };
+  c.status       = 'active';
+  c.activatedAt  = Date.now();  // used by anti-cheat min-duration check
   dbWrite('challenges', challenges);
   res.json({ ok: true, challenge: c });
 });
@@ -784,6 +992,9 @@ app.post('/api/challenge/submit', async (req, res) => {
   const { challengeId, wallet, score } = req.body;
   if (!challengeId || !wallet || score == null) return res.status(400).json({ error: 'challengeId, wallet, score required' });
 
+  // Rate limit
+  if (!checkRateLimit(wallet)) return res.status(429).json({ error: 'Too many score submissions — slow down' });
+
   const challenges = dbRead('challenges');
   const idx = challenges.findIndex(c => c.id === challengeId);
   if (idx === -1) return res.status(404).json({ error: 'Challenge not found' });
@@ -791,6 +1002,18 @@ app.post('/api/challenge/submit', async (req, res) => {
   const c = challenges[idx];
   if (c.status === 'complete')  return res.json({ ok: true, challenge: c });
   if (Date.now() > c.expiresAt) { c.status = 'expired'; dbWrite('challenges', challenges); return res.status(410).json({ error: 'Challenge expired' }); }
+
+  // Score sanity — use challenge activatedAt (when P2 joined) or createdAt as session start
+  const sessionStart = c.activatedAt || c.createdAt;
+  const sanity = checkScoreSanity(c.game, score, sessionStart);
+  if (!sanity.ok) {
+    flagSuspicious({ reason: 'score_sanity_fail', detail: sanity.reason, wallet, game: c.game, score, challengeId });
+    return res.status(400).json({ error: `Score rejected: ${sanity.reason}` });
+  }
+  const softCap = SCORE_SOFT_CAP[c.game] ?? SCORE_DEFAULT_SOFT_CAP;
+  if (score > softCap) {
+    flagSuspicious({ reason: 'above_soft_cap', wallet, game: c.game, score, softCap, challengeId });
+  }
 
   if (c.player1.wallet === wallet) {
     if (c.player1.score === null || score > c.player1.score) { c.player1.score = score; c.player1.submittedAt = Date.now(); }
@@ -909,6 +1132,9 @@ app.post('/api/tournament/submit', async (req, res) => {
   const { tournamentId, wallet, score } = req.body;
   if (!tournamentId || !wallet || score == null) return res.status(400).json({ error: 'tournamentId, wallet, score required' });
 
+  // Rate limit
+  if (!checkRateLimit(wallet)) return res.status(429).json({ error: 'Too many score submissions — slow down' });
+
   const tourneys = dbRead('tournaments');
   const idx = tourneys.findIndex(t => t.id === tournamentId);
   if (idx === -1) return res.status(404).json({ error: 'Tournament not found' });
@@ -918,6 +1144,17 @@ app.post('/api/tournament/submit', async (req, res) => {
 
   const playerIdx = t.players.findIndex(p => p.wallet === wallet);
   if (playerIdx === -1) return res.status(403).json({ error: 'Not registered' });
+
+  // Score sanity — session starts when tournament goes active
+  const sanity = checkScoreSanity(t.game, score, t.startTime);
+  if (!sanity.ok) {
+    flagSuspicious({ reason: 'score_sanity_fail', detail: sanity.reason, wallet, game: t.game, score, tournamentId });
+    return res.status(400).json({ error: `Score rejected: ${sanity.reason}` });
+  }
+  const softCap = SCORE_SOFT_CAP[t.game] ?? SCORE_DEFAULT_SOFT_CAP;
+  if (score > softCap) {
+    flagSuspicious({ reason: 'above_soft_cap', wallet, game: t.game, score, softCap, tournamentId });
+  }
 
   if (t.players[playerIdx].score === null || score > t.players[playerIdx].score) {
     t.players[playerIdx].score       = score;
@@ -967,15 +1204,33 @@ async function settleTournament(tourneys, idx) {
   }
 }
 
+// ─── Admin auth helper ────────────────────────────────────────────────────────
+function requireAdmin(req, res) {
+  const token    = (req.headers['x-admin-token'] || '').trim();
+  const expected = (process.env.ADMIN_TOKEN || '').trim();
+  if (!expected || token !== expected) {
+    res.status(401).json({ error: 'Invalid admin token' });
+    return false;
+  }
+  return true;
+}
+
+app.get('/api/admin/verify', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.json({ ok: true });
+});
+
 // ─── Routes: claims ───────────────────────────────────────────────────────────
 app.get('/api/claims', (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const { wallet } = req.query;
   let list = dbRead('claims');
   if (wallet) list = list.filter(c => c.wallet === wallet);
   res.json({ ok: true, claims: list });
 });
 
-app.get('/api/claims/pending', (_req, res) => {
+app.get('/api/claims/pending', (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const claims = dbRead('claims').filter(c => c.status === 'pending');
   res.json({ ok: true, claims, count: claims.length });
 });
@@ -1004,6 +1259,7 @@ app.post('/api/payout/complete', async (req, res) => {
 });
 
 app.post('/api/claims/process', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const { claimId } = req.body;
   const claims = dbRead('claims');
   const idx = claims.findIndex(c => c.id === claimId);
@@ -1022,30 +1278,116 @@ app.post('/api/claims/process', async (req, res) => {
 });
 
 // ─── Routes: leaderboard ──────────────────────────────────────────────────────
+
+// POST /api/leaderboard/submit — record a solo-play score (no payout, leaderboard only)
+app.post('/api/leaderboard/submit', (req, res) => {
+  const { wallet, game, score, txId } = req.body || {};
+  if (!wallet || !game || score == null) return res.status(400).json({ error: 'wallet, game, score required' });
+  const soloScores = dbRead('solo_scores');
+  soloScores.push({ wallet, game, score: Number(score), txId: txId || null, submittedAt: new Date().toISOString() });
+  dbWrite('solo_scores', soloScores);
+  console.log(`[SOLO] ${wallet.slice(0,8)}… scored ${score} on ${game}`);
+  res.json({ ok: true });
+});
+
 app.get('/api/leaderboard/:game', (req, res) => {
   const { game } = req.params;
   const challenges  = dbRead('challenges').filter(c => c.game === game && c.status === 'complete');
   const tourneys    = dbRead('tournaments').filter(t => t.game === game && t.status === 'complete');
+  const cpuGames    = dbRead('cpu_games').filter(g => g.game === game && g.status === 'complete');
+  const soloEntries = dbRead('solo_scores').filter(s => s.game === game);
 
-  const scores = {};
-  const addScore = (wallet, score) => {
-    if (!scores[wallet] || score > scores[wallet]) scores[wallet] = score;
+  // Track best score + the tx that paid out for each wallet
+  const scores = {}; // wallet -> { score, payoutTxId, entryTxId, source }
+  const addScore = (wallet, score, payoutTxId, entryTxId, source) => {
+    if (!scores[wallet] || score > scores[wallet].score) {
+      scores[wallet] = { score, payoutTxId: payoutTxId || null, entryTxId: entryTxId || null, source: source || 'challenge' };
+    }
   };
 
   challenges.forEach(c => {
-    if (c.player1.score) addScore(c.player1.wallet, c.player1.score);
-    if (c.player2?.score) addScore(c.player2.wallet, c.player2.score);
+    if (c.player1?.score) addScore(c.player1.wallet, c.player1.score, c.payoutTxId, c.player1.txId, 'h2h');
+    if (c.player2?.score) addScore(c.player2.wallet, c.player2.score, c.payoutTxId, c.player2.txId, 'h2h');
   });
   tourneys.forEach(t => {
-    t.players.forEach(p => { if (p.score) addScore(p.wallet, p.score); });
+    t.players.forEach(p => {
+      if (p.score) {
+        const winner = t.winners?.find(w => w.wallet === p.wallet);
+        addScore(p.wallet, p.score, winner?.payoutTxId, p.txId, 'tournament');
+      }
+    });
   });
+  cpuGames.forEach(g => {
+    if (g.playerScore) addScore(g.wallet, g.playerScore, g.payoutTxId, g.txId, 'cpu');
+  });
+  soloEntries.forEach(s => addScore(s.wallet, s.score, null, s.txId, 'solo'));
 
   const board = Object.entries(scores)
-    .map(([wallet, score]) => ({ wallet, score }))
+    .map(([wallet, d]) => ({ wallet, ...d }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 20);
 
   res.json({ ok: true, game, leaderboard: board });
+});
+
+// Global leaderboard across all games
+app.get('/api/leaderboard', (req, res) => {
+  const games = ['pacman','snake','frogger','pong','dino','invaders','mario','duckhunt','fighter'];
+  const scores = {}; // wallet -> { score, game, payoutTxId, source }
+
+  games.forEach(game => {
+    const challenges = dbRead('challenges').filter(c => c.game === game && c.status === 'complete');
+    const cpuGames   = dbRead('cpu_games').filter(g => g.game === game && g.status === 'complete');
+    const tourneys   = dbRead('tournaments').filter(t => t.game === game && t.status === 'complete');
+
+    const addScore = (wallet, score, payoutTxId, source) => {
+      const key = wallet + ':' + game;
+      if (!scores[key] || score > scores[key].score) {
+        scores[key] = { wallet, score, game, payoutTxId: payoutTxId || null, source: source || 'challenge' };
+      }
+    };
+    challenges.forEach(c => {
+      if (c.player1?.score) addScore(c.player1.wallet, c.player1.score, c.payoutTxId, 'h2h');
+      if (c.player2?.score) addScore(c.player2.wallet, c.player2.score, c.payoutTxId, 'h2h');
+    });
+    cpuGames.forEach(g => { if (g.playerScore) addScore(g.wallet, g.playerScore, g.payoutTxId, 'cpu'); });
+    tourneys.forEach(t => {
+      t.players.forEach(p => {
+        if (p.score) {
+          const winner = t.winners?.find(w => w.wallet === p.wallet);
+          addScore(p.wallet, p.score, winner?.payoutTxId, 'tournament');
+        }
+      });
+    });
+  });
+
+  const board = Object.values(scores)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 50);
+
+  res.json({ ok: true, leaderboard: board });
+});
+
+// Token-gate check — returns whether a wallet holds enough MONET to access premium content
+app.get('/api/token-gate/:wallet', async (req, res) => {
+  const { wallet } = req.params;
+  const { threshold = 1 } = req.query;
+  try {
+    const cached = BALANCE_CACHE.get(wallet);
+    let monet = cached?.monet ?? null;
+    if (monet === null) {
+      const mint  = new PublicKey(MINT_ADDRESS);
+      const owner = new PublicKey(wallet);
+      const result = await withRpc(conn => conn.getParsedTokenAccountsByOwner(owner, { mint }), 8000);
+      monet = result?.value?.[0]?.account?.data?.parsed?.info?.tokenAmount?.uiAmount ?? 0;
+      BALANCE_CACHE.set(wallet, { monet, sol: cached?.sol ?? 0, ts: Date.now() });
+    }
+    const passes = monet >= Number(threshold);
+    res.json({ ok: true, wallet, monet, threshold: Number(threshold), passes });
+  } catch(e) {
+    console.warn('[TOKEN-GATE] balance check failed:', e.message);
+    res.json({ ok: true, wallet, monet: 0, threshold: Number(threshold), passes: false, error: e.message });
+  }
 });
 
 // ─── Routes: CPU challenges ───────────────────────────────────────────────────
@@ -1059,21 +1401,37 @@ app.post('/api/cpu/start', async (req, res) => {
     else { await verifyEntryFee(txId, await getDynamicEntryFee()); }
   } catch(e) { return res.status(402).json({ error: `Payment verification failed: ${e.message}` }); }
 
+  // Reject duplicate txIds (replay prevention)
+  const allCpuGames = dbRead('cpu_games');
+  if (allCpuGames.some(g => g.txId === txId)) {
+    return res.status(400).json({ error: 'Transaction ID already used' });
+  }
+
   // CPU is always expert
   const diff   = 'expert';
   const range  = CPU_RANGES[diff]?.[game] || [2000, 4000];
   const cpuScore = Math.floor(range[0] + Math.random() * (range[1] - range[0]));
 
-  const cpuGames = dbRead('cpu_games');
+  // Issue a one-time scoreSecret — client must echo it back on submit so we
+  // know the submission came from the session that paid, not a forged request.
+  const scoreSecret = genScoreSecret();
   const id = genId();
-  cpuGames.push({ id, wallet, txId, game, difficulty: diff, cpuScore, playerScore: null, won: null, payoutTxId: null, status: 'active', createdAt: Date.now() });
-  dbWrite('cpu_games', cpuGames);
-  res.json({ ok: true, cpuGameId: id, cpuScore, difficulty: diff });
+  const now = Date.now();
+  allCpuGames.push({
+    id, wallet, txId, game, difficulty: diff, cpuScore,
+    scoreSecret, playerScore: null, won: null, payoutTxId: null,
+    status: 'active', createdAt: now,
+  });
+  dbWrite('cpu_games', allCpuGames);
+  res.json({ ok: true, cpuGameId: id, cpuScore, difficulty: diff, scoreSecret });
 });
 
 app.post('/api/cpu/submit', async (req, res) => {
-  const { cpuGameId, wallet, playerScore } = req.body;
+  const { cpuGameId, wallet, playerScore, scoreSecret } = req.body;
   if (!cpuGameId || !wallet || playerScore == null) return res.status(400).json({ error: 'cpuGameId, wallet, playerScore required' });
+
+  // Rate limit
+  if (!checkRateLimit(wallet)) return res.status(429).json({ error: 'Too many score submissions — slow down' });
 
   const cpuGames = dbRead('cpu_games');
   const idx = cpuGames.findIndex(g => g.id === cpuGameId && g.wallet === wallet);
@@ -1082,7 +1440,26 @@ app.post('/api/cpu/submit', async (req, res) => {
   const g = cpuGames[idx];
   const dynFee = await getDynamicEntryFee();
   const CPU_PAYOUT = Math.min(dynFee * 2 * (1 - HOUSE_RAKE), CPU_PAYOUT_MAX * (dynFee / ENTRY_FEE));
-  if (g.status === 'complete') return res.json({ ok: true, won: g.won, cpuScore: g.cpuScore, playerScore: g.playerScore, payout: g.won ? CPU_PAYOUT : 0 });
+  if (g.status === 'complete') return res.json({ ok: true, won: g.won, cpuScore: g.cpuScore, playerScore: g.playerScore, payout: g.won ? CPU_PAYOUT : 0, payoutTxId: g.payoutTxId });
+
+  // Verify scoreSecret token — ensures submission came from the paid session
+  if (g.scoreSecret && scoreSecret !== g.scoreSecret) {
+    flagSuspicious({ reason: 'bad_score_secret', wallet, game: g.game, score: playerScore, cpuGameId });
+    return res.status(403).json({ error: 'Invalid score token — session mismatch' });
+  }
+
+  // Score sanity checks
+  const sanity = checkScoreSanity(g.game, playerScore, g.createdAt);
+  if (!sanity.ok) {
+    flagSuspicious({ reason: 'score_sanity_fail', detail: sanity.reason, wallet, game: g.game, score: playerScore, cpuGameId });
+    return res.status(400).json({ error: `Score rejected: ${sanity.reason}` });
+  }
+
+  // Soft cap — flag but allow
+  const softCap = SCORE_SOFT_CAP[g.game] ?? SCORE_DEFAULT_SOFT_CAP;
+  if (playerScore > softCap) {
+    flagSuspicious({ reason: 'above_soft_cap', wallet, game: g.game, score: playerScore, softCap, cpuGameId });
+  }
 
   g.playerScore = playerScore;
   g.won         = playerScore > g.cpuScore;
@@ -1216,9 +1593,244 @@ app.post('/api/admin/process-claims', async (req, res) => {
   res.json({ ok: true, processed: pending.length, results });
 });
 
+// ─── Buy MONET with card ──────────────────────────────────────────────────────
+const BUY_PACKAGES_USD = [10, 20, 50, 100];
+const BUY_SESSION_TTL  = 2 * 60 * 60 * 1000; // 2 hours
+
+function getBuySessions() {
+  const f = path.join(DATA_DIR, 'buy-sessions.json');
+  if (!fs.existsSync(f)) return [];
+  try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return []; }
+}
+function saveBuySessions(data) {
+  fs.writeFileSync(path.join(DATA_DIR, 'buy-sessions.json'), JSON.stringify(data, null, 2));
+}
+
+// Embedded Checkout Session (primary flow)
+app.post('/api/buy-monet/create-checkout-session', async (req, res) => {
+  try {
+    const { usdAmount, walletAddress } = req.body;
+    const usd = Number(usdAmount);
+    if (!BUY_PACKAGES_USD.includes(usd))
+      return res.status(400).json({ error: 'Invalid amount. Choose 10, 20, 50, or 100.' });
+    if (!walletAddress)
+      return res.status(400).json({ error: 'walletAddress required' });
+
+    const stripe = await _getStripeClient();
+
+    // Fetch price — retry once if cold cache returns null
+    let priceUsd = await getMonetPrice();
+    if (!priceUsd) {
+      await new Promise(r => setTimeout(r, 2500));
+      priceUsd = await fetchMonetPrice();
+    }
+    if (!priceUsd) return res.status(503).json({ error: 'MONET price unavailable — please try again in a moment' });
+
+    const monetAmount = Math.floor(usd / priceUsd);
+    if (monetAmount <= 0) return res.status(503).json({ error: 'Could not calculate MONET amount — please try again' });
+
+    const sessionToken = crypto.randomUUID();
+
+    // Store buy session first so return_url can reference it
+    const sessions = getBuySessions().filter(s => Date.now() < s.expiresAt);
+    const buyEntry = {
+      token: sessionToken, walletAddress,
+      usdAmount: usd, monetAmount,
+      createdAt: Date.now(), expiresAt: Date.now() + BUY_SESSION_TTL,
+      confirmed: false, paid: false,
+    };
+    sessions.push(buyEntry);
+    saveBuySessions(sessions);
+
+    const origin = `${req.protocol}://${req.headers.host}`;
+    const checkoutSession = await stripe.checkout.sessions.create({
+      ui_mode:              'embedded',
+      mode:                 'payment',
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency:     'usd',
+          unit_amount:  usd * 100,
+          product_data: {
+            name:        `${monetAmount.toLocaleString()} MONET Tokens`,
+            description: `$${usd} USD at live market rate — sent to your Solana wallet`,
+          },
+        },
+        quantity: 1,
+      }],
+      return_url: `${origin}/exchange.html?session_id={CHECKOUT_SESSION_ID}&buy_token=${sessionToken}`,
+      metadata:   { sessionToken, walletAddress, usdAmount: String(usd), monetAmount: String(monetAmount) },
+    });
+
+    buyEntry.stripeSessionId = checkoutSession.id;
+    saveBuySessions(sessions);
+
+    console.log(`[BUY] checkout session $${usd} → ${monetAmount} MONET → ${walletAddress.slice(0,8)}…`);
+    res.json({ ok: true, clientSecret: checkoutSession.client_secret, sessionToken, monetAmount, priceUsd });
+  } catch(e) {
+    console.error('[BUY-MONET] create-checkout-session:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Called from return_url after Stripe redirects back
+app.get('/api/buy-monet/session-status', async (req, res) => {
+  const { session_id, buy_token } = req.query;
+  if (!session_id && !buy_token) return res.status(400).json({ error: 'session_id or buy_token required' });
+  try {
+    const sessions = getBuySessions();
+    const s = sessions.find(s =>
+      (buy_token  && s.token          === buy_token)  ||
+      (session_id && s.stripeSessionId === session_id)
+    );
+    if (!s) return res.status(404).json({ error: 'Session not found' });
+    if (s.paid) return res.json({ ok: true, status: 'paid', monetAmount: s.monetAmount, txId: s.txId || null, queued: s.queued || false });
+
+    const stripe   = await _getStripeClient();
+    const csession = await stripe.checkout.sessions.retrieve(s.stripeSessionId || session_id);
+    if (csession.payment_status !== 'paid')
+      return res.json({ ok: true, status: csession.payment_status, monetAmount: s.monetAmount });
+
+    s.confirmed = true;
+    const { monetAmount, walletAddress } = s;
+    let txId = null; let queued = false;
+    try {
+      txId = await sendPayout(walletAddress, monetAmount);
+      s.paid = true; s.txId = txId;
+      console.log(`[BUY] payout sent ${monetAmount} MONET → ${walletAddress.slice(0,8)}… tx:${txId.slice(0,12)}…`);
+    } catch(pe) {
+      const claims = dbRead('claims');
+      claims.push({ id: crypto.randomUUID(), wallet: walletAddress, amount: monetAmount,
+        reason: `card-buy $${s.usdAmount}`, createdAt: new Date().toISOString(), sessionToken: s.token });
+      dbWrite('claims', claims);
+      s.paid = true; s.queued = true; queued = true;
+      console.warn(`[BUY] payout queued ${monetAmount} MONET → ${walletAddress.slice(0,8)}…`);
+    }
+    saveBuySessions(sessions);
+    res.json({ ok: true, status: 'paid', monetAmount, txId, queued });
+  } catch(e) {
+    console.error('[BUY-MONET] session-status:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── Admin: manual correction payout ─────────────────────────────────────────
+app.post('/api/admin/manual-payout', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const { wallet, amount, reason } = req.body;
+  if (!wallet || !amount || Number(amount) <= 0)
+    return res.status(400).json({ error: 'wallet and positive amount required' });
+  try {
+    const monetAmount = Number(amount);
+    let txId = null; let queued = false;
+    try {
+      txId = await sendPayout(wallet, monetAmount);
+      console.log(`[ADMIN] manual payout ${monetAmount} MONET → ${wallet.slice(0,8)}… tx:${txId.slice(0,12)}…`);
+    } catch(pe) {
+      const claims = dbRead('claims');
+      claims.push({ id: crypto.randomUUID(), wallet, amount: monetAmount,
+        reason: reason || 'admin-manual-correction', createdAt: new Date().toISOString(), status: 'pending' });
+      dbWrite('claims', claims);
+      queued = true;
+      console.warn(`[ADMIN] manual payout queued ${monetAmount} MONET → ${wallet.slice(0,8)}…`);
+    }
+    res.json({ ok: true, wallet, monetAmount, txId, queued });
+  } catch(e) {
+    console.error('[ADMIN] manual-payout:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Legacy PaymentIntent flow (kept for backward compat)
+app.post('/api/buy-monet/create-intent', async (req, res) => {
+  try {
+    const { usdAmount, walletAddress } = req.body;
+    const usd = Number(usdAmount);
+    if (!BUY_PACKAGES_USD.includes(usd))
+      return res.status(400).json({ error: 'Invalid amount. Choose 10, 20, 50, or 100.' });
+    if (!walletAddress)
+      return res.status(400).json({ error: 'walletAddress required' });
+
+    const stripe = await _getStripeClient();
+    let priceUsd = await getMonetPrice();
+    if (!priceUsd) {
+      await new Promise(r => setTimeout(r, 2500));
+      priceUsd = await fetchMonetPrice();
+    }
+    if (!priceUsd) return res.status(503).json({ error: 'MONET price unavailable — please try again' });
+    const monetAmount = Math.floor(usd / priceUsd);
+    if (monetAmount <= 0) return res.status(503).json({ error: 'Could not calculate MONET amount' });
+    const sessionToken = crypto.randomUUID();
+
+    const pi = await stripe.paymentIntents.create({
+      amount:   usd * 100,
+      currency: 'usd',
+      metadata: { sessionToken, walletAddress, usdAmount: String(usd), monetAmount: String(monetAmount), source: 'monet-buy' },
+    });
+
+    const sessions = getBuySessions().filter(s => Date.now() < s.expiresAt);
+    sessions.push({
+      token: sessionToken, walletAddress,
+      usdAmount: usd, monetAmount,
+      paymentIntentId: pi.id,
+      createdAt: Date.now(), expiresAt: Date.now() + BUY_SESSION_TTL,
+      confirmed: false, paid: false,
+    });
+    saveBuySessions(sessions);
+
+    console.log(`[BUY] intent created $${usd} → ${monetAmount} MONET → ${walletAddress.slice(0,8)}…`);
+    res.json({ ok: true, clientSecret: pi.client_secret, sessionToken, monetAmount, priceUsd });
+  } catch(e) {
+    console.error('[BUY-MONET] create-intent:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/buy-monet/confirm', async (req, res) => {
+  const { sessionToken } = req.body;
+  if (!sessionToken) return res.status(400).json({ error: 'sessionToken required' });
+  try {
+    const sessions = getBuySessions();
+    const s = sessions.find(s => s.token === sessionToken);
+    if (!s)                      return res.status(404).json({ error: 'Session not found' });
+    if (Date.now() > s.expiresAt) return res.status(410).json({ error: 'Session expired' });
+    if (s.paid) return res.json({ ok: true, alreadyPaid: true, monetAmount: s.monetAmount, txId: s.txId || null, queued: s.queued || false });
+
+    // Verify with Stripe directly
+    const stripe = await _getStripeClient();
+    const pi = await stripe.paymentIntents.retrieve(s.paymentIntentId);
+    if (pi.status !== 'succeeded')
+      return res.status(402).json({ error: `Payment not confirmed (status: ${pi.status})` });
+
+    s.confirmed = true;
+    const { monetAmount, walletAddress } = s;
+
+    let txId = null; let queued = false;
+    try {
+      txId = await sendPayout(walletAddress, monetAmount);
+      s.paid = true; s.txId = txId;
+      console.log(`[BUY] payout sent ${monetAmount} MONET → ${walletAddress.slice(0,8)}… tx:${txId.slice(0,12)}…`);
+    } catch(pe) {
+      // Treasury key not set or payout failed — queue the claim
+      const claims = dbRead('claims');
+      claims.push({ id: crypto.randomUUID(), wallet: walletAddress, amount: monetAmount,
+        reason: `card-buy $${s.usdAmount}`, createdAt: new Date().toISOString(), sessionToken });
+      dbWrite('claims', claims);
+      s.paid = true; s.queued = true; queued = true;
+      console.warn(`[BUY] payout queued (${pe.message}) ${monetAmount} MONET → ${walletAddress.slice(0,8)}…`);
+    }
+    saveBuySessions(sessions);
+    res.json({ ok: true, monetAmount, txId, queued });
+  } catch(e) {
+    console.error('[BUY-MONET] confirm:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── SOL entry fee info ───────────────────────────────────────────────────────
-app.get('/api/sol-entry-fee', (_req, res) => {
-  res.json({ ok: true, lamports: SOL_ENTRY_LAMPORTS, sol: SOL_ENTRY_LAMPORTS / 1e9, approxUsd: 0.25 });
+app.get('/api/sol-entry-fee', async (_req, res) => {
+  const lam = await getDynamicSolLamports();
+  res.json({ ok: true, lamports: lam, sol: lam / 1e9, approxUsd: TARGET_USD });
 });
 
 // ─── Monet Maker Shop ─────────────────────────────────────────────────────────
@@ -1282,16 +1894,16 @@ app.post('/api/terms/accept', (req, res) => {
   res.json({ ok: true });
 });
 
-// ─── Static files (production) ────────────────────────────────────────────────
-if (process.env.NODE_ENV === 'production') {
-  const distDir = path.join(__dirname, 'dist');
+// ─── Static files ─────────────────────────────────────────────────────────────
+const distDir = path.join(__dirname, 'dist');
+if (fs.existsSync(distDir)) {
   app.use(express.static(distDir));
   app.get(/^(?!\/api).*/, (_req, res) => {
     res.sendFile(path.join(distDir, 'index.html'));
   });
 }
 
-const PORT = process.env.PORT || (process.env.NODE_ENV === 'production' ? 5000 : 3001);
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   const kp = getTreasuryKP();
   if (kp) {
