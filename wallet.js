@@ -6,7 +6,7 @@ const MONET_CONFIG = {
   TREASURY:     'BmEAUUkKcj7BLNAxTF6wqFx6r25wbX5josw4voMbin9z',
   ENTRY_FEE:    5,      // updated dynamically by fetchEntryFee()
   ENTRY_FEE_USD: 0.99,  // target USD value per entry
-  PAYOUT_RATE:  0.80,
+  PAYOUT_RATE: 0.80,
   DECIMALS:     6,
   SYMBOL:       'MONET',
 };
@@ -1146,7 +1146,7 @@ async function showPayGate(gameName, onSuccess, opts = {}) {
     const hasEnough = bal >= fee;
     const short    = conn ? WalletState.address.slice(0,4)+'...'+WalletState.address.slice(-4) : '';
     const potAmt   = opts.pot        ? opts.pot
-                   : challengeCode  ? (fee * 2 * (1 - 0.20)).toFixed(1) + ' MONET'
+                   : challengeCode  ? (fee * 2 * 0.8).toFixed(1) + ' MONET'
                    : tournamentId   ? 'Pool grows with players'
                    : 'Leaderboard entry';
 
