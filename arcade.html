@@ -516,7 +516,7 @@ body::before {
 let _arcadeEntryFee = null;
 async function loadEntryFee() {
   try {
-    const r = await fetch('/api/monet-price');
+    const r = await fetch('https://api.betterhavemymonet.com/api/monet-price');
     if (!r.ok) return;
     const d = await r.json();
     if (d.entryFeeMonet > 0) {

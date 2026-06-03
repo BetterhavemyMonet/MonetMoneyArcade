@@ -17,7 +17,7 @@ const MONET_CONFIG = {
 let _entryFeeFetched = false;
 async function fetchEntryFee() {
   try {
-    const r = await fetch('/api/monet-price');
+    const r = await fetch('https://api.betterhavemymonet.com/api/monet-price');
     if (!r.ok) return;
     const d = await r.json();
     if (d.entryFeeMonet && d.entryFeeMonet > 0) {
@@ -487,7 +487,7 @@ async function refreshBalances() {
       // Auto-create MONET token account if the wallet doesn't have one yet.
       // Treasury pays the ~0.002 SOL rent — completely transparent to the user.
       if (!data.hasAta && WalletState.address) {
-        fetch('/api/create-token-account', {
+        fetch('https://api.betterhavemymonet.com/api/create-token-account', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ wallet: WalletState.address }),
@@ -574,7 +574,7 @@ async function ensureMonetAccount() {
   // Skip entirely if we already know the ATA exists — avoids unnecessary RPC calls
   if (WalletState.hasMonetAta) return;
   try {
-    const res  = await fetch('/api/create-token-account', {
+    const res  = await fetch('https://api.betterhavemymonet.com/api/create-token-account', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ wallet: WalletState.address }),
@@ -658,7 +658,7 @@ async function payEntryFee(gameName, onProgress, amount) {
     ({ blockhash } = await conn.getLatestBlockhash());
   } catch(_) {
     try {
-      const r = await fetch('/api/blockhash');
+      const r = await fetch('https://api.betterhavemymonet.com/api/blockhash');
       if (!r.ok) throw new Error(`/api/blockhash ${r.status}`);
       ({ blockhash } = await r.json());
     } catch(e) {
@@ -770,7 +770,7 @@ async function payEntryFeeSOL(gameName, onProgress, lamports) {
     ({ blockhash } = await conn.getLatestBlockhash());
   } catch(_) {
     try {
-      const r = await fetch('/api/blockhash');
+      const r = await fetch('https://api.betterhavemymonet.com/api/blockhash');
       if (!r.ok) throw new Error(`/api/blockhash ${r.status}`);
       ({ blockhash } = await r.json());
     } catch(e) { throw new Error(`Could not fetch blockhash: ${e.message}`); }
@@ -913,7 +913,7 @@ async function treasuryPayout(toAddress, amount, claimId, onProgress) {
     const conn = await getWorkingConnection();
     ({ blockhash } = await conn.getLatestBlockhash());
   } catch(_) {
-    const r = await fetch('/api/blockhash');
+    const r = await fetch('https://api.betterhavemymonet.com/api/blockhash');
     if (!r.ok) throw new Error('Could not fetch blockhash');
     ({ blockhash } = await r.json());
   }
@@ -959,7 +959,7 @@ async function treasuryPayout(toAddress, amount, claimId, onProgress) {
   // Tell server to mark the claim paid
   if (claimId) {
     try {
-      await fetch('/api/payout/complete', {
+      await fetch('https://api.betterhavemymonet.com/api/payout/complete', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ claimId, txId }),
@@ -1429,11 +1429,11 @@ async function pgPayCard() {
 
   try {
     // 1. Check Stripe is configured
-    const cfg = await fetch('/api/stripe/config').then(r => r.json());
+    const cfg = await fetch('https://api.betterhavemymonet.com/api/stripe/config').then(r => r.json());
     if (!cfg.publishableKey) throw new Error('Card payments are not yet configured — please use MONET or SOL.');
 
     // 2. Create payment intent on server
-    const piRes = await fetch('/api/stripe/create-payment-intent', {
+    const piRes = await fetch('https://api.betterhavemymonet.com/api/stripe/create-payment-intent', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ game: gameName }),
     }).then(r => r.json());
@@ -1498,7 +1498,7 @@ async function pgCardSubmit() {
     if (error) throw new Error(error.message);
 
     // Validate payment server-side
-    const r = await fetch('/api/card-session/validate', {
+    const r = await fetch('https://api.betterhavemymonet.com/api/card-session/validate', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: window._cardSessionToken }),
     }).then(r => r.json());
