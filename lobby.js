@@ -1,13 +1,13 @@
 // ─── MONET ARCADE GAME LOBBY ──────────────────────────────────────────────────
 // 5-mode lobby: Practice · CPU Expert · Join Live H2H · Create H2H · Tournament
-// Supports MONET or SOL (~$0.25) entry fee payments.
+// Supports MONET or SOL (~$0.15) entry fee payments.
 // Requires wallet.js to be loaded first.
 
 (function () {
   let WAGER_PRESETS    = [5, 10, 25, 50]; // updated dynamically once price is known
   const POLL_INTERVAL  = 2500;
-  const HOUSE_RAKE     = 0.20;
-  let CPU_WIN_PAYOUT = 8;   // updated dynamically (= baseFee * 2 * 0.80)
+  const HOUSE_RAKE     = 0.10;
+  let CPU_WIN_PAYOUT = 8;   // updated dynamically (= baseFee * 2 * 0.90)
   let _baseFee = 5;         // current dynamic entry fee (1x wager)
 
   function _injectStyles() {
@@ -83,7 +83,7 @@
         transition:background .12s, box-shadow .12s;
       }
       .lb-wager-btn:hover, .lb-wager-btn.selected {
-        background:rgba(168,85,255,0.22); box-shadow:0 0 12px #a855ff44; border-color:#a855ff;
+        background:rgba(168,85,255,0.12); box-shadow:0 0 12px #a855ff44; border-color:#a855ff;
       }
 
       /* ── Code box & waiting ── */
@@ -101,7 +101,7 @@
         background:rgba(168,85,255,0.1); color:#a855ff;
         font-family:'Orbitron',sans-serif; font-size:10px; cursor:pointer; margin-top:8px;
       }
-      .lb-copy-btn:hover { background:rgba(168,85,255,0.2); }
+      .lb-copy-btn:hover { background:rgba(168,85,255,0.1); }
       #lb-join-input {
         width:100%; box-sizing:border-box; padding:10px 14px;
         background:#0a0f1a; border:1px solid #333; border-radius:10px;
@@ -164,7 +164,7 @@
       }
       .lb-spinner {
         width:36px; height:36px; border-radius:50%;
-        border:3px solid rgba(168,85,255,0.2); border-top-color:#a855ff;
+        border:3px solid rgba(168,85,255,0.1); border-top-color:#a855ff;
         animation:lb-spin 0.75s linear infinite;
       }
       .lb-spinner-lbl { font-size:10px; color:#a855ff; letter-spacing:1px; }
@@ -274,7 +274,7 @@
       <button class="lb-curr-btn sol" ${hasSol ? '' : 'disabled'} onclick="window._lbPickSol()">
         <div class="lb-curr-icon">◎</div>
         <div>
-          <div style="font-size:12px;font-weight:800">PAY ~$0.25 IN SOL</div>
+          <div style="font-size:12px;font-weight:800">PAY ~$0.15 IN SOL</div>
           <div style="font-size:9px;color:${hasSol?'#00ff9d':'#ff4488'};margin-top:2px">
             ${hasSol ? `Balance: ${sol.toFixed(4)} SOL ✓` : `Need ~0.003 SOL — have ${sol.toFixed(4)}`}
           </div>
@@ -365,7 +365,7 @@
         <div id="lb-code-hint">Share this code with your opponent</div>
         <button class="lb-copy-btn" onclick="window._lbCopyCode('${code}')">📋 COPY CODE</button>
       </div>
-      <div class="lb-pot-info">Pot: ${pot} MONET when opponent joins · 20% rake</div>
+      <div class="lb-pot-info">Pot: ${pot} MONET when opponent joins · 10% rake</div>
       <div id="lb-wait-status">Waiting for opponent<span id="lb-wait-dots">...</span></div>
       <div class="lb-err" id="lb-err"></div>
       <button id="lb-back" onclick="window._lbCancelWait()">✕ Cancel</button>
@@ -766,7 +766,7 @@
         const b = _baseFee;
         WAGER_PRESETS = [...new Set([b, b*2, b*5, b*10].map(Math.round))];
         _selectedWager = b;
-        CPU_WIN_PAYOUT = Math.round(b * 2 * (1 - 0.20) * 10) / 10;
+        CPU_WIN_PAYOUT = Math.round(b * 2 * (1 - 0.10) * 10) / 10;
       }
     }).catch(() => {});
     Promise.race([priceFetch, priceTimeout]).then(() => {
