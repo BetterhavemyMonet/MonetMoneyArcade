@@ -147,7 +147,7 @@ export function MonetBros() {
   }, [showPayGate]);
 
   const clouds = [
-    { x: 80, y: 60, s: 1 }, { x: 300, y: 40, s: 0.8 }, { x: 600, y: 70, s: 1.2 },
+    { x: 80, y: 60, s: 1 }, { x: 300, y: 40, s: 0.9 }, { x: 600, y: 70, s: 1.2 },
     { x: 850, y: 45, s: 0.9 }, { x: 1100, y: 65, s: 1.1 },
   ];
 
@@ -197,7 +197,7 @@ export function MonetBros() {
 
         {/* Clouds */}
         {clouds.map((c, i) => (
-          <Cloud key={i} x={c.x + (animTick * 0.2 * c.s) % 1280} y={c.y} scale={c.s} />
+          <Cloud key={i} x={c.x + (animTick * 0.1 * c.s) % 1280} y={c.y} scale={c.s} />
         ))}
 
         {/* Mountains / hills */}
@@ -399,7 +399,7 @@ function Platform({ x, y, tiles }: { x: number; y: number; tiles: number }) {
           boxSizing: "border-box",
           boxShadow: "inset 2px 2px 0 rgba(255,255,255,0.3)"
         }}>
-          <div style={{ position: "absolute", top: 6, left: 6, width: TILE - 16, height: TILE - 16, border: "2px solid rgba(255,255,255,0.2)", borderRadius: 2 }} />
+          <div style={{ position: "absolute", top: 6, left: 6, width: TILE - 16, height: TILE - 16, border: "2px solid rgba(255,255,255,0.1)", borderRadius: 2 }} />
         </div>
       ))}
     </>

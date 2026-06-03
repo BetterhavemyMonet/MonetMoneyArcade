@@ -4,7 +4,7 @@ A Web3 Solana arcade with MONET token payment gating. Entry fee is ≈$0.99 USD 
 
 ## Token Details
 - **MONET Mint:** `6eACLGXCGdw9D5zb5eBKyFnFNTX9pTihDEpZQ7gYAX1b`
-- **Treasury:** `BmEAUUkKcj7BLNAxTF6wqFx6r25wbX5josw4voMbin9z`
+- **Treasury:** `4Uuga2iskhPvJyVAysQufh3vDwF9NRLmZQzHECwx8Cb4`
 
 ## Tech Stack
 

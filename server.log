@@ -1,0 +1,3 @@
+nohup: ignoring input
+[MONET] API+WS server :5000 | treasury payouts: QUEUED (set TREASURY_PRIVATE_KEY)
+[PRICE] MONET = $1.505e-7 → entry fee ≈ 6578073 MONET ($0.99)
