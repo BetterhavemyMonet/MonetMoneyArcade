@@ -989,7 +989,8 @@ if (document.readyState === 'loading') {
 async function api(path, method = 'GET', body = null) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(path, opts);
+  const API_BASE = 'https://api.betterhavemymonet.com';
+  const res = await fetch(`${API_BASE}${path}`, opts);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || `API error ${res.status}`);
   return data;
