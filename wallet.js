@@ -473,7 +473,7 @@ async function refreshBalances() {
   if (!WalletState.address) return;
   let updated = false;
   try {
-    const res  = await fetch(`/api/balance/${WalletState.address}`);
+    const res  = await fetch(`https://api.betterhavemymonet.com/api/balance/${WalletState.address}`);
     if (res.ok) {
       const data = await res.json();
       // Always trust a 200 OK response — avoids stale display if the player
@@ -521,7 +521,7 @@ async function refreshBalances() {
 async function getMonetBalance() {
   if (!WalletState.address) return 0;
   try {
-    const res = await fetch(`/api/balance/${WalletState.address}`);
+    const res = await fetch(`https://api.betterhavemymonet.com/api/balance/${WalletState.address}`);
     if (res.ok) { const d = await res.json(); return d.monet ?? 0; }
   } catch(_) {}
   return getMonetBalanceDirect();
@@ -530,7 +530,7 @@ async function getMonetBalance() {
 async function getSolBalance() {
   if (!WalletState.address) return 0;
   try {
-    const res = await fetch(`/api/balance/${WalletState.address}`);
+    const res = await fetch(`https://api.betterhavemymonet.com/api/balance/${WalletState.address}`);
     if (res.ok) { const d = await res.json(); return d.sol ?? 0; }
   } catch(_) {}
   return getSolBalanceDirect();
