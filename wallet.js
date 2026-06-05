@@ -7,7 +7,7 @@ const MONET_CONFIG = {
   ENTRY_FEE:    5,      // updated dynamically by fetchEntryFee()
   ENTRY_FEE_USD: 0.99,  // target USD value per entry
   PAYOUT_RATE: 0.90,
-  DECIMALS:     9,
+  DECIMALS: 6,
   SYMBOL:       'MONET',
 };
 
@@ -544,8 +544,6 @@ async function getMonetBalanceDirect() {
     const owner = new w.PublicKey(WalletState.address);
     const accounts = await withRpcFallback(conn =>
       conn.getParsedTokenAccountsByOwner(owner, { mint })
-const token2022Accounts = await connection.getParsedTokenAccountsByOwner(publicKey,{programId:TOKEN_2022_PROGRAM_ID});
-const allAccounts=[...allAccounts,...token2022Accounts.value];
     );
     if (!accounts || accounts.value.length === 0) return 0;
     return accounts.value[0].account.data.parsed.info.tokenAmount.uiAmount || 0;
@@ -599,9 +597,7 @@ async function getAllTokens() {
     const TOKEN_PROGRAM_ID = new w.PublicKey(TOKEN_PROGRAM_ID_STR);
     const owner = new w.PublicKey(WalletState.address);
     const accounts = await withRpcFallback(conn =>
-      conn.getParsedTokenAccountsByOwner(owner, { programId: TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID })
-const token2022Accounts = await connection.getParsedTokenAccountsByOwner(publicKey,{programId:TOKEN_2022_PROGRAM_ID});
-const allAccounts=[...allAccounts,...token2022Accounts.value];
+      conn.getParsedTokenAccountsByOwner(owner, { programId: TOKEN_PROGRAM_ID })
     );
     if (!accounts) return [];
     return accounts.value
@@ -753,7 +749,7 @@ async function payEntryFeeSOL(gameName, onProgress, lamports) {
   await refreshBalances().catch(() => {});
   const solNeeded = lam / 1e9 + 0.001; // add tx fee buffer
   if (WalletState.solBalance < solNeeded) {
-    throw new Error(`Insufficient SOL. Need ~${(lam/1e9).toFixed(4)}, have ${WalletState.solBalance.toFixed(4)}`);
+    throw new Error(`Insufficient SOL. Need ~${(lam/1e6).toFixed(4)}, have ${WalletState.solBalance.toFixed(4)}`);
   }
 
   const provider = getProvider();

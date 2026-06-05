@@ -207,7 +207,7 @@ fetchMonetPrice().then(p => {
   if (p) console.log(`[PRICE] MONET = $${p.toExponential(3)} → entry fee ≈ ${Math.round(TARGET_USD/p)} MONET ($${TARGET_USD})`);
 }).catch(() => {});
 
-const DECIMALS        = 9;
+const DECIMALS = 6;
 const HOUSE_RAKE      = 0.10;
 const CPU_PAYOUT_MAX  = 9;
 const SOL_ENTRY_LAMPORTS = 5_000_000;   // fallback only — dynamic fee targets $0.99 USD
@@ -336,9 +336,8 @@ const ASSOC_PROG   = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bT3
 // Set SOLANA_RPC_URL secret for a dedicated RPC (Helius free tier recommended).
 // Fallbacks are public endpoints that work from Node.js (no browser CORS issues).
 const RPCS = [
-  process.env.SOLANA_RPC_URL,          // dedicated key — set SOLANA_RPC_URL secret
-  'https://solana-rpc.publicnode.com', // free, no key required, reliable
-  'https://api.mainnet-beta.solana.com', // official — rate-limited but works
+  'https://api.mainnet-beta.solana.com',
+  'https://rpc.ankr.com/solana'
 ].filter(Boolean);
 
 // ─── Data helpers ──────────────────────────────────────────────────────────────
@@ -686,13 +685,13 @@ app.get('/api/balance/:wallet', async (req, res) => {
 
     // getParsedTokenAccountsByOwner is the most reliable method — returns
     // fully parsed data regardless of which RPC node answers.
-    const [tokenResult, solResult] = await Promise.allSettled([
-      withRpc(conn => conn.getParsedTokenAccountsByOwner(owner, { mint })),
-      withRpc(conn => conn.getBalance(owner)),
-    ]);
-
-    const tokenOk = tokenResult.status === 'fulfilled';
-    const solOk   = solResult.status   === 'fulfilled';
+    const conn = new Connection("https://api.mainnet-beta.solana.com","confirmed");
+    const tokenAccounts = await conn.getParsedTokenAccountsByOwner(owner,{ mint });
+    const solLamports = await conn.getBalance(owner);
+    const tokenOk = true;
+    const solOk = true;
+    const tokenResult = { value: tokenAccounts };
+    const solResult = { value: solLamports };
 
     // Token RPC failed — serve stale cache or 503 rather than a false 0
     if (!tokenOk) {
