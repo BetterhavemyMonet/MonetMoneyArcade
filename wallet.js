@@ -632,6 +632,7 @@ async function payEntryFee(gameName, onProgress, amount) {
 
   // Always refresh balance from server before checking sufficiency
   await refreshBalances().catch(() => {});
+  console.log("[PLAY CHECK]",{balance:WalletState.monetBalance,fee,address:WalletState.address});
   if (WalletState.monetBalance < fee) {
     throw new Error(`Insufficient MONET. Need ${fee}, have ${WalletState.monetBalance.toFixed(2)}`);
   }

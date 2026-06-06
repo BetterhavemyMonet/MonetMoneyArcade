@@ -336,6 +336,7 @@ const ASSOC_PROG   = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bT3
 // Set SOLANA_RPC_URL secret for a dedicated RPC (Helius free tier recommended).
 // Fallbacks are public endpoints that work from Node.js (no browser CORS issues).
 const RPCS = [
+  process.env.SOLANA_RPC_URL,
   'https://api.mainnet-beta.solana.com',
   'https://rpc.ankr.com/solana'
 ].filter(Boolean);
