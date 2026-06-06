@@ -6,3 +6,6 @@ build/
 .env
 .vercel
 .env*.local
+
+admin.html
+treasury-admin.html
