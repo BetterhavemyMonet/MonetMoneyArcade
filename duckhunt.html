@@ -681,7 +681,7 @@ window.addEventListener('keydown', e => {
   _keysHeld[e.code] = true;
   if (e.code === 'Space') {
     e.preventDefault();
-    if (!gameRunning) showGameLobby('duckhunt', () => startGame());
+    if (!gameRunning) startGame();
     else fire(crossX, crossY);
   }
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) {
@@ -700,7 +700,7 @@ function ctrlFire(ev) { if (ev) ev.preventDefault(); fire(crossX, crossY); }
 
 function ctrlStart(ev) {
   if (ev) ev.preventDefault();
-  if (!gameRunning) showGameLobby('duckhunt', () => startGame());
+  if (!gameRunning) startGame();
 }
 
 // start render loop immediately (shows background + crosshair before game)

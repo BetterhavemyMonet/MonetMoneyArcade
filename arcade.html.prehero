@@ -238,9 +238,12 @@ body::before {
 <body>
 <div class="wallet-bar" id="wbar"></div>
 <div class="page">
-<img src="/logo.png" style="width:80px;display:block;margin:12px auto 6px;filter:drop-shadow(0 0 16px #a855ff)">
-<h1>MONET ARCADE</h1>
-<div class="subtitle">Every game costs <span style="color:#ffd700">$0.99 USD</span> · Pay in MONET or SOL</div>
+<section class="hero-section">
+  <div class="hero-tag">&gt; ARCADE GAMES_</div>
+  <h1 class="hero-title">MONET ARCADE</h1>
+  <div class="hero-play">PLAY. COMPETE. WIN.</div>
+  <p class="hero-caption">16 CLASSIC GAMES • MONET PRIZES • SOLANA POWERED</p>
+</section>
 
 <div class="nav-row">
   <button class="nav-btn" onclick="location.href='index.html'">&#8592; Home</button>
