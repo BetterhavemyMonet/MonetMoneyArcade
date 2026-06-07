@@ -1,4 +1,4 @@
-const CACHE = 'monet-arcade-v1';
+const CACHE = 'monet-arcade-v2';
 
 const PRECACHE = [
   '/',

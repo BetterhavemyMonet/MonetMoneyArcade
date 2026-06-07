@@ -23,6 +23,7 @@
 
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#7c00ff">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Bangers&display=swap" rel="stylesheet">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -34,17 +35,18 @@
 <script src="/wallet.js"></script>
 <style>
 body {
-  background-image: url('/title.jpg');
+  background-image: url('/background-image.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
   min-height:100vh;
 }
 body::before {
+  box-shadow: inset 0 0 180px rgba(168,85,255,0.25), inset 0 0 280px rgba(255,68,136,0.18);
   content:'';
   position:fixed;
   inset:0;
-  background:rgba(2,4,10,0.83);
+  background:rgba(0,0,0,0.78);
   pointer-events:none;
   z-index:0;
 }
@@ -233,14 +235,440 @@ body::before {
   font-family:'Orbitron',sans-serif; font-weight:bold; border:1px solid;
   white-space:nowrap;
 }
+.hero-section {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 24px 60px;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(168,85,255,0.14) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(255,68,136,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 80% 20%, rgba(0,240,255,0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.hero-scan {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.012) 3px, rgba(255,255,255,0.012) 4px);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.hero-tag {
+  font-size: 11px;
+  color: var(--pink);
+  letter-spacing: 3px;
+  margin-bottom: 20px;
+  opacity: 0.9;
+}
+
+.hero-title {
+  font-family: 'Bangers', cursive;
+  font-size: clamp(64px, 14vw, 130px);
+  letter-spacing: 6px;
+  line-height: 0.9;
+  color: #fff;
+  text-shadow:
+    0 0 40px rgba(255,68,136,0.8),
+    0 0 80px rgba(168,85,255,0.5);
+  margin-bottom: 16px;
+  position: relative;
+  animation: glitch-main 5s infinite;
+}
+
+/* Pink channel — shifts left, clips top slices */
+.hero-title::before {
+  content: 'MONET MONEY';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  font-family: 'Bangers', cursive;
+  font-size: inherit;
+  letter-spacing: 6px;
+  line-height: 0.9;
+  color: #ff4488;
+  opacity: 0;
+  animation: glitch-before 5s infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Cyan channel — shifts right, clips bottom slices */
+.hero-title::after {
+  content: 'MONET MONEY';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  font-family: 'Bangers', cursive;
+  font-size: inherit;
+  letter-spacing: 6px;
+  line-height: 0.9;
+  color: #00f0ff;
+  opacity: 0;
+  animation: glitch-after 5s infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Main text jitter */
+@keyframes glitch-main {
+  0%, 80%, 100% { transform: translate(0) skewX(0deg); opacity: 1; }
+  81%  { transform: translate(-4px, 0) skewX(-1.5deg); opacity: 0.9; }
+  82%  { transform: translate(5px, 1px) skewX(1deg);   opacity: 1; }
+  83%  { transform: translate(-2px, -1px) skewX(0deg); opacity: 0.85; }
+  83.5%{ transform: translate(0) skewX(0deg);          opacity: 1; }
+  84%  { transform: translate(3px, 0) skewX(0.5deg);   opacity: 0.95; }
+  84.5%{ transform: translate(0) skewX(0deg);          opacity: 1; }
+  /* second burst */
+  91%  { transform: translate(0) skewX(0deg);          opacity: 1; }
+  91.5%{ transform: translate(-6px, 0) skewX(-2deg);   opacity: 0.8; }
+  92%  { transform: translate(4px, 2px) skewX(1.5deg); opacity: 1; }
+  92.5%{ transform: translate(-1px, 0) skewX(0deg);    opacity: 0.9; }
+  93%  { transform: translate(0) skewX(0deg);          opacity: 1; }
+}
+
+/* Pink channel — horizontal bar slices shifted left */
+@keyframes glitch-before {
+  0%, 80%, 100% { opacity: 0; transform: translate(0); clip-path: none; }
+  81%  {
+    opacity: 0.85;
+    transform: translate(-6px, -2px);
+    clip-path: polygon(0 10%, 100% 10%, 100% 38%, 0 38%);
+  }
+  82%  {
+    opacity: 0.75;
+    transform: translate(5px, 1px);
+    clip-path: polygon(0 22%, 100% 22%, 100% 50%, 0 50%);
+  }
+  83%  {
+    opacity: 0.9;
+    transform: translate(-3px, 0px);
+    clip-path: polygon(0 2%, 100% 2%, 100% 18%, 0 18%);
+  }
+  83.5%{ opacity: 0; clip-path: none; }
+  84%  {
+    opacity: 0.7;
+    transform: translate(-8px, 0);
+    clip-path: polygon(0 55%, 100% 55%, 100% 68%, 0 68%);
+  }
+  84.5%{ opacity: 0; clip-path: none; }
+  91%  { opacity: 0; clip-path: none; }
+  91.5%{
+    opacity: 0.8;
+    transform: translate(-7px, 1px);
+    clip-path: polygon(0 30%, 100% 30%, 100% 60%, 0 60%);
+  }
+  92%  {
+    opacity: 0.6;
+    transform: translate(4px, -1px);
+    clip-path: polygon(0 5%, 100% 5%, 100% 28%, 0 28%);
+  }
+  92.5%{ opacity: 0; clip-path: none; }
+}
+
+/* Cyan channel — horizontal bar slices shifted right */
+@keyframes glitch-after {
+  0%, 80%, 100% { opacity: 0; transform: translate(0); clip-path: none; }
+  81%  {
+    opacity: 0.8;
+    transform: translate(6px, 2px);
+    clip-path: polygon(0 55%, 100% 55%, 100% 82%, 0 82%);
+  }
+  82%  {
+    opacity: 0.7;
+    transform: translate(-5px, -1px);
+    clip-path: polygon(0 65%, 100% 65%, 100% 90%, 0 90%);
+  }
+  83%  {
+    opacity: 0.85;
+    transform: translate(4px, 1px);
+    clip-path: polygon(0 75%, 100% 75%, 100% 100%, 0 100%);
+  }
+  83.5%{ opacity: 0; clip-path: none; }
+  84%  {
+    opacity: 0.65;
+    transform: translate(9px, 0);
+    clip-path: polygon(0 40%, 100% 40%, 100% 52%, 0 52%);
+  }
+  84.5%{ opacity: 0; clip-path: none; }
+  91%  { opacity: 0; clip-path: none; }
+  91.5%{
+    opacity: 0.75;
+    transform: translate(8px, -1px);
+    clip-path: polygon(0 60%, 100% 60%, 100% 88%, 0 88%);
+  }
+  92%  {
+    opacity: 0.6;
+    transform: translate(-5px, 2px);
+    clip-path: polygon(0 45%, 100% 45%, 100% 72%, 0 72%);
+  }
+  92.5%{ opacity: 0; clip-path: none; }
+}
+
+.hero-play {
+  font-size: clamp(20px, 5vw, 36px);
+  font-weight: 900;
+  letter-spacing: 4px;
+  background: linear-gradient(90deg, var(--pink), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 12px;
+}
+
+.hero-caption {
+  font-size: clamp(11px, 2.5vw, 15px);
+  color: #aaa;
+  letter-spacing: 2px;
+  margin-bottom: 28px;
+}
+.hero-caption .accent { color: var(--pink); }
+
+.hero-balance-wrap {
+  margin-bottom: 28px;
+  padding: 8px 20px;
+  background: rgba(255,68,136,0.07);
+  border: 1px solid rgba(255,68,136,0.2);
+  border-radius: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.hero-balance-label { font-size: 9px; color: #666; letter-spacing: 2px; }
+.hero-balance-val { font-size: 13px; font-weight: 800; color: #ff4488; }
+
+.hero-btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.btn-hero-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, var(--pink), var(--purple));
+  color: #fff;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  border-radius: 8px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  box-shadow: 0 0 24px rgba(255,68,136,0.4);
+}
+.btn-hero-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 32px rgba(255,68,136,0.5);
+}
+
+.btn-hero-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 26px;
+  background: transparent;
+  color: #ccc;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  border-radius: 8px;
+  text-decoration: none;
+  border: 1px solid rgba(255,255,255,0.2);
+  cursor: pointer;
+  transition: transform .15s, border-color .15s, color .15s;
+}
+.btn-hero-secondary:hover {
+  transform: translateY(-2px);
+  border-color: var(--purple);
+  color: #fff;
+}
+
+.hero-scroll-hint {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: #333;
+  letter-spacing: 2px;
+  animation: bob 2s ease-in-out infinite;
+}
+@keyframes bob {
+  0%,100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(6px); }
+}
+
+/* corner decorations */
+.hero-deco-left {
+  position: absolute;
+  left: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #ff4488;
+  opacity: 0.5;
+  line-height: 1.8;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+.hero-deco-right {
+  position: absolute;
+  right: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--purple);
+  opacity: 0.6;
+  line-height: 1.6;
+  text-align: right;
+  font-family: 'Bangers', cursive;
+  font-size: 18px;
+}
+@media(max-width:600px) {
+  .hero-deco-left, .hero-deco-right { display: none; }
+}
+
+/* ═══ STATS TICKER ══════════════════════════════════════════════════════════ */
+.stats-bar {
+  background: #080010;
+  border-top: 1px solid rgba(255,68,136,0.25);
+  border-bottom: 1px solid rgba(255,68,136,0.25);
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.stats-bar-inner {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  gap: 0;
+}
+.stats-bar-inner::-webkit-scrollbar { display: none; }
+
+.st-label {
+  padding: 0 20px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--pink);
+  letter-spacing: 2px;
+  white-space: nowrap;
+  border-right: 1px solid rgba(255,68,136,0.2);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  background: rgba(255,68,136,0.06);
+  flex-shrink: 0;
+}
+
+.st-item {
+  padding: 0 20px;
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  border-right: 1px solid rgba(255,255,255,0.05);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.st-item b { color: #fff; font-weight: 800; }
+.st-item b.pos { color: #00ff9d; }
+.st-item b.neg { color: #ff4444; }
+
+.st-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pink);
+  box-shadow: 0 0 6px var(--pink);
+  animation: pulse-dot 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.7); }
+}
+
+.st-buy {
+  padding: 0 20px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--pink);
+  letter-spacing: 1px;
+  white-space: nowrap;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  transition: background .15s;
+  flex-shrink: 0;
+  background: rgba(255,68,136,0.06);
+  border-left: 1px solid rgba(255,68,136,0.2);
+}
+.st-buy:hover { background: rgba(255,68,136,0.14); color: #fff; }
+
+/* ═══ ARCADE SECTION ════════════════════════════════════════════════════════ */
+.arcade-section {
+  background: linear-gradient(180deg, #000 0%, #05000d 100%);
+  padding: 80px 24px 60px;
+  position: relative;
+  overflow: hidden;
+}
+
+.arcade-section::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--pink), var(--purple), transparent);
+}
+
+.as-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: start;
+}
+@media(max-width:768px) {
 </style>
 </head>
 <body>
 <div class="wallet-bar" id="wbar"></div>
 <div class="page">
-<img src="/logo.png" style="width:80px;display:block;margin:12px auto 6px;filter:drop-shadow(0 0 16px #a855ff)">
-<h1>MONET ARCADE</h1>
-<div class="subtitle">Every game costs <span style="color:#ffd700">$0.99 USD</span> · Pay in MONET or SOL</div>
+<section class="hero-section">
+  <div class="hero-tag">&gt; ARCADE GAMES_</div>
+  <h1 class="hero-title">MONET ARCADE</h1>
+  <div class="hero-play">PLAY. COMPETE. WIN.</div>
+  <p class="hero-caption">16 CLASSIC GAMES • MONET PRIZES • SOLANA POWERED</p>
+</section>
 
 <div class="nav-row">
   <button class="nav-btn" onclick="location.href='index.html'">&#8592; Home</button>

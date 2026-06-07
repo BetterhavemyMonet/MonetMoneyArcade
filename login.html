@@ -622,7 +622,7 @@ async function handleStart() {
     if (pass !== conf)      { msg('Passwords do not match', 'err'); return; }
     if (pass.length < 4)    { msg('Password must be 4+ characters', 'err'); return; }
     if (accounts[user.toLowerCase()]) { msg('Username already taken', 'err'); return; }
-    accounts[user.toLowerCase()] = { displayName: user, hash, createdAt: Date.now() };
+    accounts[user.toLowerCase()] = { displayName: user, hash, createdAt: Date.now(), wallet: localStorage.getItem('wallet_address') || '' };
     localStorage.setItem('mm_accounts', JSON.stringify(accounts));
     msg('Account created!', 'ok');
     setTimeout(enter, 700);

@@ -194,12 +194,7 @@ async function getMonetPrice() {
 // Returns the current MONET entry fee (how many MONET = $0.99 USD)
 // Falls back to ENTRY_FEE (5) if price cannot be fetched.
 async function getDynamicEntryFee() {
-  const p = await getMonetPrice();
-  if (!p) return 5;
-
-  const dynamicFee = Math.round(TARGET_USD / p);
-
-  return Math.min(1000, Math.max(5, dynamicFee));
+  return 10;
 }
 
 // Warm the price cache at startup
@@ -864,24 +859,17 @@ app.get('/api/rpc-url', (_req, res) => {
 
 // ─── Routes: MONET price / dynamic entry fee ──────────────────────────────
 app.get('/api/monet-price', async (_req, res) => {
-  try {
-    const [priceUsd, solPriceUsd] = await Promise.all([getMonetPrice(), getSolPrice()]);
-    const entryFeeMonet = priceUsd
-  ? Math.min(1000, Math.max(5, Math.round(TARGET_USD / priceUsd)))
-  : ENTRY_FEE;
-    const solEntryLamports = solPriceUsd ? Math.max(100_000, Math.round((TARGET_USD / solPriceUsd) * 1e9)) : SOL_ENTRY_LAMPORTS;
-    res.json({
-      ok: true,
-      priceUsd,
-      entryFeeMonet,
-      entryFeeUsd: TARGET_USD,
-      solPriceUsd,
-      solEntryLamports,
-      cached: !!(priceUsd && Date.now() - _monetPriceTs < PRICE_CACHE_MS),
-    });
-  } catch(e) {
-    res.json({ ok: true, priceUsd: null, entryFeeMonet: ENTRY_FEE, entryFeeUsd: TARGET_USD, solPriceUsd: null, solEntryLamports: SOL_ENTRY_LAMPORTS });
-  }
+  const solPriceUsd = await getSolPrice().catch(() => null);
+  const solEntryLamports = solPriceUsd ? Math.max(100_000, Math.round((0.99 / solPriceUsd) * 1e9)) : SOL_ENTRY_LAMPORTS;
+  res.json({
+    ok: true,
+    priceUsd: 0.0099,
+    entryFeeMonet: 100,
+    entryFeeUsd: 0.99,
+    solPriceUsd,
+    solEntryLamports,
+    cached: true
+  });
 });
 
 app.get('/api/status', async (req, res) => {
