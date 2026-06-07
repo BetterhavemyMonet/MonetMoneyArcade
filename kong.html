@@ -283,13 +283,34 @@ function drawKong(){
   const kx=f.x1+12, ky=f.y-52;
   const bob=Math.sin(kongAnim*Math.PI*2)*3;
   X.save();
-  if(kongImg.complete){
-    X.drawImage(kongImg,kx-18,ky-12+bob,72,72);
-  }
+  // Body
+  X.fillStyle=kongThrow?'#ff6600':'#7B3210';
+  X.fillRect(kx+2,ky+18+bob,32,24);
+  // Head
+  X.fillStyle='#6B3010';
+  X.fillRect(kx+6,ky+2+bob,24,20);
+  // Eyes
+  X.fillStyle='#ff0000';
+  X.fillRect(kx+9,ky+7+bob,5,5);
+  X.fillRect(kx+20,ky+7+bob,5,5);
+  // Nose
+  X.fillStyle='#5a2008';
+  X.fillRect(kx+13,ky+12+bob,8,5);
+  // Chest
+  X.fillStyle='#c08060';
+  X.fillRect(kx+9,ky+20+bob,18,14);
+  // Left arm
+  X.fillStyle='#7B3210';
+  X.fillRect(kx-7,ky+18+bob,11,16);
+  // Right arm / throwing arm
   if(kongThrow){
-    X.fillStyle="#ffd700";
-    X.beginPath();X.arc(kx+58,ky+20+bob,8,0,Math.PI*2);X.fill();
-    X.fillStyle="#000";X.font="bold 7px monospace";X.fillText("TX",kx+54,ky+24+bob);
+    X.fillStyle='#7B3210';
+    X.fillRect(kx+33,ky+12+bob,10,10);
+    X.fillStyle='#ffd700';
+    X.beginPath();X.arc(kx+46,ky+12+bob,8,0,Math.PI*2);X.fill();
+    X.fillStyle='#000';X.font='bold 7px monospace';X.fillText('TX',kx+42,ky+16+bob);
+  } else {
+    X.fillRect(kx+33,ky+18+bob,11,16);
   }
   // MONET prize coin on platform
   X.save();
@@ -433,7 +454,7 @@ function startGame(){
 document.addEventListener('DOMContentLoaded',()=>{
   phase='ready'; score=0; lives=3; wave=0; barrels=[];
   draw();
-  startGame();
+  showGameLobby('kong',()=>startGame());
 });
 </script>
 </body>
