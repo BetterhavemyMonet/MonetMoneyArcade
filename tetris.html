@@ -389,13 +389,13 @@ function loop(ts){
 document.addEventListener('DOMContentLoaded',()=>{
   renderWalletBar('wbar');
   resize();
-  phase='idle';initGame();
+  phase='play';initGame();
   lastT=performance.now();
   rafId=requestAnimationFrame(loop);
 
   showGameLobby('tetris',()=>{
     sessionActive=true;
-    phase='idle';initGame();
+    phase='play';initGame();
     setTimeout(()=>{phase='play';},200);
   });
 });
