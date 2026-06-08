@@ -68,10 +68,7 @@ let gameRunning = false;
 let finalScore = 0;
 
 // ─── Show lobby, then start game ───────────────────────────────────────────────
-showGameLobby('gator', () => {
-  document.getElementById('lobby-wrap').style.display = 'none';
-  startPhaserGame();
-});
+startPhaserGame();
 
 function startPhaserGame() {
   if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
