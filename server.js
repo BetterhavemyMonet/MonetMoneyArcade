@@ -1904,6 +1904,69 @@ if (fs.existsSync(distDir)) {
 }
 
 const PORT = process.env.PORT || 5000;
+app.post("/api/dino-realms/finish", async (req, res) => {
+  try {
+    const { wallet, score } = req.body;
+    if (!wallet) return res.status(400).json({ ok:false, error:"wallet required" });
+
+    const claims = dbRead("claims");
+
+    claims.push({
+      id: genId(),
+      type: "dino_realms",
+      wallet,
+      amount: Number(score || 0),
+      status: "pending",
+      createdAt: Date.now()
+    });
+
+    dbWrite("claims", claims);
+
+    res.json({
+      ok:true,
+      winner: wallet,
+      prize: Number(score || 0)
+    });
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok:false, error:e.message });
+  }
+});
+
+app.post("/api/dino-realms/finish", async (req, res) => {
+  try {
+    const { wallet, score } = req.body;
+
+    if (!wallet) {
+      return res.status(400).json({ ok:false, error:"wallet required" });
+    }
+
+    const claims = dbRead("claims");
+
+    claims.push({
+      id: genId(),
+      type: "dino_realms",
+      wallet,
+      amount: Number(score || 0),
+      status: "pending",
+      createdAt: Date.now()
+    });
+
+    dbWrite("claims", claims);
+
+    res.json({
+      ok:true,
+      winner: wallet,
+      prize: Number(score || 0)
+    });
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok:false, error:e.message });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   const kp = getTreasuryKP();
   if (kp) {
