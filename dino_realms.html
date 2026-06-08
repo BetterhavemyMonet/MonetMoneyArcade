@@ -286,6 +286,7 @@
         // --- SPAWN PLAYERS ---
         // Main Player (Green)
         const player = createDino(0x4CAF50);
+        player.scale.set(1.5, 1.5, 1.5);
         scene.add(player);
 
         // Fake Multiplayer Network Clients (Other colors)
@@ -447,8 +448,8 @@
 
             // 4. Smooth Camera Following Dynamics
             const camTargetX = player.position.x;
-            const camTargetY = player.position.y + 7;
-            const camTargetZ = player.position.z + 14;
+            const camTargetY = player.position.y + 12;
+            const camTargetZ = player.position.z + 22;
             camera.position.x += (camTargetX - camera.position.x) * 0.1;
             camera.position.y += (camTargetY - camera.position.y) * 0.1;
             camera.position.z += (camTargetZ - camera.position.z) * 0.1;
