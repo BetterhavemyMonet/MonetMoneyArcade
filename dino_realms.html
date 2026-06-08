@@ -144,7 +144,7 @@
         <!-- Gem Counter -->
         <div id="hud-gems" class="hud-box">
         <div id="hud-timer" class="hud-box">⏱ Time: <span id="time-left">60</span></div>
-            💎 Gems: <span id="gem-count">0</span>
+            💎 Gems: <span id="gem-count">0</span> | ⏱️ <span id="timer">60</span>s
         <div id="hud-timer" class="hud-box">⏱ Time: <span id="time-left">60</span></div>
         </div>
         <div id="hud-timer" class="hud-box">⏱ Time: <span id="time-left">60</span></div>
@@ -329,7 +329,6 @@
         let matchTime = 60;
         let gameOver = false;
         let lastTick = Date.now();
-        let matchTime = 60;
         let gameOver = false;
         let moveInput = { x: 0, y: 0 };
         let isCharging = false;
@@ -420,7 +419,20 @@
             }
 
             if (gameOver) {
-                renderer.render(scene, camera);
+                if (!gameOver) {
+                const now = Date.now();
+                if (now - lastTick >= 1000) {
+                    matchTime--;
+                    lastTick = now;
+                    document.getElementById("timer").innerText = matchTime;
+                    if (matchTime <= 0) {
+                        gameOver = true;
+                        alert("🏆 Round Over!\n\nScore: " + score + " gems");
+                    }
+                }
+            }
+
+            renderer.render(scene, camera);
                 return;
             }
 
