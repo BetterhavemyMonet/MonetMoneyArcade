@@ -176,7 +176,7 @@
         scene.background = new THREE.Color(0x87CEEB);
         scene.fog = new THREE.FogExp2(0x87CEEB, 0.015);
 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
@@ -408,26 +408,12 @@
 
             // 2. Player Locomotion
             let currentSpeed = isCharging ? 0.35 : 0.18;
-
-            player.userData.velX ??= 0;
-            player.userData.velZ ??= 0;
-            const accel = isCharging ? 0.025 : 0.015;
-            const friction = 0.92;
-
-            player.userData.velX ??= 0;
-            player.userData.velZ ??= 0;
-            const accel = isCharging ? 0.025 : 0.015;
-            const friction = 0.92;
             
             if (moveInput.x !== 0 || moveInput.y !== 0) {
                 // Calculate movement vector relative to screen camera space
                 const moveVec = new THREE.Vector3(moveInput.x, 0, moveInput.y).normalize();
-                player.userData.velX += moveVec.x * accel;
-                player.userData.velZ += moveVec.z * accel;
-                player.userData.velX = Math.max(-currentSpeed, Math.min(currentSpeed, player.userData.velX));
-                player.userData.velZ = Math.max(-currentSpeed, Math.min(currentSpeed, player.userData.velZ));
-                player.position.x += player.userData.velX;
-                player.position.z += player.userData.velZ;
+                player.position.x += moveVec.x * currentSpeed;
+                player.position.z += moveVec.z * currentSpeed;
 
                 // Rotate player to face target direction smoothly
                 const targetRotation = Math.atan2(-moveVec.x, -moveVec.z);
@@ -437,16 +423,6 @@
                 player.userData.wingL.rotation.z = 0.3 + Math.sin(time * 15) * 0.2;
                 player.userData.wingR.rotation.z = -0.3 - Math.sin(time * 15) * 0.2;
             } else {
-                player.userData.velX *= friction;
-                player.userData.velZ *= friction;
-                player.position.x += player.userData.velX;
-                player.position.z += player.userData.velZ;
-
-                player.userData.velX *= friction;
-                player.userData.velZ *= friction;
-                player.position.x += player.userData.velX;
-                player.position.z += player.userData.velZ;
-
                 // Idle wing breathing
                 player.userData.wingL.rotation.z = 0.3 + Math.sin(time * 2) * 0.05;
                 player.userData.wingR.rotation.z = -0.3 - Math.sin(time * 2) * 0.05;
@@ -471,11 +447,11 @@
 
             // 4. Smooth Camera Following Dynamics
             const camTargetX = player.position.x;
-            const camTargetY = player.position.y + 10;
-            const camTargetZ = player.position.z + 18;
-            camera.position.x += (camTargetX - camera.position.x) * 0.06;
-            camera.position.y += (camTargetY - camera.position.y) * 0.06;
-            camera.position.z += (camTargetZ - camera.position.z) * 0.06;
+            const camTargetY = player.position.y + 7;
+            const camTargetZ = player.position.z + 14;
+            camera.position.x += (camTargetX - camera.position.x) * 0.1;
+            camera.position.y += (camTargetY - camera.position.y) * 0.1;
+            camera.position.z += (camTargetZ - camera.position.z) * 0.1;
             camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
 
             // 5. Simulate Other Network Players Behavior (Bots)
