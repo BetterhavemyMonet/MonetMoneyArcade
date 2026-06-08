@@ -143,8 +143,11 @@
     <div id="ui-layer">
         <!-- Gem Counter -->
         <div id="hud-gems" class="hud-box">
+        <div id="hud-timer" class="hud-box">⏱ Time: <span id="time-left">60</span></div>
             💎 Gems: <span id="gem-count">0</span>
+        <div id="hud-timer" class="hud-box">⏱ Time: <span id="time-left">60</span></div>
         </div>
+        <div id="hud-timer" class="hud-box">⏱ Time: <span id="time-left">60</span></div>
 
         <!-- Fake Multiplayer Lobby Info -->
         <div id="multiplayer-list" class="hud-box">
@@ -323,6 +326,11 @@
         let playerVelY = 0;
         let isGrounded = true;
         let score = 0;
+        let matchTime = 60;
+        let gameOver = false;
+        let lastTick = Date.now();
+        let matchTime = 60;
+        let gameOver = false;
         let moveInput = { x: 0, y: 0 };
         let isCharging = false;
         const gravity = -0.015;
@@ -396,6 +404,26 @@
         function animate() {
             requestAnimationFrame(animate);
             const time = clock.getElapsedTime();
+
+            if (!gameOver && Date.now() - lastTick >= 1000) {
+                lastTick = Date.now();
+                matchTime--;
+                const timerEl = document.getElementById("time-left");
+                if (timerEl) timerEl.innerText = matchTime;
+
+                if (matchTime <= 0) {
+                    gameOver = true;
+                    setTimeout(() => {
+                        alert("🏆 MATCH OVER!\n\nWinner: GreenDino\nGems Collected: " + score);
+                    }, 100);
+                }
+            }
+
+            if (gameOver) {
+                renderer.render(scene, camera);
+                return;
+            }
+
 
             // 1. Gather Keyboard Inputs if active
             if (!joystickActive) {
