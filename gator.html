@@ -19,7 +19,7 @@ function startGame(){
 
 let game,player,cursors,portal,score=0,health=5,timeLeft=120;
 let scoreText,healthText,timeText,coinsLeftText;
-let invincible=false, coinsRemaining=50, gameEnded=false;
+let invincible=false, coinsRemaining=50, gameEnded=false; let touchLeft=false,touchRight=false,touchJump=false;
 
 const config={
 type:Phaser.AUTO,
@@ -76,6 +76,19 @@ function create(){
  this.cameras.main.startFollow(player,true,0.08,0.08);
 
  cursors=this.input.keyboard.createCursorKeys();
+
+this.input.on('pointerdown', pointer => {
+  const third=this.scale.width/3;
+  if(pointer.x<third) touchLeft=true;
+  else if(pointer.x<third*2) touchJump=true;
+  else touchRight=true;
+});
+
+this.input.on('pointerup', () => {
+  touchLeft=false;
+  touchRight=false;
+  touchJump=false;
+});
 
  const coins=this.physics.add.group();
  for(let i=0;i<50;i++){
@@ -183,21 +196,21 @@ function update(){
 
  const speed=300;
 
- if(cursors.left.isDown){
+ if(cursors.left.isDown || touchLeft){
    player.setVelocityX(-speed);
    player.flipX=true;
- }else if(cursors.right.isDown){
+ }else if(cursors.right.isDown || touchRight){
    player.setVelocityX(speed);
    player.flipX=false;
  }else{
    player.setVelocityX(0);
  }
 
- if(cursors.up.isDown && player.body.blocked.down){
+ if((cursors.up.isDown || touchJump) && player.body.blocked.down){
    player.setVelocityY(-650);
  }
 
- if(cursors.up.isDown && !player.body.blocked.down && player.body.velocity.y>0){
+ if((cursors.up.isDown || touchJump) && !player.body.blocked.down && player.body.velocity.y>0){
    player.setGravityY(-700);
    if(player.body.velocity.y>120) player.setVelocityY(120);
  }else{
