@@ -5,222 +5,134 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dino Realms</title>
 <script src="wallet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
 <style>
-html,body{margin:0;padding:0;background:#090014;overflow:hidden}
-canvas{display:block}
+html,body{margin:0;padding:0;overflow:hidden;background:#12001f;color:#fff;font-family:Arial}
+#game{display:block}
+#hud{position:fixed;top:10px;left:10px;z-index:10;font-weight:bold}
+.btn{position:fixed;bottom:20px;width:70px;height:70px;border-radius:50%;background:#ffffff33;border:2px solid #fff;color:#fff;font-size:28px}
+#left{left:20px} #jump{left:110px} #right{left:200px}
 </style>
 </head>
 <body>
+<canvas id="game"></canvas>
+<div id="hud">MONET: <span id="score">0</span> | TIME: <span id="time">120</span></div>
+<button id="left" class="btn">◀</button>
+<button id="jump" class="btn">▲</button>
+<button id="right" class="btn">▶</button>
 <script>
-showGameLobby('gator', startGame);
+const cvs=document.getElementById('game'),ctx=cvs.getContext('2d');
+function resize(){cvs.width=innerWidth;cvs.height=innerHeight} resize(); addEventListener('resize',resize);
+
+const dino=new Image(); dino.src='/dino-sprite.png';
+const ape=new Image(); ape.src='/silverback.png';
+
+let score=0,timeLeft=120,started=false;
+let left=false,right=false,jump=false;
+
+const player={x:100,y:300,w:72,h:72,vx:0,vy:0,ground:false};
+const coins=[...Array(20)].map((_,i)=>({x:300+i*180,y:250+((i%3)*60),alive:true}));
+const enemies=[...Array(5)].map((_,i)=>({x:700+i*500,y:340,dir:1}));
+const portal={x:4200,y:280,w:80,h:120,active:false};
 
 function startGame(){
-
-let game,player,cursors,portal,score=0,health=5,timeLeft=120;
-let scoreText,healthText,timeText,coinsLeftText;
-let invincible=false, coinsRemaining=50, gameEnded=false; let touchLeft=false,touchRight=false,touchJump=false;
-
-const config={
-type:Phaser.AUTO,
-width:window.innerWidth,
-height:window.innerHeight,
-physics:{default:'arcade',arcade:{gravity:{y:1000},debug:false}},
-scene:{preload,create,update}
-};
-
-game=new Phaser.Game(config);
-
-function preload(){
- this.load.image('dino','/dino-sprite.png');
- this.load.image('silverback','/silverback.png');
+ started=true;
+ setInterval(()=>{
+   if(!started)return;
+   timeLeft--;
+   document.getElementById('time').textContent=timeLeft;
+   if(timeLeft<=0) finish(false);
+ },1000);
+ requestAnimationFrame(loop);
 }
 
-function create(){
- const W=this.scale.width,H=this.scale.height;
+if(typeof showGameLobby==='function'){
+ showGameLobby('gator', startGame);
+}else{
+ startGame();
+}
 
- this.physics.world.setBounds(0,0,6000,2000);
- this.cameras.main.setBounds(0,0,6000,2000);
- this.cameras.main.setBackgroundColor('#160020');
-
- for(let i=0;i<150;i++){
-   this.add.circle(
-     Phaser.Math.Between(0,6000),
-     Phaser.Math.Between(0,1800),
-     2,0xffffff,Math.random()
-   );
+function finish(win){
+ started=false;
+ const finalScore=score*100+timeLeft*10;
+ if(typeof arcadeSubmitScore==='function'){
+   arcadeSubmitScore('gator',finalScore).catch(console.error);
  }
+ alert((win?'REALM COMPLETE':'GAME OVER')+'\\nScore: '+finalScore);
+}
 
- const ground=this.physics.add.staticGroup();
-
- for(let i=0;i<15;i++){
-   let p=this.add.rectangle(200+i*400,1750,400,70,0x4a257a);
-   this.physics.add.existing(p,true);
-   ground.add(p);
- }
-
- [
- [700,1300],[1200,1100],[1700,900],[2200,1200],
- [2800,900],[3300,700],[4000,1000],[4700,700],[5400,900]
- ].forEach(([x,y])=>{
-   let p=this.add.rectangle(x,y,250,24,0x00ccaa);
-   this.physics.add.existing(p,true);
-   ground.add(p);
- });
-
- player=this.physics.add.sprite(150,1500,'dino');
- player.setScale(.35);
- player.setCollideWorldBounds(true);
- this.physics.add.collider(player,ground);
-
- this.cameras.main.startFollow(player,true,0.08,0.08);
-
- cursors=this.input.keyboard.createCursorKeys();
-
-this.input.on('pointerdown', pointer => {
-  const third=this.scale.width/3;
-  if(pointer.x<third) touchLeft=true;
-  else if(pointer.x<third*2) touchJump=true;
-  else touchRight=true;
+['left','right','jump'].forEach(id=>{
+ const el=document.getElementById(id);
+ el.onpointerdown=()=>window[id]=true;
+ el.onpointerup=()=>window[id]=false;
+ el.onpointerleave=()=>window[id]=false;
 });
 
-this.input.on('pointerup', () => {
-  touchLeft=false;
-  touchRight=false;
-  touchJump=false;
+addEventListener('keydown',e=>{
+ if(e.key==='ArrowLeft') left=true;
+ if(e.key==='ArrowRight') right=true;
+ if(e.key==='ArrowUp') jump=true;
+});
+addEventListener('keyup',e=>{
+ if(e.key==='ArrowLeft') left=false;
+ if(e.key==='ArrowRight') right=false;
+ if(e.key==='ArrowUp') jump=false;
 });
 
- const coins=this.physics.add.group();
- for(let i=0;i<50;i++){
-   const c=coins.create(
-     Phaser.Math.Between(200,5800),
-     Phaser.Math.Between(300,1500)
-   );
-   c.visible=false;
-   c.body.setSize(20,20);
-   c.marker=this.add.circle(c.x,c.y,10,0xffd700);
- }
+function loop(){
+ if(!started)return;
 
- this.physics.add.overlap(player,coins,(p,c)=>{
-   c.marker.destroy();
-   c.destroy();
-   score+=10;
-   coinsRemaining--;
-   scoreText.setText('MONET: '+score);
-   coinsLeftText.setText('LEFT: '+coinsRemaining);
-   if(coinsRemaining===0){
-      portal.fillColor=0x00ff00;
-   }
+ player.vx=(right?5:0)-(left?5:0);
+ player.x+=player.vx;
+
+ if(jump && player.ground){player.vy=-12;player.ground=false;}
+ player.vy+=0.6;
+ player.y+=player.vy;
+
+ if(player.y>340){player.y=340;player.vy=0;player.ground=true;}
+
+ coins.forEach(c=>{
+  if(c.alive && Math.abs(player.x-c.x)<40 && Math.abs(player.y-c.y)<40){
+    c.alive=false; score++; document.getElementById('score').textContent=score;
+    if(score>=20) portal.active=true;
+  }
  });
 
- const gorillas=this.physics.add.group();
- for(let i=0;i<12;i++){
-   let g=gorillas.create(700+i*400,1500,'silverback');
-   g.setScale(.08);
-   g.direction=Math.random()>0.5?1:-1;
-   g.speed=60;
-   g.lastHit=0;
- }
- this.physics.add.collider(gorillas,ground);
-
- this.physics.add.overlap(player,gorillas,()=>{
-   if(invincible||gameEnded) return;
-   health--;
-   healthText.setText('HEALTH: '+health);
-   invincible=true;
-   player.setAlpha(.4);
-   setTimeout(()=>{invincible=false;player.setAlpha(1);},2000);
-   if(health<=0) endGame(false,this);
+ enemies.forEach(e=>{
+  e.x+=e.dir*2;
+  if(e.x<200||e.x>4300)e.dir*=-1;
  });
 
- portal=this.add.circle(5750,1450,40,0x00ffff);
- this.physics.add.existing(portal,true);
+ if(portal.active && Math.abs(player.x-portal.x)<60) finish(true);
 
- this.physics.add.overlap(player,portal,()=>{
-   if(coinsRemaining===0) endGame(true,this);
- });
-
- scoreText=this.add.text(20,20,'MONET: 0',{font:'24px Arial',fill:'#00ffcc'}).setScrollFactor(0);
- healthText=this.add.text(20,55,'HEALTH: 5',{font:'24px Arial',fill:'#ff6666'}).setScrollFactor(0);
- timeText=this.add.text(20,90,'TIME: 120',{font:'24px Arial',fill:'#ffffff'}).setScrollFactor(0);
- coinsLeftText=this.add.text(20,125,'LEFT: 50',{font:'24px Arial',fill:'#ffd700'}).setScrollFactor(0);
-
- this.time.addEvent({
-   delay:1000, loop:true,
-   callback:()=>{
-     if(gameEnded) return;
-     timeLeft--;
-     timeText.setText('TIME: '+timeLeft);
-     if(timeLeft<=0) endGame(false,this);
-   }
- });
-
- this.events.on('update',()=>{
-   gorillas.children.iterate(g=>{
-     if(!g) return;
-     let dist=Math.abs(player.x-g.x);
-     if(dist<300){
-       g.setVelocityX(player.x>g.x?120:-120);
-     }else{
-       g.setVelocityX(g.direction*g.speed);
-       if(g.body.blocked.left||g.body.blocked.right){
-         g.direction*=-1;
-       }
-     }
-   });
- });
-
- function endGame(win,scene){
-   if(gameEnded) return;
-   gameEnded=true;
-
-   let finalScore=score+(health*50)+(timeLeft*5)+(win?1000:0);
-
-   scene.add.rectangle(player.x,player.y,600,300,0x000000,.8);
-   scene.add.text(player.x-220,player.y-40,
-      win?'REALM COMPLETE!':'GAME OVER',
-      {font:'32px Arial',fill:'#00ffcc'});
-
-   scene.add.text(player.x-220,player.y+10,
-      'Final Score: '+finalScore,
-      {font:'26px Arial',fill:'#ffd700'});
-
-   setTimeout(()=>{
-      arcadeSubmitScore('gator',finalScore).catch(console.error);
-   },2000);
- }
+ draw();
+ requestAnimationFrame(loop);
 }
 
-function update(){
- if(!player||gameEnded) return;
+function draw(){
+ ctx.fillStyle='#12001f'; ctx.fillRect(0,0,cvs.width,cvs.height);
+ const cam=Math.max(0,player.x-cvs.width/2);
 
- const speed=300;
+ ctx.fillStyle='#4a257a';
+ ctx.fillRect(-cam,412,5000,120);
 
- if(cursors.left.isDown || touchLeft){
-   player.setVelocityX(-speed);
-   player.flipX=true;
- }else if(cursors.right.isDown || touchRight){
-   player.setVelocityX(speed);
-   player.flipX=false;
- }else{
-   player.setVelocityX(0);
+ coins.forEach(c=>{
+   if(!c.alive)return;
+   ctx.fillStyle='gold';
+   ctx.beginPath(); ctx.arc(c.x-cam,c.y,10,0,Math.PI*2); ctx.fill();
+ });
+
+ enemies.forEach(e=>{
+   if(ape.complete) ctx.drawImage(ape,e.x-cam,e.y,80,80);
+   else {ctx.fillStyle='red';ctx.fillRect(e.x-cam,e.y,60,60);}
+ });
+
+ if(portal.active){
+   ctx.strokeStyle='#00ffcc'; ctx.lineWidth=4;
+   ctx.strokeRect(portal.x-cam,portal.y,portal.w,portal.h);
  }
 
- if((cursors.up.isDown || touchJump) && player.body.blocked.down){
-   player.setVelocityY(-650);
- }
-
- if((cursors.up.isDown || touchJump) && !player.body.blocked.down && player.body.velocity.y>0){
-   player.setGravityY(-700);
-   if(player.body.velocity.y>120) player.setVelocityY(120);
- }else{
-   player.setGravityY(0);
- }
-
- if(player.y>2100){
-   health=0;
- }
-}
+ if(dino.complete) ctx.drawImage(dino,player.x-cam,player.y,player.w,player.h);
+ else {ctx.fillStyle='lime';ctx.fillRect(player.x-cam,player.y,player.w,player.h);}
 }
 </script>
 </body>
