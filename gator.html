@@ -121,21 +121,22 @@ function draw(){
  ctx.fillStyle='#4a257a';
  ctx.fillRect(-cam,412,10000,cvs.height);
 
- coins.forEach(c=>{
-   if(!c.alive)return;
-   ctx.fillStyle='gold';
-   ctx.beginPath(); ctx.arc(c.x-cam,c.y,10,0,Math.PI*2); ctx.fill();
- });
+coins.forEach(c=>{
+  if(!c.alive)return;
+  ctx.fillStyle="gold";
+  ctx.beginPath();
+  ctx.arc(c.x-cam,c.y,10,0,Math.PI*2);
+  ctx.fill();
+});
 
-   if(ape.complete){
-     ctx.drawImage(ape,e.x-cam,e.y,96,96);
-   }else{
-     ctx.fillStyle="red";
-     ctx.fillRect(e.x-cam,e.y,80,80);
-   }
-     ctx.fillRect(e.x-cam,e.y,120,120);
-   }
- });
+enemies.forEach(e=>{
+  if(ape.complete){
+    ctx.drawImage(ape,e.x-cam,e.y,96,96);
+  }else{
+    ctx.fillStyle="red";
+    ctx.fillRect(e.x-cam,e.y,80,80);
+  }
+});
 
  if(portal.active){
    ctx.strokeStyle='#00ffcc'; ctx.lineWidth=4;
