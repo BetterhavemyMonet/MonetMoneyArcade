@@ -13,7 +13,7 @@ canvas{display:block}
 </head>
 <body>
 <script>
-startGame();
+showGameLobby('gator', startGame);
 
 function startGame(){
 
@@ -76,18 +76,6 @@ function create(){
  this.cameras.main.startFollow(player,true,0.08,0.08);
 
  cursors=this.input.keyboard.createCursorKeys();
-
-this.input.on('pointerdown', pointer => {
-  if(pointer.x < this.scale.width/3) touchLeft=true;
-  else if(pointer.x < (this.scale.width*2/3)) touchJump=true;
-  else touchRight=true;
-});
-
-this.input.on('pointerup', () => {
-  touchLeft=false;
-  touchRight=false;
-  touchJump=false;
-});
 
  const coins=this.physics.add.group();
  for(let i=0;i<50;i++){
@@ -195,10 +183,10 @@ function update(){
 
  const speed=300;
 
- if(cursors.left.isDown || touchLeft){
+ if(cursors.left.isDown){
    player.setVelocityX(-speed);
    player.flipX=true;
- }else if(cursors.right.isDown || touchRight){
+ }else if(cursors.right.isDown){
    player.setVelocityX(speed);
    player.flipX=false;
  }else{
