@@ -24,7 +24,7 @@ const cvs=document.getElementById('game'),ctx=cvs.getContext('2d');
 function resize(){cvs.width=innerWidth;cvs.height=innerHeight} resize(); addEventListener('resize',resize);
 
 const dino=new Image(); dino.src='/dino-sprite.png';
-const ape=new Image(); ape.src='/silverback.png';
+const ape=new Image(); ape.src='/silverback-small.png';
 
 let score=0,timeLeft=120,started=false;
 let left=false,right=false,jump=false;
@@ -119,7 +119,7 @@ function draw(){
  const cam=Math.max(0,player.x-cvs.width/2);
 
  ctx.fillStyle='#4a257a';
- ctx.fillRect(-cam,412,10000,120);
+ ctx.fillRect(-cam,412,10000,cvs.height);
 
  coins.forEach(c=>{
    if(!c.alive)return;
@@ -127,14 +127,12 @@ function draw(){
    ctx.beginPath(); ctx.arc(c.x-cam,c.y,10,0,Math.PI*2); ctx.fill();
  });
 
- enemies.forEach(e=>{
    if(ape.complete){
-     ctx.drawImage(ape,e.x-cam,e.y,160,160);
-     ctx.strokeStyle="red";
-     ctx.lineWidth=4;
-     ctx.strokeRect(e.x-cam,e.y,160,160);
+     ctx.drawImage(ape,e.x-cam,e.y,96,96);
    }else{
      ctx.fillStyle="red";
+     ctx.fillRect(e.x-cam,e.y,80,80);
+   }
      ctx.fillRect(e.x-cam,e.y,120,120);
    }
  });
