@@ -142,7 +142,7 @@ enemies.forEach(e=>{
 
  if(portal.active && Math.abs(player.x-portal.x)<60) finish(true);
 
- draw();
+ try{draw();}catch(e){alert(e.message);console.error(e);}
  requestAnimationFrame(loop);
 }
 
