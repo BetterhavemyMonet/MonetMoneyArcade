@@ -116,10 +116,10 @@ function loop(){
 
 function draw(){
  ctx.fillStyle='#12001f'; ctx.fillRect(0,0,cvs.width,cvs.height);
- const cam=Math.max(0,player.x-cvs.width/2);
+ const cam=Math.min(4500,Math.max(0,player.x-cvs.width/2));
 
  ctx.fillStyle='#4a257a';
- ctx.fillRect(-cam,412,5000,120);
+ ctx.fillRect(-cam,412,10000,120);
 
  coins.forEach(c=>{
    if(!c.alive)return;
