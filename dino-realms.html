@@ -1,561 +1,214 @@
-<!DOCTYPE html><html>
+<!DOCTYPE html>
+<html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dino Realms</title><script src="wallet.js"></script><script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script><style>
-html,body{
-margin:0;
-padding:0;
-overflow:hidden;
-background:#090014;
-}
-canvas{
-display:block;
-}
-</style></head>
-<body><script>
+<title>Dino Realms</title>
+<script src="wallet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+<style>
+html,body{margin:0;padding:0;background:#090014;overflow:hidden}
+canvas{display:block}
+</style>
+</head>
+<body>
+<script>
+showGameLobby('gator', startGame);
 
-let game;
-let player;
-let cursors;
-let monetCoins;
-let portal;
+function startGame(){
 
-let score = 0;
-let health = 5;
-let timeLeft = 120;
+let game,player,cursors,portal,score=0,health=5,timeLeft=120;
+let scoreText,healthText,timeText,coinsLeftText;
+let invincible=false, coinsRemaining=50, gameEnded=false;
 
-let scoreText;
-let healthText;
-let timerText;
-
-let gameRunning = false;
-let clockEvent;
-let invincible = false;
-
-const config = {
-
-type: Phaser.AUTO,
-
-width: window.innerWidth,
-height: window.innerHeight,
-
-physics:{
-default:'arcade',
-arcade:{
-gravity:{y:1000},
-debug:false
-}
-},
-
-scene:{
-preload,
-create,
-update
-}
-
+const config={
+type:Phaser.AUTO,
+width:window.innerWidth,
+height:window.innerHeight,
+physics:{default:'arcade',arcade:{gravity:{y:1000},debug:false}},
+scene:{preload,create,update}
 };
-
-showGameLobby('gator',()=>{
-
-gameRunning=true;
 
 game=new Phaser.Game(config);
 
-});
-
 function preload(){
-
-this.load.image(
-'dino',
-'/dino-sprite.png'
-);
-
-this.load.image(
-'silverback',
-'/silverback.png'
-);
-
+ this.load.image('dino','/dino-sprite.png');
+ this.load.image('silverback','/silverback.png');
 }
 
 function create(){
-
-const worldWidth=7000;
-const worldHeight=2200;
-
-this.physics.world.setBounds(
-0,
-0,
-worldWidth,
-worldHeight
-);
-
-this.cameras.main.setBounds(
-0,
-0,
-worldWidth,
-worldHeight
-);
-
-this.cameras.main.setBackgroundColor(
-'#140022'
-);
-
-createTextures.call(this);
-
-for(let i=0;i<300;i++){
-
-let star=this.add.circle(
-Phaser.Math.Between(0,7000),
-Phaser.Math.Between(0,2200),
-Phaser.Math.Between(1,3),
-0xffffff
-);
-
-star.setAlpha(Math.random());
-
-}
-
-const ground=this.physics.add.staticGroup();
-
-for(let i=0;i<18;i++){
-
-let block=this.add.rectangle(
-i*400+200,
-1950,
-400,
-80,
-0x41206b
-);
-
-this.physics.add.existing(
-block,
-true
-);
-
-ground.add(block);
-
-}
-
-[
-[700,1500],
-[1200,1300],
-[1700,1000],
-[2300,1200],
-[2900,900],
-[3500,1100],
-[4200,850],
-[4800,1200],
-[5500,900],
-[6200,700]
-].forEach(p=>{
-
-let plat=this.add.rectangle(
-p[0],
-p[1],
-260,
-24,
-0x00d4aa
-);
-
-this.physics.add.existing(
-plat,
-true
-);
-
-ground.add(plat);
-
-});
-
-player=this.physics.add.sprite(
-200,
-1700,
-'dino'
-);
-
-player.setScale(.35);
-player.setCollideWorldBounds(true);
-
-this.physics.add.collider(
-player,
-ground
-);
-
-this.cameras.main.startFollow(
-player,
-true,
-0.08,
-0.08
-);
-
-cursors=
-this.input.keyboard.createCursorKeys();
-
-monetCoins=
-this.physics.add.group();
-
-for(let i=0;i<75;i++){
-
-let coin=
-monetCoins.create(
-Phaser.Math.Between(200,6800),
-Phaser.Math.Between(400,1700),
-'monet'
-);
-
-coin.body.setAllowGravity(
-false
-);
-
-}
-
-this.physics.add.overlap(
-player,
-monetCoins,
-collectCoin,
-null,
-this
-);
-
-const gorillas=
-this.physics.add.group();
-
-for(let i=0;i<12;i++){
-
-let g=
-gorillas.create(
-800+(i*500),
-1800,
-'silverback'
-);
-
-g.setScale(.08);
-
-g.body.setVelocityX(
-Phaser.Math.Between(
--80,
-80
-)
-);
-
-g.body.setBounceX(1);
-
-}
-
-this.physics.add.collider(
-gorillas,
-ground
-);
-
-this.physics.add.overlap(
-player,
-gorillas,
-hitEnemy,
-null,
-this
-);
-
-portal=
-this.physics.add.staticSprite(
-6700,
-1650,
-'portal'
-);
-
-this.physics.add.overlap(
-player,
-portal,
-enterPortal,
-null,
-this
-);
-
-scoreText=this.add.text(
-20,
-20,
-'MONET: 0',
-{
-font:'24px Arial',
-fill:'#00ffcc'
-}
-);
-
-scoreText.setScrollFactor(0);
-
-healthText=this.add.text(
-20,
-60,
-'HEALTH: 5',
-{
-font:'24px Arial',
-fill:'#ff6666'
-}
-);
-
-healthText.setScrollFactor(0);
-
-timerText=this.add.text(
-20,
-100,
-'TIME: 120',
-{
-font:'24px Arial',
-fill:'#ffffff'
-}
-);
-
-timerText.setScrollFactor(0);
-
-clockEvent=this.time.addEvent({
-
-delay:1000,
-
-loop:true,
-
-callback:()=>{
-
-if(!gameRunning)return;
-
-timeLeft--;
-
-timerText.setText(
-'TIME: '+timeLeft
-);
-
-if(timeLeft<=0){
-
-endGame();
-
-}
-
-}
-
-});
-
-}
-
-function createTextures(){
-
-const g=
-this.make.graphics({
-x:0,
-y:0,
-add:false
-});
-
-g.fillStyle(
-0xffd700,
-1
-);
-
-g.fillCircle(
-16,
-16,
-16
-);
-
-g.generateTexture(
-'monet',
-32,
-32
-);
-
-g.clear();
-
-g.fillStyle(
-0x00ffff,
-1
-);
-
-g.fillCircle(
-32,
-32,
-32
-);
-
-g.generateTexture(
-'portal',
-64,
-64
-);
-
-}
-
-function collectCoin(player,coin){
-
-coin.destroy();
-
-score++;
-
-scoreText.setText(
-'MONET: '+score
-);
-
-}
-
-function hitEnemy(){
-
-if(invincible)return;
-
-invincible=true;
-
-health--;
-
-healthText.setText(
-'HEALTH: '+health
-);
-
-player.setTint(
-0xff0000
-);
-
-setTimeout(()=>{
-
-player.clearTint();
-
-invincible=false;
-
-},1000);
-
-if(health<=0){
-
-endGame();
-
-}
-
-}
-
-function enterPortal(){
-
-if(score<30){
-
-alert(
-'Collect 30 MONET first!'
-);
-
-return;
-
-}
-
-const finalScore=
-(score*100)+3000;
-
-finishRound(
-finalScore,
-'REALM COMPLETE!'
-);
-
-}
-
-function endGame(){
-
-const finalScore=
-score*100;
-
-finishRound(
-finalScore,
-'TIME UP!'
-);
-
-}
-
-function finishRound(
-finalScore,
-message
-){
-
-if(!gameRunning)return;
-
-gameRunning=false;
-
-if(clockEvent){
-
-clockEvent.remove();
-
-}
-
-alert(
-message+
-'\n\nScore: '+
-finalScore
-);
-
-arcadeSubmitScore(
-'gator',
-finalScore
-).catch(console.error);
-
+ const W=this.scale.width,H=this.scale.height;
+
+ this.physics.world.setBounds(0,0,6000,2000);
+ this.cameras.main.setBounds(0,0,6000,2000);
+ this.cameras.main.setBackgroundColor('#160020');
+
+ for(let i=0;i<150;i++){
+   this.add.circle(
+     Phaser.Math.Between(0,6000),
+     Phaser.Math.Between(0,1800),
+     2,0xffffff,Math.random()
+   );
+ }
+
+ const ground=this.physics.add.staticGroup();
+
+ for(let i=0;i<15;i++){
+   let p=this.add.rectangle(200+i*400,1750,400,70,0x4a257a);
+   this.physics.add.existing(p,true);
+   ground.add(p);
+ }
+
+ [
+ [700,1300],[1200,1100],[1700,900],[2200,1200],
+ [2800,900],[3300,700],[4000,1000],[4700,700],[5400,900]
+ ].forEach(([x,y])=>{
+   let p=this.add.rectangle(x,y,250,24,0x00ccaa);
+   this.physics.add.existing(p,true);
+   ground.add(p);
+ });
+
+ player=this.physics.add.sprite(150,1500,'dino');
+ player.setScale(.35);
+ player.setCollideWorldBounds(true);
+ this.physics.add.collider(player,ground);
+
+ this.cameras.main.startFollow(player,true,0.08,0.08);
+
+ cursors=this.input.keyboard.createCursorKeys();
+
+ const coins=this.physics.add.group();
+ for(let i=0;i<50;i++){
+   const c=coins.create(
+     Phaser.Math.Between(200,5800),
+     Phaser.Math.Between(300,1500)
+   );
+   c.visible=false;
+   c.body.setSize(20,20);
+   c.marker=this.add.circle(c.x,c.y,10,0xffd700);
+ }
+
+ this.physics.add.overlap(player,coins,(p,c)=>{
+   c.marker.destroy();
+   c.destroy();
+   score+=10;
+   coinsRemaining--;
+   scoreText.setText('MONET: '+score);
+   coinsLeftText.setText('LEFT: '+coinsRemaining);
+   if(coinsRemaining===0){
+      portal.fillColor=0x00ff00;
+   }
+ });
+
+ const gorillas=this.physics.add.group();
+ for(let i=0;i<12;i++){
+   let g=gorillas.create(700+i*400,1500,'silverback');
+   g.setScale(.08);
+   g.direction=Math.random()>0.5?1:-1;
+   g.speed=60;
+   g.lastHit=0;
+ }
+ this.physics.add.collider(gorillas,ground);
+
+ this.physics.add.overlap(player,gorillas,()=>{
+   if(invincible||gameEnded) return;
+   health--;
+   healthText.setText('HEALTH: '+health);
+   invincible=true;
+   player.setAlpha(.4);
+   setTimeout(()=>{invincible=false;player.setAlpha(1);},2000);
+   if(health<=0) endGame(false,this);
+ });
+
+ portal=this.add.circle(5750,1450,40,0x00ffff);
+ this.physics.add.existing(portal,true);
+
+ this.physics.add.overlap(player,portal,()=>{
+   if(coinsRemaining===0) endGame(true,this);
+ });
+
+ scoreText=this.add.text(20,20,'MONET: 0',{font:'24px Arial',fill:'#00ffcc'}).setScrollFactor(0);
+ healthText=this.add.text(20,55,'HEALTH: 5',{font:'24px Arial',fill:'#ff6666'}).setScrollFactor(0);
+ timeText=this.add.text(20,90,'TIME: 120',{font:'24px Arial',fill:'#ffffff'}).setScrollFactor(0);
+ coinsLeftText=this.add.text(20,125,'LEFT: 50',{font:'24px Arial',fill:'#ffd700'}).setScrollFactor(0);
+
+ this.time.addEvent({
+   delay:1000, loop:true,
+   callback:()=>{
+     if(gameEnded) return;
+     timeLeft--;
+     timeText.setText('TIME: '+timeLeft);
+     if(timeLeft<=0) endGame(false,this);
+   }
+ });
+
+ this.events.on('update',()=>{
+   gorillas.children.iterate(g=>{
+     if(!g) return;
+     let dist=Math.abs(player.x-g.x);
+     if(dist<300){
+       g.setVelocityX(player.x>g.x?120:-120);
+     }else{
+       g.setVelocityX(g.direction*g.speed);
+       if(g.body.blocked.left||g.body.blocked.right){
+         g.direction*=-1;
+       }
+     }
+   });
+ });
+
+ function endGame(win,scene){
+   if(gameEnded) return;
+   gameEnded=true;
+
+   let finalScore=score+(health*50)+(timeLeft*5)+(win?1000:0);
+
+   scene.add.rectangle(player.x,player.y,600,300,0x000000,.8);
+   scene.add.text(player.x-220,player.y-40,
+      win?'REALM COMPLETE!':'GAME OVER',
+      {font:'32px Arial',fill:'#00ffcc'});
+
+   scene.add.text(player.x-220,player.y+10,
+      'Final Score: '+finalScore,
+      {font:'26px Arial',fill:'#ffd700'});
+
+   setTimeout(()=>{
+      arcadeSubmitScore('gator',finalScore).catch(console.error);
+   },2000);
+ }
 }
 
 function update(){
+ if(!player||gameEnded) return;
 
-if(!gameRunning)return;
+ const speed=300;
 
-const speed=300;
+ if(cursors.left.isDown){
+   player.setVelocityX(-speed);
+   player.flipX=true;
+ }else if(cursors.right.isDown){
+   player.setVelocityX(speed);
+   player.flipX=false;
+ }else{
+   player.setVelocityX(0);
+ }
 
-if(cursors.left.isDown){
+ if(cursors.up.isDown && player.body.blocked.down){
+   player.setVelocityY(-650);
+ }
 
-player.setVelocityX(
--speed
-);
+ if(cursors.up.isDown && !player.body.blocked.down && player.body.velocity.y>0){
+   player.setGravityY(-700);
+   if(player.body.velocity.y>120) player.setVelocityY(120);
+ }else{
+   player.setGravityY(0);
+ }
 
-player.flipX=true;
-
+ if(player.y>2100){
+   health=0;
+ }
 }
-else if(cursors.right.isDown){
-
-player.setVelocityX(
-speed
-);
-
-player.flipX=false;
-
 }
-else{
-
-player.setVelocityX(0);
-
-}
-
-if(
-cursors.up.isDown &&
-player.body.blocked.down
-){
-
-player.setVelocityY(
--650
-);
-
-}
-
-if(
-cursors.up.isDown &&
-!player.body.blocked.down &&
-player.body.velocity.y>0
-){
-
-player.setGravityY(
--800
-);
-
-if(
-player.body.velocity.y>120
-){
-
-player.setVelocityY(
-120
-);
-
-}
-
-}
-else{
-
-player.setGravityY(0);
-
-}
-
-}
-
-</script></body>
+</script>
+</body>
 </html>
