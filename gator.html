@@ -115,8 +115,8 @@ function loop(){
 }
 
 function draw(){
- ctx.fillStyle='#12001f'; ctx.fillRect(0,0,cvs.width,cvs.height);
- const cam=Math.min(4500,Math.max(0,player.x-cvs.width/2));
+ ctx.fillStyle='#12001f'; ctx.fillRect(-10000,-10000,50000,50000);
+ const cam=Math.max(0,player.x-cvs.width/2);
 
  ctx.fillStyle='#4a257a';
  ctx.fillRect(-cam,412,10000,120);
