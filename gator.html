@@ -9,7 +9,7 @@
 html,body{margin:0;padding:0;overflow:hidden;background:#12001f;color:#fff;font-family:Arial}
 #game{display:block}
 #hud{position:fixed;top:10px;left:10px;z-index:10;font-weight:bold}
-.btn{position:fixed;bottom:20px;width:70px;height:70px;border-radius:50%;background:#ffffff33;border:2px solid #fff;color:#fff;font-size:28px}
+.btn{position:fixed;bottom:20px;width:70px;height:70px;border-radius:50%;background:#ffffff33;border:2px solid #fff;color:#fff;font-size:28px;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none}
 #left{left:20px} #jump{left:110px} #right{left:200px}
 </style>
 </head>
@@ -62,9 +62,15 @@ function finish(win){
 
 ['left','right','jump'].forEach(id=>{
  const el=document.getElementById(id);
- el.onpointerdown=()=>window[id]=true;
- el.onpointerup=()=>window[id]=false;
- el.onpointerleave=()=>window[id]=false;
+ const press=(e)=>{e.preventDefault();window[id]=true;};
+ const release=(e)=>{e.preventDefault();window[id]=false;};
+ el.addEventListener("pointerdown",press);
+ el.addEventListener("pointerup",release);
+ el.addEventListener("pointerleave",release);
+ el.addEventListener("pointercancel",release);
+ el.addEventListener("touchstart",press,{passive:false});
+ el.addEventListener("touchend",release,{passive:false});
+ el.addEventListener("touchcancel",release,{passive:false});
 });
 
 addEventListener('keydown',e=>{
