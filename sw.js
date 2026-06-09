@@ -30,7 +30,6 @@ const PRECACHE = [
   '/tetris.html',
   '/kong.html',
   '/racer.html',
-  '/gator.html'
 ];
 
 self.addEventListener('install', e => {
