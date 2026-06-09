@@ -103,6 +103,18 @@ function loop(){
 
  if(player.y>340){player.y=340;player.vy=0;player.ground=true;}
 
+ platforms.forEach(p=>{
+   if( player.x+player.w > p.x &&
+       player.x < p.x+p.w &&
+       player.y+player.h > p.y &&
+       player.y+player.h < p.y+25 &&
+       player.vy >= 0 ){
+     player.y = p.y-player.h;
+     player.vy = 0;
+     player.ground = true;
+   }
+ });
+
  coins.forEach(c=>{
   if(c.alive && Math.abs(player.x-c.x)<40 && Math.abs(player.y-c.y)<40){
     c.alive=false; score++; document.getElementById('score').textContent=score;
