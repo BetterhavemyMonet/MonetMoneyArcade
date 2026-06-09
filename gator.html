@@ -31,7 +31,7 @@ let left=false,right=false,jump=false;
 
 const player={x:100,y:300,w:72,h:72,vx:0,vy:0,ground:false};
 const coins=[...Array(20)].map((_,i)=>({x:300+i*180,y:250+((i%3)*60),alive:true}));
-const enemies=[...Array(5)].map((_,i)=>({x:700+i*500,y:340,dir:1}));
+const enemies=[{x:400,y:200,dir:1},{x:1200,y:200,dir:1},{x:2000,y:200,dir:1},{x:2800,y:200,dir:1},{x:3600,y:200,dir:1}];
 const portal={x:4200,y:280,w:80,h:120,active:false};
 
 function startGame(){
@@ -128,8 +128,15 @@ function draw(){
  });
 
  enemies.forEach(e=>{
-   if(ape.complete) ctx.drawImage(ape,e.x-cam,e.y,80,80);
-   else {ctx.fillStyle='red';ctx.fillRect(e.x-cam,e.y,60,60);}
+   if(ape.complete){
+     ctx.drawImage(ape,e.x-cam,e.y,160,160);
+     ctx.strokeStyle="red";
+     ctx.lineWidth=4;
+     ctx.strokeRect(e.x-cam,e.y,160,160);
+   }else{
+     ctx.fillStyle="red";
+     ctx.fillRect(e.x-cam,e.y,120,120);
+   }
  });
 
  if(portal.active){
