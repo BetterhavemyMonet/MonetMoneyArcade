@@ -33,6 +33,13 @@ const player={x:100,y:300,w:72,h:72,vx:0,vy:0,ground:false};
 const coins=[...Array(20)].map((_,i)=>({x:300+i*180,y:250+((i%3)*60),alive:true}));
 const enemies=[{x:400,y:348,dir:1},{x:1200,y:348,dir:1},{x:2000,y:348,dir:1},{x:2800,y:348,dir:1},{x:3600,y:348,dir:1}];
 const portal={x:4200,y:280,w:80,h:120,active:false};
+const platforms=[
+{x:600,y:320,w:180,h:20},
+{x:1100,y:260,w:180,h:20},
+{x:1700,y:220,w:180,h:20},
+{x:2400,y:280,w:180,h:20},
+{x:3200,y:240,w:180,h:20}
+];
 
 function startGame(){
  started=true;
@@ -120,6 +127,8 @@ function draw(){
 
  ctx.fillStyle='#4a257a';
  ctx.fillRect(-cam,412,10000,cvs.height);
+ctx.fillStyle="#00ccaa";
+platforms.forEach(p=>ctx.fillRect(p.x-cam,p.y,p.w,p.h));
 
 coins.forEach(c=>{
   if(!c.alive)return;
