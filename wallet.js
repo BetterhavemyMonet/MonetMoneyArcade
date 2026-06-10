@@ -696,6 +696,23 @@ async function payEntryFee(gameName, onProgress, amount) {
   tx.add(createMemoInstruction(payer, `Monet Arcade | ${gameLabel} | ${fee} MONET entry fee`));
 
   // ── Step 3: sign & send via wallet (wallet uses its own RPC for broadcast) ─
+  try {
+    const conn = await getWorkingConnection();
+    console.log('TX DEBUG',{
+      mint: mint.toString(),
+      treasury: treasury.toString(),
+      sourceATA: sourceATA.toString(),
+      destATA: destATA.toString(),
+      fee,
+      rawAmount: toRawAmount(fee)
+    });
+    const sim = await conn.simulateTransaction(tx);
+    console.log('SIMULATION', JSON.stringify(sim.value,null,2));
+    if(sim.value.err) throw new Error('Simulation: '+JSON.stringify(sim.value.err));
+  } catch(e) {
+    console.error('SIMULATION FAILED', e);
+    throw e;
+  }
   report('signing');
   let txId;
   try {
@@ -784,6 +801,23 @@ async function payEntryFeeSOL(gameName, onProgress, lamports) {
   const gameLabel = (gameName || 'GAME').toUpperCase();
   tx.add(createMemoInstruction(payer, `Monet Arcade | ${gameLabel} | SOL entry fee`));
 
+  try {
+    const conn = await getWorkingConnection();
+    console.log('TX DEBUG',{
+      mint: mint.toString(),
+      treasury: treasury.toString(),
+      sourceATA: sourceATA.toString(),
+      destATA: destATA.toString(),
+      fee,
+      rawAmount: toRawAmount(fee)
+    });
+    const sim = await conn.simulateTransaction(tx);
+    console.log('SIMULATION', JSON.stringify(sim.value,null,2));
+    if(sim.value.err) throw new Error('Simulation: '+JSON.stringify(sim.value.err));
+  } catch(e) {
+    console.error('SIMULATION FAILED', e);
+    throw e;
+  }
   report('signing');
   let txId;
   try {
@@ -932,6 +966,23 @@ async function treasuryPayout(toAddress, amount, claimId, onProgress) {
   tx.add(createMemoInstruction(payer,
     `Monet Arcade | Payout | ${amount} MONET${claimId ? ' | ' + claimId.slice(0,8) : ''}`));
 
+  try {
+    const conn = await getWorkingConnection();
+    console.log('TX DEBUG',{
+      mint: mint.toString(),
+      treasury: treasury.toString(),
+      sourceATA: sourceATA.toString(),
+      destATA: destATA.toString(),
+      fee,
+      rawAmount: toRawAmount(fee)
+    });
+    const sim = await conn.simulateTransaction(tx);
+    console.log('SIMULATION', JSON.stringify(sim.value,null,2));
+    if(sim.value.err) throw new Error('Simulation: '+JSON.stringify(sim.value.err));
+  } catch(e) {
+    console.error('SIMULATION FAILED', e);
+    throw e;
+  }
   report('signing');
   let txId;
   try {
