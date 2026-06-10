@@ -473,7 +473,6 @@ async function sendPayout(toAddress, amount) {
         console.log(`[PAYOUT] confirmed (${conf}) sig: ${sig.slice(0,12)}…`);
         break;
       }
-      if (status?.value?.err) throw new Error(`Transaction failed on-chain: ${JSON.stringify(status.value.err)}`);
     } catch(e) {
       if (e.message.startsWith('Transaction failed')) throw e;
       // RPC error — keep polling
@@ -560,7 +559,7 @@ async function verifyEntryFee(txId, expectedFee = ENTRY_FEE) {
   if (tx.meta?.err) {
     console.error("[VERIFY TX ERROR]", txId, JSON.stringify(tx.meta.err), tx.meta.logMessages || []);
     throw new Error(`Transaction failed: ${JSON.stringify(tx.meta.err)}`);
-  }
+    throw new Error("Transaction failed: " + JSON.stringify(tx.meta.err) + " LOGS: " + JSON.stringify(tx.meta.logMessages || []));
 
   // Inspect all token balance changes for a MONET transfer to treasury
   const pre  = tx.meta?.preTokenBalances  ?? [];
@@ -637,8 +636,7 @@ async function verifySOLPayment(txId, expectedLamports = SOL_ENTRY_LAMPORTS) {
   if (tx.meta?.err) {
     console.error("[VERIFY SOL ERROR]", txId, JSON.stringify(tx.meta.err), tx.meta.logMessages || []);
     throw new Error(`Transaction failed: ${JSON.stringify(tx.meta.err)}`);
-  }
-  if (tx.meta?.err) throw new Error(`Transaction ${txId.slice(0,12)}… failed on-chain`);
+    throw new Error("Transaction failed: " + JSON.stringify(tx.meta.err) + " LOGS: " + JSON.stringify(tx.meta.logMessages || []));
 
   // Find treasury account index and check SOL balance delta
   const keys = tx.transaction.message.accountKeys || [];
