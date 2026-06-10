@@ -49,7 +49,7 @@ const RPC_ENDPOINTS = [
 const RPC_TIMEOUT_MS = 10000;
 
 const TOKEN_PROGRAM_ID_STR       = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
-const ASSOCIATED_TOKEN_PROGRAM_STR = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bT3';
+const ASSOCIATED_TOKEN_PROGRAM_STR = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
 
 // ─── Wallet Definitions ───────────────────────────────────────────────────────
 const WALLET_DEFS = [
