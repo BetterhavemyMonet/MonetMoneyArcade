@@ -26,8 +26,8 @@ function resize(){cvs.width=innerWidth;cvs.height=innerHeight} resize(); addEven
 const dino=new Image(); dino.src='/dino-sprite.png';
 const ape=new Image(); ape.src='/silverback-small.png';
 
-let score=0,timeLeft=120,started=false,health=3;
-let left=false,right=false,jump=false,glide=false;
+let score=0,timeLeft=120,started=false;
+let left=false,right=false,jump=false;
 
 const player={x:100,y:300,w:72,h:72,vx:0,vy:0,ground:false};
 const coins=[...Array(20)].map((_,i)=>({x:300+i*180,y:250+((i%3)*60),alive:true}));
@@ -98,11 +98,7 @@ function loop(){
  player.x+=player.vx;
 
  if(jump && player.ground){player.vy=-12;player.ground=false;}
- if(jump && !player.ground && player.vy>0){
-   player.vy+=0.05;
- }else{
-   player.vy+=0.6;
- }
+ player.vy+=0.6;
  player.y+=player.vy;
 
  if(player.y>340){player.y=340;player.vy=0;player.ground=true;}
@@ -126,23 +122,14 @@ function loop(){
   }
  });
 
-enemies.forEach(e=>{
+ enemies.forEach(e=>{
   e.x+=e.dir*2;
   if(e.x<200||e.x>4300)e.dir*=-1;
-
-  if(Math.abs(player.x-e.x)<50 && Math.abs(player.y-e.y)<50){
-    if(!e.hit){
-      e.hit=true;
-      score=Math.max(0,score-1);
-      document.getElementById("score").textContent=score;
-      setTimeout(()=>e.hit=false,1000);
-    }
-  }
-});
+ });
 
  if(portal.active && Math.abs(player.x-portal.x)<60) finish(true);
 
- try{draw();}catch(e){alert(e.message);console.error(e);}
+ draw();
  requestAnimationFrame(loop);
 }
 
@@ -163,13 +150,12 @@ coins.forEach(c=>{
   ctx.fill();
 });
 
-
 enemies.forEach(e=>{
   if(ape.complete){
     ctx.drawImage(ape,e.x-cam,e.y,64,64);
   }else{
     ctx.fillStyle="red";
-    ctx.fillRect(e.x-cam,e.y,64,64);
+    ctx.fillRect(e.x-cam,e.y,80,80);
   }
 });
 

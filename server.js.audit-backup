@@ -331,7 +331,7 @@ const ASSOC_PROG   = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bT3
 // Set SOLANA_RPC_URL secret for a dedicated RPC (Helius free tier recommended).
 // Fallbacks are public endpoints that work from Node.js (no browser CORS issues).
 const RPCS = [
-  'https://solana-mainnet.g.alchemy.com/v2/5f2UJclPRZdXt_Lfg5RMx',
+  'https://api.mainnet-beta.solana.com',
   'https://rpc.ankr.com/solana'
 ].filter(Boolean);
 
@@ -680,7 +680,7 @@ app.get('/api/balance/:wallet', async (req, res) => {
 
     // getParsedTokenAccountsByOwner is the most reliable method — returns
     // fully parsed data regardless of which RPC node answers.
-    const conn = new Connection("https://solana-mainnet.g.alchemy.com/v2/5f2UJclPRZdXt_Lfg5RMx","confirmed");
+    const conn = new Connection("https://api.mainnet-beta.solana.com","confirmed");
     const tokenAccounts = await conn.getParsedTokenAccountsByOwner(owner,{ mint });
     const solLamports = await conn.getBalance(owner);
     const tokenOk = true;
@@ -1096,15 +1096,8 @@ app.post('/api/tournament/register', async (req, res) => {
     if (paymentType === 'sol') { await verifySOLPayment(txId); }
     else { await verifyEntryFee(txId, t.entryFee || ENTRY_FEE); }
   } catch(e) { return res.status(402).json({ error: `Payment verification failed: ${e.message}` }); }
-  // Reject duplicate txIds across tournament entries
-  if (tourneys.some(tt =>
-    tt.players?.some(p => p.txId === txId)
-  )) {
-    return res.status(400).json({ error: 'Transaction ID already used' });
-  }
 
   t.players.push({ wallet, txId, paymentType: paymentType || 'monet', score: null, submittedAt: null, rank: null });
-
   const pot = calcPot(t.players.length, t.entryFee || ENTRY_FEE);
   t.prizePool = pot.net;
   t.rake      = pot.rake;

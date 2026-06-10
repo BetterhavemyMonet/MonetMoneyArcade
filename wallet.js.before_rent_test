@@ -234,6 +234,7 @@ function createATAInstruction(payerPubkey, ataPubkey, ownerPubkey, mintPubkey) {
       { pubkey: mintPubkey,  isSigner: false, isWritable: false },
       { pubkey: w.SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID,          isSigner: false, isWritable: false },
+      { pubkey: w.SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
     ],
     programId: ASSOC_PROGRAM_ID,
     data: new Uint8Array([0]),
@@ -696,15 +697,6 @@ async function payEntryFee(gameName, onProgress, amount) {
   tx.add(createMemoInstruction(payer, `Monet Arcade | ${gameLabel} | ${fee} MONET entry fee`));
 
   // ── Step 3: sign & send via wallet (wallet uses its own RPC for broadcast) ─
-  try {
-    const conn = await getWorkingConnection();
-    const sim = await conn.simulateTransaction(tx);
-    alert("SIM ERR: "+JSON.stringify(sim.value?.err)+" LOGS: "+JSON.stringify(sim.value?.logs));
-    console.log("SIM LOGS", sim.value?.logs);
-  } catch(e) {
-    console.error("SIMULATION FAILED", e);
-  }
-
   report('signing');
   let txId;
   try {
@@ -792,15 +784,6 @@ async function payEntryFeeSOL(gameName, onProgress, lamports) {
   // Memo for clear wallet display
   const gameLabel = (gameName || 'GAME').toUpperCase();
   tx.add(createMemoInstruction(payer, `Monet Arcade | ${gameLabel} | SOL entry fee`));
-
-  try {
-    const conn = await getWorkingConnection();
-    const sim = await conn.simulateTransaction(tx);
-    alert("SIM ERR: "+JSON.stringify(sim.value?.err)+" LOGS: "+JSON.stringify(sim.value?.logs));
-    console.log("SIM LOGS", sim.value?.logs);
-  } catch(e) {
-    console.error("SIMULATION FAILED", e);
-  }
 
   report('signing');
   let txId;
@@ -949,15 +932,6 @@ async function treasuryPayout(toAddress, amount, claimId, onProgress) {
   tx.add(createTransferInstruction(srcATA, dstATA, payer, toRawAmount(amount)));
   tx.add(createMemoInstruction(payer,
     `Monet Arcade | Payout | ${amount} MONET${claimId ? ' | ' + claimId.slice(0,8) : ''}`));
-
-  try {
-    const conn = await getWorkingConnection();
-    const sim = await conn.simulateTransaction(tx);
-    alert("SIM ERR: "+JSON.stringify(sim.value?.err)+" LOGS: "+JSON.stringify(sim.value?.logs));
-    console.log("SIM LOGS", sim.value?.logs);
-  } catch(e) {
-    console.error("SIMULATION FAILED", e);
-  }
 
   report('signing');
   let txId;
