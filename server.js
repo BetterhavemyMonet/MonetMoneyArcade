@@ -1096,8 +1096,15 @@ app.post('/api/tournament/register', async (req, res) => {
     if (paymentType === 'sol') { await verifySOLPayment(txId); }
     else { await verifyEntryFee(txId, t.entryFee || ENTRY_FEE); }
   } catch(e) { return res.status(402).json({ error: `Payment verification failed: ${e.message}` }); }
+  // Reject duplicate txIds across tournament entries
+  if (tourneys.some(tt =>
+    tt.players?.some(p => p.txId === txId)
+  )) {
+    return res.status(400).json({ error: 'Transaction ID already used' });
+  }
 
   t.players.push({ wallet, txId, paymentType: paymentType || 'monet', score: null, submittedAt: null, rank: null });
+
   const pot = calcPot(t.players.length, t.entryFee || ENTRY_FEE);
   t.prizePool = pot.net;
   t.rake      = pot.rake;
