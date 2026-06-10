@@ -862,7 +862,7 @@ app.get('/api/monet-price', async (_req, res) => {
   res.json({
     ok: true,
     priceUsd: 0.0099,
-    entryFeeMonet: 10,
+    entryFeeMonet: ENTRY_FEE,
     entryFeeUsd: 0.99,
     solPriceUsd,
     solEntryLamports,
