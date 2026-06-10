@@ -234,6 +234,7 @@ function createATAInstruction(payerPubkey, ataPubkey, ownerPubkey, mintPubkey) {
       { pubkey: mintPubkey,  isSigner: false, isWritable: false },
       { pubkey: w.SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID,          isSigner: false, isWritable: false },
+      { pubkey: w.SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
     ],
     programId: ASSOC_PROGRAM_ID,
     data: new Uint8Array([0]),
