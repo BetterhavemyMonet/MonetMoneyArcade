@@ -558,7 +558,8 @@ async function verifyEntryFee(txId, expectedFee = ENTRY_FEE) {
   }
 
   if (tx.meta?.err) {
-    throw new Error(`Transaction ${txId.slice(0,12)}… failed on-chain`);
+    console.error("[VERIFY TX ERROR]", txId, JSON.stringify(tx.meta.err), tx.meta.logMessages || []);
+    throw new Error(`Transaction failed: ${JSON.stringify(tx.meta.err)}`);
   }
 
   // Inspect all token balance changes for a MONET transfer to treasury
@@ -633,6 +634,9 @@ async function verifySOLPayment(txId, expectedLamports = SOL_ENTRY_LAMPORTS) {
       console.warn(`[VERIFY-SOL] tx ${txId.slice(0,12)}… not found after retries — allowing through`);
       return { ok: true, rpcFailed: true };
     }
+  if (tx.meta?.err) {
+    console.error("[VERIFY SOL ERROR]", txId, JSON.stringify(tx.meta.err), tx.meta.logMessages || []);
+    throw new Error(`Transaction failed: ${JSON.stringify(tx.meta.err)}`);
   }
   if (tx.meta?.err) throw new Error(`Transaction ${txId.slice(0,12)}… failed on-chain`);
 
