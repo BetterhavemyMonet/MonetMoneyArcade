@@ -1893,13 +1893,11 @@ app.post('/api/terms/accept', (req, res) => {
 });
 
 // ─── Static files ─────────────────────────────────────────────────────────────
-const distDir = path.join(__dirname, 'dist');
-if (fs.existsSync(distDir)) {
-  app.use(express.static(distDir));
-  app.get(/^(?!\/api).*/, (_req, res) => {
-    res.sendFile(path.join(distDir, 'index.html'));
-  });
-}
+app.use(express.static(__dirname));
+
+app.get(/^(?!\/api).*/, (_req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 const PORT = process.env.PORT || 5000;
 app.post("/api/dino-realms/finish", async (req, res) => {
