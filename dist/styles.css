@@ -1,0 +1,175 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: radial-gradient(circle at top, #0b0f1a, #02040a);
+  color: white;
+  text-align: center;
+  font-family: 'Orbitron', sans-serif;
+}
+
+h1, h2 {
+  background: linear-gradient(90deg, #00f0ff, #a855ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 10px rgba(0,255,255,0.7), 0 0 20px rgba(168,85,255,0.6);
+}
+
+button {
+  margin-top: 15px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #00ff9d, #00ffc3);
+  color: black;
+  font-weight: bold;
+  box-shadow: 0 0 15px rgba(0,255,150,0.5);
+}
+
+/* ─── FULLSCREEN GAME LAYOUT ─────────────────────────────────────────────── */
+html { height: 100%; }
+
+body.game-page {
+  height: 100%; height: 100dvh;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  background: #02040a url('/title.jpg') center/cover fixed;
+  color: #fff; font-family: 'Orbitron', sans-serif; text-align: center;
+  margin: 0;
+}
+body.game-page::before {
+  content: ''; position: fixed; inset: 0;
+  background: rgba(2,4,10,0.82); pointer-events: none; z-index: 0;
+}
+
+.game-wrap {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column; align-items: stretch;
+  position: relative; z-index: 1; overflow: hidden;
+  /* no padding — canvas fills this entirely */
+}
+
+/* HUD overlaid on top of canvas */
+.game-header {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; flex-wrap: wrap; padding: 4px 8px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.72) 0%, transparent 100%);
+  pointer-events: none;
+}
+.game-header > * { pointer-events: auto; }
+.game-title { font-size: 13px; font-weight: 800; }
+.game-hud   { font-size: 11px; color: #00f0ff; }
+.coin-hud   { font-size: 10px; color: #ffd700; }
+
+/* Status message overlaid on canvas */
+.game-msg {
+  position: absolute; bottom: 8px; left: 0; right: 0; z-index: 20;
+  font-size: 12px; color: #00ff9d; font-family: 'Orbitron', sans-serif;
+  text-align: center; pointer-events: none;
+  text-shadow: 0 0 8px #00ff9d88;
+}
+
+.canvas-wrap {
+  flex: 1; min-height: 0; width: 100%; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.canvas-wrap canvas {
+  display: block;
+  /* JS sets explicit width/height for pixel-perfect contain scaling.
+     These rules are the CSS fallback before JS runs. */
+  max-width: 100%; max-height: 100%;
+  width: auto; height: auto;
+  border-radius: 0;
+  /* Nearest-neighbour for crisp pixel art */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* ─── NINTENDO CONTROLLER ─────────────────────────────────────────────────── */
+.ctrl-area {
+  /* Responsive height: 40% of viewport but never below 155px or above 270px.
+     JS auto-scales .ctrl-body contents to fill whatever height is given. */
+  height: clamp(155px, 40dvh, 270px);
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #1e2126 0%, #14161a 100%);
+  border-top: 2px solid #2c2f35;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; z-index: 1;
+}
+.ctrl-area.hidden { display: none; }
+
+.ctrl-body {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; max-width: 460px; padding: 0 8px;
+}
+
+/* D-pad */
+.ctrl-dpad { width: 204px; height: 204px; position: relative; flex-shrink: 0; }
+.ctrl-dpad-center {
+  position: absolute; width: 68px; height: 68px; top: 68px; left: 68px;
+  background: #252830; border: 1px solid #3a3e46; border-radius: 4px; pointer-events: none;
+}
+.ctrl-dpad button {
+  position: absolute; width: 68px; height: 68px;
+  background: linear-gradient(180deg, #2e323b, #22252c);
+  border: 1px solid #3a3e46; color: #ccd0da; font-size: 26px;
+  cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 5px 0 #10121a, inset 0 1px 0 rgba(255,255,255,0.07);
+  -webkit-tap-highlight-color: transparent; user-select: none; touch-action: manipulation;
+  margin: 0;
+}
+.ctrl-dpad button:active,
+.ctrl-dpad button.dpad-pressed {
+  background: linear-gradient(180deg, #3a3e46, #2e323b);
+  box-shadow: 0 1px 0 transparent, 0 0 12px rgba(168,85,255,0.55);
+  transform: translateY(4px);
+  color: #c084fc;
+}
+.dpad-up    { top: 0;    left: 68px; border-radius: 8px 8px 2px 2px; }
+.dpad-down  { bottom: 0; left: 68px; border-radius: 2px 2px 8px 8px; }
+.dpad-left  { top: 68px; left: 0;   border-radius: 8px 2px 2px 8px; }
+.dpad-right { top: 68px; right: 0;  border-radius: 2px 8px 8px 2px; }
+
+/* Center cluster */
+.ctrl-mid { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.ctrl-start {
+  padding: 10px 22px; border-radius: 20px;
+  background: linear-gradient(180deg, #2e323b, #22252c);
+  border: 1px solid #3a3e46; color: #a0a8b8;
+  font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  cursor: pointer; box-shadow: 0 3px 0 #10121a, inset 0 1px 0 rgba(255,255,255,0.06);
+  -webkit-tap-highlight-color: transparent; user-select: none; touch-action: manipulation;
+  margin: 0;
+}
+.ctrl-start:active { transform: translateY(2px); box-shadow: none; }
+.ctrl-home {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(180deg, #2e323b, #22252c);
+  border: 1px solid #3a3e46; color: #a0a8b8; font-size: 20px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 0 #10121a; text-decoration: none;
+  -webkit-tap-highlight-color: transparent; user-select: none;
+}
+
+/* Action buttons */
+.ctrl-ab { width: 204px; height: 204px; position: relative; flex-shrink: 0; }
+.ctrl-btn-a, .ctrl-btn-b {
+  position: absolute; width: 84px; height: 84px; border-radius: 50%;
+  font-family: 'Orbitron', sans-serif; font-size: 19px; font-weight: 800;
+  cursor: pointer; border: none; display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent; user-select: none; touch-action: manipulation;
+  margin: 0;
+}
+.ctrl-btn-a {
+  background: radial-gradient(circle at 35% 35%, #22d060, #0f9040); color: #fff;
+  right: 4px; top: 16px;
+  box-shadow: 0 7px 0 #085c28, inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.ctrl-btn-b {
+  background: radial-gradient(circle at 35% 35%, #ff5555, #cc1111); color: #fff;
+  left: 4px; bottom: 12px;
+  box-shadow: 0 7px 0 #880808, inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.ctrl-btn-a:active, .ctrl-btn-b:active { transform: translateY(6px); box-shadow: 0 1px 0 rgba(0,0,0,0.4); }

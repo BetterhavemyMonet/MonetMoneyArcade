@@ -1,7 +1,6 @@
 node_modules/
 .cache/
 .claude/
-dist/
 build/
 .env
 .vercel
