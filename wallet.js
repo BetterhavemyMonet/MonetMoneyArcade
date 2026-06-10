@@ -699,7 +699,7 @@ async function payEntryFee(gameName, onProgress, amount) {
   try {
     const conn = await getWorkingConnection();
     const sim = await conn.simulateTransaction(tx);
-    console.log("SIM ERR", sim.value?.err);
+    alert("SIM ERR: "+JSON.stringify(sim.value?.err)+" LOGS: "+JSON.stringify(sim.value?.logs));
     console.log("SIM LOGS", sim.value?.logs);
   } catch(e) {
     console.error("SIMULATION FAILED", e);
@@ -796,7 +796,7 @@ async function payEntryFeeSOL(gameName, onProgress, lamports) {
   try {
     const conn = await getWorkingConnection();
     const sim = await conn.simulateTransaction(tx);
-    console.log("SIM ERR", sim.value?.err);
+    alert("SIM ERR: "+JSON.stringify(sim.value?.err)+" LOGS: "+JSON.stringify(sim.value?.logs));
     console.log("SIM LOGS", sim.value?.logs);
   } catch(e) {
     console.error("SIMULATION FAILED", e);
@@ -953,7 +953,7 @@ async function treasuryPayout(toAddress, amount, claimId, onProgress) {
   try {
     const conn = await getWorkingConnection();
     const sim = await conn.simulateTransaction(tx);
-    console.log("SIM ERR", sim.value?.err);
+    alert("SIM ERR: "+JSON.stringify(sim.value?.err)+" LOGS: "+JSON.stringify(sim.value?.logs));
     console.log("SIM LOGS", sim.value?.logs);
   } catch(e) {
     console.error("SIMULATION FAILED", e);
