@@ -43,7 +43,6 @@ setInterval(fetchEntryFee, 5 * 60 * 1000);
 // avoid browser CORS rate-limit 403s on these public endpoints.
 const RPC_ENDPOINTS = [
   'https://api.mainnet-beta.solana.com',
-  'https://mainnet.helius-rpc.com/',
 ];
 
 const RPC_TIMEOUT_MS = 10000;
