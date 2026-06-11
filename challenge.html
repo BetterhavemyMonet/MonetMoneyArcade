@@ -405,21 +405,6 @@ async function createH2HChallenge() {
   }
 }
 
-  const shareUrl = `${location.origin}/${selectedH2HGame}.html?challenge=${res.code}`;
-  const section  = document.getElementById('panel-h2h');
-  section.insertAdjacentHTML('afterbegin', `
-    <div style="background:rgba(0,255,157,0.07);border:1px solid #00ff9d33;border-radius:14px;padding:18px;margin-bottom:16px;text-align:center">
-      <div style="font-size:11px;color:#888;margin-bottom:4px">CHALLENGE CREATED</div>
-      <div class="ch-code" style="font-size:30px;margin:8px 0;color:#00ff9d">${res.code}</div>
-      <div style="font-size:11px;color:#00ff9d">Pot: ${res.pot} MONET \u00b7 Share this code with your opponent</div>
-      <div class="ch-share" style="margin-top:10px">
-        <div class="ch-link">${shareUrl}</div>
-        <button class="btn-copy" onclick="copyLink('${shareUrl}')">Copy Link</button>
-      </div>
-      <button class="btn-green btn-full" style="margin-top:12px" onclick="location.href='/${selectedH2HGame}.html?challenge=${res.code}'">PLAY MY TURN &#9658;</button>
-    </div>
-  `);
-  loadMyChallenges();
 }
 
 
