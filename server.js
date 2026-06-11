@@ -1026,7 +1026,7 @@ app.post('/api/challenge/submit', async (req, res) => {
   }
 
   if (c.player1.score !== null && c.player2?.score !== null) {
-    if (c.player1.score === c.player2.score) { c.status = 'tie'; dbWrite('challenges', challenges); return res.json({ ok: true, challenge: c }); }
+    if (c.player1.score === c.player2.score) { const rematchCode = genCode(); challenges.push({ ...JSON.parse(JSON.stringify(c)), id: genId(), code: rematchCode, status: "active", winner: null, payoutTxId: null, player1: { ...c.player1, score: null, submittedAt: null }, player2: { ...c.player2, score: null, submittedAt: null }, createdAt: Date.now(), expiresAt: Date.now() + CHALLENGE_TTL }); c.status = "rematch"; c.rematchCode = rematchCode; dbWrite("challenges", challenges); return res.json({ ok:true, challenge:c, rematchCode }); }
 
     c.winner = (c.player1.score > c.player2.score) ? c.player1.wallet : c.player2.wallet;
     c.status = 'complete';
