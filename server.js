@@ -1026,7 +1026,9 @@ app.post('/api/challenge/submit', async (req, res) => {
   }
 
   if (c.player1.score !== null && c.player2?.score !== null) {
-    c.winner = (c.player1.score >= c.player2.score) ? c.player1.wallet : c.player2.wallet;
+    if (c.player1.score === c.player2.score) { c.status = 'tie'; dbWrite('challenges', challenges); return res.json({ ok: true, challenge: c }); }
+
+    c.winner = (c.player1.score > c.player2.score) ? c.player1.wallet : c.player2.wallet;
     c.status = 'complete';
     try {
       c.payoutTxId = await sendPayout(c.winner, c.pot);
