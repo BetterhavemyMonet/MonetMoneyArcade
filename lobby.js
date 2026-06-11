@@ -1,5 +1,5 @@
 // ─── MONET ARCADE GAME LOBBY ──────────────────────────────────────────────────
-// 5-mode lobby: Practice · CPU Expert · Join Live H2H · Create H2H · Tournament
+// 5-mode lobby: Practice · Join Live H2H · Create H2H · Tournament
 // Supports MONET or SOL (~$0.15) entry fee payments.
 // Requires wallet.js to be loaded first.
 
@@ -7,7 +7,6 @@
   let WAGER_PRESETS    = [5, 10, 25, 50]; // updated dynamically once price is known
   const POLL_INTERVAL  = 2500;
   const HOUSE_RAKE     = 0.10;
-  let CPU_WIN_PAYOUT = 8;   // updated dynamically (= baseFee * 2 * 0.90)
   let _baseFee = 5;         // current dynamic entry fee (1x wager)
 
   function _injectStyles() {
@@ -760,13 +759,12 @@
 
     // Fetch dynamic fee then render — fallback after 1.5s to avoid blocking
     const priceTimeout = new Promise(resolve => setTimeout(resolve, 1500));
-    const priceFetch   = fetch('/api/monet-price').then(r => r.json()).then(d => {
+    const priceFetch   = fetch('https://api.betterhavemymonet.com/api/monet-price').then(r => r.json()).then(d => {
       if (d.entryFeeMonet > 0) {
         _baseFee = d.entryFeeMonet;
         const b = _baseFee;
         WAGER_PRESETS = [...new Set([b, b*2, b*5, b*10].map(Math.round))];
         _selectedWager = b;
-        CPU_WIN_PAYOUT = Math.round(b * 2 * (1 - 0.10) * 10) / 10;
       }
     }).catch(() => {});
     Promise.race([priceFetch, priceTimeout]).then(() => {
