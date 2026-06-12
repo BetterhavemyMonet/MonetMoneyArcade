@@ -1292,7 +1292,6 @@ async function pgPay() {
             await api('/api/challenge/join', 'POST', { code: challengeCode, wallet: WalletState.address, txId, paymentType: 'monet' });
           }
           sessionStorage.setItem('challenge_session', JSON.stringify({ challengeId: ch.id, code: challengeCode, txId }));
-  location.href = `challenge.html?challenge=${res.code}`;
         }
       } catch(e2) { console.warn('[ARCADE] Challenge join error:', e2.message); }
     }
@@ -1379,7 +1378,6 @@ async function pgPaySOL() {
             await api('/api/challenge/join', 'POST', { code: challengeCode, wallet: WalletState.address, txId, paymentType: 'sol' });
           }
           sessionStorage.setItem('challenge_session', JSON.stringify({ challengeId: ch.id, code: challengeCode, txId }));
-  location.href = `challenge.html?challenge=${res.code}`;
         }
       } catch(e2) { console.warn('[ARCADE] Challenge join (SOL) error:', e2.message); }
     }
@@ -1732,7 +1730,6 @@ async function createChallenge(game, wager) {
   const txId = await payEntryFee(game, null, fee);
   const res  = await api('/api/challenge/create', 'POST', { wallet: WalletState.address, txId, game, entryFee: fee });
   sessionStorage.setItem('challenge_session', JSON.stringify({ challengeId: res.challengeId, code: res.code, txId, entryFee: fee, game }));
-  location.href = `challenge.html?challenge=${res.code}`;
   return res;
 }
 

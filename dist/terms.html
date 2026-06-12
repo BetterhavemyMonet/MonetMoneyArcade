@@ -182,7 +182,7 @@ if (returnTo === 'login.html') {
 function acceptAndReturn() {
   if (!document.getElementById('terms-chk').checked) return;
   localStorage.setItem('mm_terms_accepted', Date.now());
-  fetch('/api/terms/accept', {
+  fetch('https://api.betterhavemymonet.com/api/terms/accept', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ username: localStorage.getItem('player_name') || 'anonymous' })
   }).catch(()=>{});

@@ -896,6 +896,7 @@ body::before {
         <span class="gm-btn-title">VS CPU</span>
         <span class="gm-btn-desc">Expert AI · $0.99 entry · Win double if you beat it</span>
       </span>
+      <span class="gm-btn-badge" style="background:rgba(255,68,136,0.15);color:#ff4488;border-color:#ff448844" id="gm-cpu-badge">$0.99</span>
     </button>
 
     <button class="gm-btn" style="--c:#00f0ff" onclick="goMode('wait')">
@@ -956,6 +957,7 @@ async function loadEntryFee() {
       const gmEl = document.getElementById('gm-monet-fee');
       if (gmEl) gmEl.textContent = fmt;
       // Update VS CPU badge
+      const cpuBadge = document.getElementById('gm-cpu-badge');
       if (cpuBadge) cpuBadge.textContent = fmt + ' M';
     }
   } catch(_) {}
@@ -985,6 +987,7 @@ function goMode(mode) {
   closeModal();
   const g = _curGame;
   if      (mode === 'practice')    location.href = _curHref + '?practice=1';
+  else if (mode === 'cpu')         location.href = `challenge.html?game=${g}&tab=cpu&diff=expert`;
   else if (mode === 'wait')        location.href = `challenge.html?game=${g}&tab=h2h&wait=1`;
   else if (mode === 'h2h')         location.href = `challenge.html?game=${g}&tab=h2h`;
   else if (mode === 'tournament')  location.href = `tournament.html?game=${g}`;

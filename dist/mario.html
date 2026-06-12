@@ -630,7 +630,7 @@ async function claimPayout(){
     return;
   }
   try{
-    const res=await fetch('/api/cpu/submit',{
+    const res=await fetch('https://api.betterhavemymonet.com/api/cpu/submit',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({cpuGameId,wallet:playerWallet,playerScore:score})
     }).then(r=>r.json());
@@ -1329,7 +1329,7 @@ function triggerPayGate(){
     sessionActive=true;
     playerWallet=(typeof WalletState!=='undefined')?WalletState.address:null;
     try{
-      const res=await fetch('/api/cpu/start',{
+      const res=await fetch('https://api.betterhavemymonet.com/api/cpu/start',{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({wallet:playerWallet,txId,game:'mario'})
       }).then(r=>r.json());

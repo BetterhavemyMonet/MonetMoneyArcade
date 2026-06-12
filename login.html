@@ -575,7 +575,7 @@ function acceptTerms() {
   const ts = Date.now();
   localStorage.setItem('mm_terms_accepted', ts);
   const username = localStorage.getItem('player_name') || 'anonymous';
-  fetch('/api/terms/accept', {
+  fetch('https://api.betterhavemymonet.com/api/terms/accept', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, timestamp: ts })

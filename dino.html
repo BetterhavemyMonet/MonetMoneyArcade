@@ -1046,7 +1046,7 @@ async function buyItem(itemId, paymentType){
     // Clear game session so shop payment doesn't contaminate an active game entry
     sessionStorage.removeItem('game_session');
 
-    const r = await fetch('/api/shop/purchase', {
+    const r = await fetch('https://api.betterhavemymonet.com/api/shop/purchase', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ wallet: WalletState.address, txId, itemId, paymentType })

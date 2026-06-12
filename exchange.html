@@ -293,7 +293,7 @@ let _buyCheckout    = null; // Stripe EmbeddedCheckout instance
 
 async function buyLoadPrice() {
   try {
-    const d = await fetch('/api/monet-price').then(r => r.json());
+    const d = await fetch('https://api.betterhavemymonet.com/api/monet-price').then(r => r.json());
     _buyPriceUsd = d.priceUsd;
     [10, 20, 50, 100].forEach(usd => {
       const monet = _buyPriceUsd ? Math.floor(usd / _buyPriceUsd) : 0;
@@ -362,11 +362,11 @@ async function buyOpenCheckout() {
     }
 
     // 2. Get publishable key
-    const cfg = await fetch('/api/stripe/config').then(r => r.json());
+    const cfg = await fetch('https://api.betterhavemymonet.com/api/stripe/config').then(r => r.json());
     if (!cfg.ok || !cfg.publishableKey) throw new Error('Card payments not configured');
 
     // 3. Create Checkout Session on server
-    const d = await fetch('/api/buy-monet/create-checkout-session', {
+    const d = await fetch('https://api.betterhavemymonet.com/api/buy-monet/create-checkout-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ usdAmount: _buySelectedUsd, walletAddress: WalletState.address }),
@@ -443,7 +443,7 @@ function buyShowSuccess(monetAmt, txId, queued) {
     const qs = new URLSearchParams();
     if (session_id) qs.set('session_id', session_id);
     if (buy_token)  qs.set('buy_token',  buy_token);
-    const d = await fetch('/api/buy-monet/session-status?' + qs).then(r => r.json());
+    const d = await fetch('https://api.betterhavemymonet.com/api/buy-monet/session-status?' + qs).then(r => r.json());
     if (d.status === 'paid') {
       buyShowSuccess(d.monetAmount, d.txId, d.queued);
     } else {
@@ -511,7 +511,7 @@ function _init() {
 }
 
 // Load in order: fetch RPC → inject script → init
-fetch('/api/rpc-url')
+fetch('https://api.betterhavemymonet.com/api/rpc-url')
   .then(r => r.json())
   .then(d => { if (d && d.url) _rpcEndpoint = d.url; })
   .catch(() => {})

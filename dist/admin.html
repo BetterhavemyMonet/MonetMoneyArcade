@@ -164,7 +164,7 @@ function gateLogin() {
   const t = document.getElementById('tok-input').value.trim();
   if (!t) return;
   ADMIN_TOKEN = t;
-  fetch('/api/admin/verify', { headers: { 'x-admin-token': t } })
+  fetch('https://api.betterhavemymonet.com/api/admin/verify', { headers: { 'x-admin-token': t } })
     .then(r => r.json())
     .then(d => {
       if (!d.ok) { document.getElementById('gate-err').textContent = 'Invalid token.'; return; }
@@ -176,7 +176,7 @@ function gateLogin() {
 }
 
 async function loadClaims() {
-  const r = await fetch('/api/claims', { headers: { 'x-admin-token': ADMIN_TOKEN } });
+  const r = await fetch('https://api.betterhavemymonet.com/api/claims', { headers: { 'x-admin-token': ADMIN_TOKEN } });
   const d = await r.json();
   ALL_CLAIMS = d.claims || [];
   renderStats();
@@ -255,7 +255,7 @@ function renderTable() {
 }
 
 async function processSingle(claimId) {
-  const r = await fetch('/api/claims/process', {
+  const r = await fetch('https://api.betterhavemymonet.com/api/claims/process', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_TOKEN },
     body: JSON.stringify({ claimId }),
@@ -274,7 +274,7 @@ async function processAll() {
   btn.disabled = true;
   btn.textContent = 'PROCESSING…';
   try {
-    const r = await fetch('/api/admin/process-claims', {
+    const r = await fetch('https://api.betterhavemymonet.com/api/admin/process-claims', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_TOKEN },
     });
@@ -317,7 +317,7 @@ async function manualPayout() {
   res.textContent = 'Sending…';
 
   try {
-    const r = await fetch('/api/admin/manual-payout', {
+    const r = await fetch('https://api.betterhavemymonet.com/api/admin/manual-payout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_TOKEN },
       body: JSON.stringify({ wallet, amount, reason }),

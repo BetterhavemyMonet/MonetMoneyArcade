@@ -1071,8 +1071,8 @@ function logout() {
 (async function loadStats() {
   try {
     const [priceRes, statsRes] = await Promise.all([
-      fetch('/api/monet-price').then(r => r.json()),
-      fetch('/api/token-stats').then(r => r.json()),
+      fetch('https://api.betterhavemymonet.com/api/monet-price').then(r => r.json()),
+      fetch('https://api.betterhavemymonet.com/api/token-stats').then(r => r.json()),
     ]);
 
     if (priceRes.entryFeeMonet > 0) {

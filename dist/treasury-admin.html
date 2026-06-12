@@ -261,7 +261,7 @@ let _allClaims = [];
 
 async function loadAll() {
   try {
-    const r = await fetch('/api/claims');
+    const r = await fetch('https://api.betterhavemymonet.com/api/claims');
     const d = await r.json();
     _allClaims = d.claims || [];
     renderClaims();
@@ -363,7 +363,7 @@ async function serverProcessAll() {
   status.textContent = 'Processing…';
 
   try {
-    const r = await fetch('/api/admin/process-claims', {
+    const r = await fetch('https://api.betterhavemymonet.com/api/admin/process-claims', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-token': pin },
     });
