@@ -653,6 +653,7 @@ app.get('/api/balance/:wallet', async (req, res) => {
     // fully parsed data regardless of which RPC node answers.
     const conn = new Connection("https://solana-mainnet.g.alchemy.com/v2/5f2UJclPRZdXt_Lfg5RMx","confirmed");
     const tokenAccounts = await conn.getParsedTokenAccountsByOwner(owner,{ mint });
+    console.log("[BALANCE DEBUG]", walletAddr, "accounts=", tokenAccounts.value.length);
     const solLamports = await conn.getBalance(owner);
     const tokenOk = true;
     const solOk = true;
