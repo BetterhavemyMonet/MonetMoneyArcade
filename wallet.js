@@ -1292,7 +1292,6 @@ async function pgPay() {
             await api('/api/challenge/join', 'POST', { code: challengeCode, wallet: WalletState.address, txId, paymentType: 'monet' });
           }
           sessionStorage.setItem('challenge_session', JSON.stringify({ challengeId: ch.id, code: challengeCode, txId }));
-  location.href = `challenge.html?challenge=${res.code}`;
         }
       } catch(e2) { console.warn('[ARCADE] Challenge join error:', e2.message); }
     }
@@ -1379,7 +1378,6 @@ async function pgPaySOL() {
             await api('/api/challenge/join', 'POST', { code: challengeCode, wallet: WalletState.address, txId, paymentType: 'sol' });
           }
           sessionStorage.setItem('challenge_session', JSON.stringify({ challengeId: ch.id, code: challengeCode, txId }));
-  location.href = `challenge.html?challenge=${res.code}`;
         }
       } catch(e2) { console.warn('[ARCADE] Challenge join (SOL) error:', e2.message); }
     }
@@ -1661,7 +1659,7 @@ async function arcadeSubmitScore(gameName, score) {
         const result = await api('/api/challenge/submit', 'POST', { challengeId: cs.challengeId, wallet: WalletState.address, score });
         sessionStorage.removeItem('challenge_session');
         // If both players have now submitted, show the result immediately
-        // instead of waiting for the next H2H watcher poll cycle.
+        if (result.challenge?.status === 'complete') sessionStorage.removeItem('challenge_session');
         const ch = result.challenge;
         if (ch && ch.status === 'complete') {
           const myWallet = WalletState.address || '';
