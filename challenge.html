@@ -310,8 +310,8 @@ let _dynFee          = 5; // updated from /api/monet-price
 async function fetchDynFee() {
   try {
     const d = await fetch('https://api.betterhavemymonet.com/api/monet-price').then(r => r.json());
-    if (d.entryFee && d.entryFee > 0) {
-      _dynFee = d.entryFee;
+    if (d.entryFeeMonet d.entryFee && d.entryFee > 0d.entryFee && d.entryFee > 0 d.entryFeeMonet > 0) {
+      _dynFee = d.entryFeeMonet;
       selectedH2HWager = _dynFee;
       rebuildWagerOptions();
     }
