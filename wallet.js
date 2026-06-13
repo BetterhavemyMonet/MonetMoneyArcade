@@ -699,15 +699,9 @@ async function payEntryFee(gameName, onProgress, amount) {
   report('signing');
   let txId;
   try {
-    if (provider.signAndSendTransaction) {
-      const result = await provider.signAndSendTransaction(tx);
-      txId = result.signature || result;
-    } else {
-      // signTransaction path — need a connection for sendRawTransaction
-      const conn = await getWorkingConnection();
+    const conn = await getWorkingConnection();
       const signed = await provider.signTransaction(tx);
       txId = await conn.sendRawTransaction(signed.serialize());
-    }
   } catch(e) {
     throw new Error(`Signing failed: ${e.message}`);
   }
