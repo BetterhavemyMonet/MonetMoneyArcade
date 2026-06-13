@@ -646,6 +646,8 @@ async function payEntryFee(gameName, onProgress, amount) {
   const treasury = new w.PublicKey(MONET_CONFIG.TREASURY);
   const sourceATA = getATA(mint, payer);
   const destATA   = getATA(mint, treasury);
+  alert("PAYER: " + payer.toString() + "\nTREASURY: " + treasury.toString() + "\nSOURCE ATA: " + sourceATA.toString() + "\nDEST ATA: " + destATA.toString());
+  alert("PAYER: " + payer.toString() + "\nTREASURY: " + treasury.toString() + "\nSOURCE ATA: " + sourceATA.toString() + "\nDEST ATA: " + destATA.toString());
 
   // ── Step 1: get blockhash ──────────────────────────────────────────────────
   // Try direct RPC first; fall back to server /api/blockhash to bypass browser 403s.
