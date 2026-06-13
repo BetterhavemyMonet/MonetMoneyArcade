@@ -685,7 +685,7 @@ async function payEntryFee(gameName, onProgress, amount) {
         destATAExists = !!info;
       }
     }
-    if (!destATAExists) tx.add(createATAInstruction(payer, destATA, treasury, mint));
+    // treasury ATA already exists
   } catch(e) {
     throw new Error(`Transaction preparation failed: ${e.message}`);
   }
