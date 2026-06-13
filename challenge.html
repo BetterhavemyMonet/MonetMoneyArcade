@@ -333,6 +333,10 @@ function rebuildWagerOptions() {
 }
 
 
+function switchTab(tab){document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));const panel=document.getElementById("panel-"+tab);if(panel)panel.classList.add("active");document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active-h2h","active-join"));if(tab==="h2h")document.getElementById("tab-h2h")?.classList.add("active-h2h");if(tab==="join")document.getElementById("tab-join")?.classList.add("active-join");if(tab==="lobby")document.getElementById("tab-lobby")?.classList.add("active-join");if(tab==="lobby")loadLobby(true);}
+function selectGame(el){document.querySelectorAll("#h2h-game-opts .game-opt").forEach(e=>e.classList.remove("active"));el.classList.add("active");selectedH2HGame=el.dataset.game;}
+function selectH2HWager(el){document.querySelectorAll("#h2h-wager-opts .game-opt").forEach(e=>e.classList.remove("active"));el.classList.add("active");selectedH2HWager=parseInt(el.dataset.wager||_dynFee,10);}
+
 // ── Lobby ──────────────────────────────────────────────────────────────────
 let _lobbyFilter = 'all';
 
