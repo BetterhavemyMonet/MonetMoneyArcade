@@ -673,14 +673,18 @@ app.get('/api/balance/:wallet', async (req, res) => {
 
     let monetBalance = 0;
     let hasAta       = false;
-    let ata          = null;
-    if (tokenResult.value?.value?.length > 0) {
-      const acct   = tokenResult.value.value[0];
-      monetBalance = acct.account.data.parsed.info.tokenAmount.uiAmount ?? 0;
-      hasAta       = true;
-      ata          = acct.pubkey.toString();
-    } else {
-      ata = getATA(mint, owner).toString();
+    let ata          = getATA(mint, owner).toString();
+
+    if (tokenResult.value?.value?.length) {
+      hasAta = true;
+
+      for (const acct of tokenResult.value.value) {
+        monetBalance += Number(
+          acct.account.data.parsed.info.tokenAmount.uiAmount || 0
+        );
+      }
+
+      ata = tokenResult.value.value[0].pubkey.toString();
     }
 
     const solBalance = solOk ? (solResult.value ?? 0) / 1e9 : (cached?.sol ?? 0);
