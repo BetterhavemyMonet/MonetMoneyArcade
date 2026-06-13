@@ -711,7 +711,7 @@ async function payEntryFee(gameName, onProgress, amount) {
       txId = await conn.sendRawTransaction(signed.serialize());
     }
   } catch(e) {
-    alert("PHANTOM ERROR: " + (e?.message || JSON.stringify(e))); console.error("[PHANTOM ERROR FULL]", e); throw new Error(`Signing failed: ${e.message}`);
+    alert(JSON.stringify(e, Object.getOwnPropertyNames(e), 2)); console.error("[PHANTOM ERROR FULL]", e); throw new Error(`Signing failed: ${e.message}`);
   }
 
   // ── Step 4: confirm (best-effort; tx is signed and sent regardless) ────────
