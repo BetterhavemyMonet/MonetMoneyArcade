@@ -397,7 +397,7 @@ async function createH2HChallenge() {
     const res = await createChallenge(selectedH2HGame, selectedH2HWager);
     btn.textContent = label;
     btn.disabled = false;
-    location.href = `/.html?challenge=`;
+      showCreatedChallenge(res);
   } catch(e) {
     btn.textContent = label;
     btn.disabled = false;
