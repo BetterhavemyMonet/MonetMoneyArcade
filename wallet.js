@@ -702,6 +702,7 @@ async function payEntryFee(gameName, onProgress, amount) {
   let txId;
   try {
     const conn = await getWorkingConnection();
+      alert(JSON.stringify(tx.instructions.map(i => ({programId:i.programId.toString(),keyCount:i.keys.length})), null, 2));
       const signed = await provider.signTransaction(tx);
       txId = await conn.sendRawTransaction(signed.serialize());
   } catch(e) {
@@ -788,6 +789,7 @@ async function payEntryFeeSOL(gameName, onProgress, lamports) {
       txId = result.signature || result;
     } else {
       const conn   = await getWorkingConnection();
+      alert(JSON.stringify(tx.instructions.map(i => ({programId:i.programId.toString(),keyCount:i.keys.length})), null, 2));
       const signed = await provider.signTransaction(tx);
       txId = await conn.sendRawTransaction(signed.serialize());
     }
@@ -936,6 +938,7 @@ async function treasuryPayout(toAddress, amount, claimId, onProgress) {
       txId = result.signature || result;
     } else {
       const conn   = await getWorkingConnection();
+      alert(JSON.stringify(tx.instructions.map(i => ({programId:i.programId.toString(),keyCount:i.keys.length})), null, 2));
       const signed = await provider.signTransaction(tx);
       txId = await conn.sendRawTransaction(signed.serialize());
     }
