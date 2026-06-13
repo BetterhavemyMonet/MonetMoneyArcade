@@ -263,7 +263,6 @@ function createTransferInstruction(sourcePubkey, destPubkey, ownerPubkey, rawAmo
 // warning for players.
 const MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
 
-function createMemoInstruction(signerPubkey, text) {
   const w = getSolanaWeb3();
   const encoder = new TextEncoder();
   return new w.TransactionInstruction({
@@ -695,7 +694,6 @@ async function payEntryFee(gameName, onProgress, amount) {
   // Memo so wallets display a clear label ("Monet Arcade | PACMAN | 5 MONET")
   // instead of an anonymous token transfer, which reduces Phantom's risk warnings.
   const gameLabel = (gameName || 'GAME').toUpperCase();
-  tx.add(createMemoInstruction(payer, `Monet Arcade | ${gameLabel} | ${fee} MONET entry fee`));
 
   // ── Step 3: sign & send via wallet (wallet uses its own RPC for broadcast) ─
   report('signing');
@@ -784,7 +782,6 @@ async function payEntryFeeSOL(gameName, onProgress, lamports) {
 
   // Memo for clear wallet display
   const gameLabel = (gameName || 'GAME').toUpperCase();
-  tx.add(createMemoInstruction(payer, `Monet Arcade | ${gameLabel} | SOL entry fee`));
 
   report('signing');
   let txId;
@@ -931,7 +928,6 @@ async function treasuryPayout(toAddress, amount, claimId, onProgress) {
   } catch(_) {}
 
   tx.add(createTransferInstruction(srcATA, dstATA, payer, toRawAmount(amount)));
-  tx.add(createMemoInstruction(payer,
     `Monet Arcade | Payout | ${amount} MONET${claimId ? ' | ' + claimId.slice(0,8) : ''}`));
 
   report('signing');
