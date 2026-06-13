@@ -1732,7 +1732,6 @@ async function createChallenge(game, wager) {
   const txId = await payEntryFee(game, null, fee);
   const res  = await api('/api/challenge/create', 'POST', { wallet: WalletState.address, txId, game, entryFee: fee });
   sessionStorage.setItem('challenge_session', JSON.stringify({ challengeId: res.challengeId, code: res.code, txId, entryFee: fee, game }));
-  location.href = `challenge.html?challenge=${res.code}`;
   return res;
 }
 
