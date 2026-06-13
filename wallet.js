@@ -199,7 +199,9 @@ async function getWorkingConnection() {
           setTimeout(() => reject(new Error(`timeout`)), RPC_TIMEOUT_MS)
         ),
       ]);
+      console.log("[RPC OK]", rpc);
       return conn;
+      console.error("[RPC FAIL]", rpc, e?.message || e);
     } catch (e) {
       console.warn(`[MONET] Connection probe failed (${rpc}):`, e.message ?? e);
       lastErr = e;
