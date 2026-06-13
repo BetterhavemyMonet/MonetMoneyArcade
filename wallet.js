@@ -42,7 +42,7 @@ setInterval(fetchEntryFee, 5 * 60 * 1000);
 // All balance/account queries now go through /api/balance (server-side) to
 // avoid browser CORS rate-limit 403s on these public endpoints.
 const RPC_ENDPOINTS = [
-  'https://solana-mainnet.g.alchemy.com/v2/5f2UJclPRZdXt_Lfg5RMx',
+  'https://api.mainnet-beta.solana.com',
   'https://mainnet.helius-rpc.com/',
 ];
 
@@ -263,6 +263,7 @@ function createTransferInstruction(sourcePubkey, destPubkey, ownerPubkey, rawAmo
 // warning for players.
 const MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
 
+function createMemoInstruction(signerPubkey, text) {
   const w = getSolanaWeb3();
   const encoder = new TextEncoder();
   return new w.TransactionInstruction({
@@ -645,8 +646,6 @@ async function payEntryFee(gameName, onProgress, amount) {
   const treasury = new w.PublicKey(MONET_CONFIG.TREASURY);
   const sourceATA = getATA(mint, payer);
   const destATA   = getATA(mint, treasury);
-  alert("PAYER: " + payer.toString() + "\nTREASURY: " + treasury.toString() + "\nSOURCE ATA: " + sourceATA.toString() + "\nDEST ATA: " + destATA.toString());
-  alert("PAYER: " + payer.toString() + "\nTREASURY: " + treasury.toString() + "\nSOURCE ATA: " + sourceATA.toString() + "\nDEST ATA: " + destATA.toString());
 
   // ── Step 1: get blockhash ──────────────────────────────────────────────────
   // Try direct RPC first; fall back to server /api/blockhash to bypass browser 403s.
@@ -694,6 +693,7 @@ async function payEntryFee(gameName, onProgress, amount) {
   // Memo so wallets display a clear label ("Monet Arcade | PACMAN | 5 MONET")
   // instead of an anonymous token transfer, which reduces Phantom's risk warnings.
   const gameLabel = (gameName || 'GAME').toUpperCase();
+  tx.add(createMemoInstruction(payer, `Monet Arcade | ${gameLabel} | ${fee} MONET entry fee`));
 
   // ── Step 3: sign & send via wallet (wallet uses its own RPC for broadcast) ─
   report('signing');
@@ -709,7 +709,7 @@ async function payEntryFee(gameName, onProgress, amount) {
       txId = await conn.sendRawTransaction(signed.serialize());
     }
   } catch(e) {
-    alert(JSON.stringify(e, Object.getOwnPropertyNames(e), 2)); console.error("[PHANTOM ERROR FULL]", e); throw new Error(`Signing failed: ${e.message}`);
+    throw new Error(`Signing failed: ${e.message}`);
   }
 
   // ── Step 4: confirm (best-effort; tx is signed and sent regardless) ────────
@@ -782,6 +782,7 @@ async function payEntryFeeSOL(gameName, onProgress, lamports) {
 
   // Memo for clear wallet display
   const gameLabel = (gameName || 'GAME').toUpperCase();
+  tx.add(createMemoInstruction(payer, `Monet Arcade | ${gameLabel} | SOL entry fee`));
 
   report('signing');
   let txId;
@@ -928,6 +929,7 @@ async function treasuryPayout(toAddress, amount, claimId, onProgress) {
   } catch(_) {}
 
   tx.add(createTransferInstruction(srcATA, dstATA, payer, toRawAmount(amount)));
+  tx.add(createMemoInstruction(payer,
     `Monet Arcade | Payout | ${amount} MONET${claimId ? ' | ' + claimId.slice(0,8) : ''}`));
 
   report('signing');
@@ -1290,6 +1292,7 @@ async function pgPay() {
             await api('/api/challenge/join', 'POST', { code: challengeCode, wallet: WalletState.address, txId, paymentType: 'monet' });
           }
           sessionStorage.setItem('challenge_session', JSON.stringify({ challengeId: ch.id, code: challengeCode, txId }));
+  location.href = `challenge.html?challenge=${res.code}`;
         }
       } catch(e2) { console.warn('[ARCADE] Challenge join error:', e2.message); }
     }
@@ -1376,6 +1379,7 @@ async function pgPaySOL() {
             await api('/api/challenge/join', 'POST', { code: challengeCode, wallet: WalletState.address, txId, paymentType: 'sol' });
           }
           sessionStorage.setItem('challenge_session', JSON.stringify({ challengeId: ch.id, code: challengeCode, txId }));
+  location.href = `challenge.html?challenge=${res.code}`;
         }
       } catch(e2) { console.warn('[ARCADE] Challenge join (SOL) error:', e2.message); }
     }
@@ -1657,7 +1661,7 @@ async function arcadeSubmitScore(gameName, score) {
         const result = await api('/api/challenge/submit', 'POST', { challengeId: cs.challengeId, wallet: WalletState.address, score });
         sessionStorage.removeItem('challenge_session');
         // If both players have now submitted, show the result immediately
-        if (result.challenge?.status === 'complete') sessionStorage.removeItem('challenge_session');
+        // instead of waiting for the next H2H watcher poll cycle.
         const ch = result.challenge;
         if (ch && ch.status === 'complete') {
           const myWallet = WalletState.address || '';
@@ -1728,6 +1732,7 @@ async function createChallenge(game, wager) {
   const txId = await payEntryFee(game, null, fee);
   const res  = await api('/api/challenge/create', 'POST', { wallet: WalletState.address, txId, game, entryFee: fee });
   sessionStorage.setItem('challenge_session', JSON.stringify({ challengeId: res.challengeId, code: res.code, txId, entryFee: fee, game }));
+  location.href = `challenge.html?challenge=${res.code}`;
   return res;
 }
 
