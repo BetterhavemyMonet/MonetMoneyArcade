@@ -42,7 +42,7 @@ setInterval(fetchEntryFee, 5 * 60 * 1000);
 // All balance/account queries now go through /api/balance (server-side) to
 // avoid browser CORS rate-limit 403s on these public endpoints.
 const RPC_ENDPOINTS = [
-  'https://api.mainnet-beta.solana.com',
+  'https://solana-mainnet.g.alchemy.com/v2/5f2UJclPRZdXt_Lfg5RMx',
   'https://mainnet.helius-rpc.com/',
 ];
 
