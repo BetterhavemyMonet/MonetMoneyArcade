@@ -637,8 +637,8 @@ const BALANCE_CACHE_TTL = 90_000;    // ms
 
 // ─── Routes: wallet utilities ────────────────────────────────────────────────
 app.get('/api/balance/:wallet', async (req, res) => {
-  console.log("[BALANCE REQUEST]", walletAddr);
   const walletAddr = req.params.wallet;
+  console.log('[BALANCE REQUEST]', walletAddr);
   const cached     = BALANCE_CACHE.get(walletAddr);
 
   // Serve stale cache while a fresh fetch runs in the background
