@@ -1,0 +1,307 @@
+import { Connection, PublicKey, Transaction, TransactionInstruction, Keypair, SystemProgram } from "@solana/web3.js";
+import { getOrCreateAssociatedTokenAccount, createTransferInstruction, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import express from 'express';
+import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+
+// Configurations
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+const connection = new Connection(SOLANA_RPC_URL, 'confirmed');
+
+// Core Public Keys
+const treasuryAddr = process.env.TREASURY_WALLET_ADDRESS || "11111111111111111111111111111111";
+const TREASURY_WALLET = new PublicKey(treasuryAddr);
+let ESCROW_KEYPAIR;
+try {
+  ESCROW_KEYPAIR = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(process.env.ESCROW_PRIVATE_KEY)));
+} catch (e) {
+  console.warn("⚠️ ESCROW_PRIVATE_KEY missing or invalid in environment. Generating a temporary local fallback keypair.");
+  ESCROW_KEYPAIR = Keypair.generate();
+}
+
+/**
+ * Endpoint to construct a serialized payment transaction (For Game Entry / Pot Deposits)
+ * The client will sign and broadcast this transaction.
+ */
+app.post('/api/payments/create-entry-tx', async (req, res) => {
+  try {
+    const { playerWalletAddress, paymentType, amount } = req.body;
+    
+    if (!playerWalletAddress || !paymentType || !amount) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    const playerPubKey = new PublicKey(playerWalletAddress);
+    const transaction = new Transaction();
+
+    if (paymentType === 'SOL') {
+      // 1. Build SOL Transfer Instruction
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: playerPubKey,
+          toPubkey: TREASURY_WALLET, // Or ESCROW_KEYPAIR.publicKey if locking a pot
+          lamports: amount * 1000000000, // Convert SOL to Lamports
+        })
+      );
+    } else if (paymentType === 'MONET') {
+      // 2. Build MONET Token Transfer Instruction
+      // Get player and treasury Associated Token Accounts (ATAs)
+      const fromTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection, ESCROW_KEYPAIR, MONET_MINT, playerPubKey
+      );
+      const toTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection, ESCROW_KEYPAIR, MONET_MINT, TREASURY_WALLET
+      );
+
+      transaction.add(
+        createTransferInstruction(
+          fromTokenAccount.address,
+          toTokenAccount.address,
+          playerPubKey,
+          amount * 1000000 // Multiplied by decimals (assume 6 decimals, adjust if different)
+        )
+      );
+    } else {
+      return res.status(400).json({ error: 'Unsupported payment type' });
+    }
+
+    // Set transactional parameters
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = playerPubKey; // Player pays network fee
+
+    // Serialize the transaction without signatures for client signing
+    const serializedTransaction = transaction.serialize({
+      requireAllSignatures: false,
+      verifySignatures: false,
+    });
+
+    res.json({
+      serializedTx: serializedTransaction.toString('base64'),
+      blockhash,
+      lastValidBlockHeight,
+    });
+
+  } catch (error) {
+    console.error('Tx Creation Error:', error);
+    res.status(500).json({ error: 'Failed to create payment transaction' });
+  }
+});
+
+
+// ─── SOLANA ARCADE ESCROW & PAYMENT MODULE ──────────────────────────────────
+app.post('/api/payments/create-entry-tx', async (req, res) => {
+  try {
+    const { playerWalletAddress, paymentType, amount } = req.body;
+    if (!playerWalletAddress || !paymentType || !amount) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    const playerPubKey = new PublicKey(playerWalletAddress);
+    const transaction = new Transaction();
+
+    if (paymentType === 'SOL') {
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: playerPubKey,
+          toPubkey: TREASURY_WALLET,
+          lamports: Math.floor(amount * 1000000000),
+        })
+      );
+    } else if (paymentType === 'MONET') {
+      const fromTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection, ESCROW_KEYPAIR, MONET_MINT, playerPubKey
+      );
+      const toTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection, ESCROW_KEYPAIR, MONET_MINT, TREASURY_WALLET
+      );
+
+      transaction.add(
+        createTransferInstruction(
+          fromTokenAccount.address,
+          toTokenAccount.address,
+          playerPubKey,
+          Math.floor(amount * 1000000)
+        )
+      );
+    } else {
+      return res.status(400).json({ error: 'Unsupported payment type' });
+    }
+
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = playerPubKey;
+
+    const serializedTransaction = transaction.serialize({
+      requireAllSignatures: false,
+      verifySignatures: false,
+    });
+
+    res.json({
+      serializedTx: serializedTransaction.toString('base64'),
+      blockhash,
+      lastValidBlockHeight,
+    });
+  } catch (error) {
+    console.error('Tx Creation Error:', error);
+    res.status(500).json({ error: 'Failed to create payment transaction' });
+  }
+});
+
+app.post('/api/payments/disburse-winnings', async (req, res) => {
+  try {
+    const { winnerWalletAddress, payoutType, amount, matchId } = req.body;
+    if (req.headers['x-arcade-auth'] !== process.env.INTERNAL_ARCADE_SECRET) {
+      return res.status(403).json({ error: 'Unauthorized system call' });
+    }
+
+    const winnerPubKey = new PublicKey(winnerWalletAddress);
+    const transaction = new Transaction();
+
+    if (payoutType === 'SOL') {
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: ESCROW_KEYPAIR.publicKey,
+          toPubkey: winnerPubKey,
+          lamports: Math.floor(amount * 1000000000),
+        })
+      );
+    } else if (payoutType === 'MONET') {
+      const fromTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection, ESCROW_KEYPAIR, MONET_MINT, ESCROW_KEYPAIR.publicKey
+      );
+      const toTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection, ESCROW_KEYPAIR, MONET_MINT, winnerPubKey
+      );
+
+      transaction.add(
+        createTransferInstruction(
+          fromTokenAccount.address,
+          toTokenAccount.address,
+          ESCROW_KEYPAIR.publicKey,
+          Math.floor(amount * 1000000)
+        )
+      );
+    }
+
+    const { blockhash } = await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = ESCROW_KEYPAIR.publicKey;
+
+    transaction.sign(ESCROW_KEYPAIR);
+    const signature = await connection.sendRawTransaction(transaction.serialize());
+    await connection.confirmTransaction(signature, 'confirmed');
+
+    fs.writeFileSync(
+      path.join(DATA_DIR, `match_${matchId}.json`), 
+      JSON.stringify({ matchId, signature, status: 'PAID' })
+    );
+
+    res.json({ success: true, txId: signature });
+  } catch (error) {
+    console.error('Payout Execution Failed:', error);
+    res.status(500).json({ error: 'Failed to disburse tokens from escrow' });
+  }
+});
+
+const __challengeStore = new Map();
+
+function __challengeCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+app.post('/api/challenge/create', (req, res) => {
+  try {
+    const { wallet, txId, game, entryFee } = req.body || {};
+
+    if (!wallet) {
+      return res.status(400).json({ ok:false, error:'wallet required' });
+    }
+
+    const code = __challengeCode();
+
+    const challenge = {
+      id: Date.now().toString(),
+      code,
+      game,
+      entryFee,
+      txId,
+      status: 'open',
+      createdAt: Date.now(),
+      player1: { wallet, score: 0 },
+      player2: null
+    };
+
+    __challengeStore.set(code, challenge);
+
+    res.json({
+      ok: true,
+      challengeId: challenge.id,
+      code
+    });
+  } catch (e) {
+    res.status(500).json({ ok:false, error:e.message });
+  }
+});
+
+app.get('/api/challenge/:code', (req, res) => {
+  const challenge = __challengeStore.get(req.params.code);
+
+  if (!challenge) {
+    return res.status(404).json({
+      ok:false,
+      error:'Challenge not found'
+    });
+  }
+
+  res.json({
+    ok:true,
+    challenge
+  });
+});
+
+app.post('/api/challenge/join', (req, res) => {
+  const { code, wallet, txId, paymentType } = req.body || {};
+
+  const challenge = __challengeStore.get(code);
+
+  if (!challenge) {
+    return res.status(404).json({
+      ok:false,
+      error:'Challenge not found'
+    });
+  }
+
+  challenge.player2 = {
+    wallet,
+    txId,
+    paymentType,
+    score: 0
+  };
+
+  challenge.status = 'active';
+
+  res.json({
+    ok:true,
+    challengeId: challenge.id,
+    code
+  });
+});
+
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[MONET] Server listening on port ${PORT}`);
+});
+
