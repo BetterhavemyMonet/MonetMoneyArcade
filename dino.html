@@ -646,7 +646,7 @@ function unduck(){
 
 function ctrlJump(e){ if(e) e.preventDefault(); jump(); }
 function ctrlDuck(e){ if(e) e.preventDefault(); duck(); }
-function ctrlStart(e){ if(e) e.preventDefault(); startEndless(); }
+function ctrlStart(e){ if(e) e.preventDefault(); if(document.getElementById('cpu-result-overlay')||document.getElementById('challenge-result-overlay')||document.getElementById('solo-result-overlay')) return; startEndless(); }
 
 document.addEventListener('keydown',e=>{
   if(window.isLobbyOpen&&window.isLobbyOpen())return;
@@ -1074,7 +1074,7 @@ GamepadMgr.on('up',    () => jump());
 GamepadMgr.on('down',  () => duck());
 GamepadMgr.on('a',     () => jump());
 GamepadMgr.on('b',     () => duck());
-GamepadMgr.on('start', () => startEndless());
+GamepadMgr.on('start', () => { if(document.getElementById('cpu-result-overlay')||document.getElementById('challenge-result-overlay')||document.getElementById('solo-result-overlay')) return; startEndless(); });
 
 document.addEventListener('DOMContentLoaded', () => {
   if (sessionStorage.getItem('dino_tab') === 'create') {
