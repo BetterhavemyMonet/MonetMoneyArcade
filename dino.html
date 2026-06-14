@@ -634,7 +634,7 @@ function drawPortal(c,p){
 }
 
 function jump(){
-  if(!gameRunning){startEndless();return;}
+  if(!gameRunning) return;
   if(player&&player.onGround){player.vy=-15;player.onGround=false;}
 }
 function duck(){
