@@ -328,7 +328,7 @@ function startEndless(){
   switchTab('play');
   player={x:70,y:GROUND-CHAR_H,vy:0,onGround:true};
   obstacles=[];coins=[];portals=[];
-  score=0;speed=5;frameCount=0;gameRunning=true;totalCoins=0;currentWorld=0;
+  score=0;speed=5 + (window.currentLevel?.speedBonus || 0);frameCount=0;gameRunning=true;totalCoins=0;currentWorld=0;document.getElementById("msg").textContent="LEVEL " + (window.currentLevel?.id || 1) + " • " + (window.currentLevel?.theme || "Classic");
   document.getElementById('msg').textContent='';
   document.getElementById('coinCount').textContent='0';
   if(animId) cancelAnimationFrame(animId);
@@ -352,7 +352,7 @@ function updateEndless(){
     localStorage.setItem('dino_best',bestScore);
   }
   updatePhysics(player);
-  if(frameCount%Math.max(35,90-Math.floor(score/80))===0) obstacles.push(makeRandomObs());
+  const spawnRate=Math.max(25,90-Math.floor(score/80)-((window.currentLevel?.spawnBonus||0)*5)); if(frameCount%spawnRate===0) obstacles.push(makeRandomObs());
   obstacles.forEach(o=>o.x-=speed);
   obstacles=obstacles.filter(o=>o.x>-60);
   spawnCoins();
