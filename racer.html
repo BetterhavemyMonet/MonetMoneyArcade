@@ -568,6 +568,22 @@ document.addEventListener('keyup',e=>{
   if(e.code==='ArrowRight'||e.code==='KeyD') keys.right=false;
 });
 
+
+function startFromSplash(){
+  if(phase === 'ready'){
+    startGame();
+  }
+}
+
+document.addEventListener('click', startFromSplash);
+document.addEventListener('touchstart', startFromSplash, { passive:true });
+
+document.addEventListener('keydown', e=>{
+  if(phase === 'ready'){
+    startGame();
+  }
+});
+
 document.addEventListener('DOMContentLoaded',()=>{
   phase='ready';
   requestAnimationFrame(()=>{ resize(); draw(); });
