@@ -1,316 +1,594 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Monet Drift</title>
-    <style>
-        /* Global Retro Layout Styling */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        body {
-            background-color: #111;
-            font-family: 'Courier New', Courier, monospace;
-            color: #fff;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-        }
-
-        /* Top Dash HUD Configurations */
-        #hud {
-            width: 100%;
-            max-width: 800px;
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 20px;
-            background: #222;
-            border: 4px solid #ff4500;
-            border-bottom: none;
-            font-weight: bold;
-            font-size: 1.2rem;
-            box-shadow: 0 0 15px rgba(255, 69, 0, 0.4);
-        }
-
-        .stat span {
-            color: #ff4500;
-        }
-
-        /* Responsive Main Viewport Canvas */
-        canvas {
-            background-color: #2b2b2b;
-            border: 4px solid #ff4500;
-            max-width: 100%;
-            max-height: 70vh;
-            box-shadow: 0 0 25px rgba(255, 69, 0, 0.3);
-            display: block;
-        }
-
-        /* Mobile Controller Architecture Overlay */
-        #mobile-controls {
-            display: none;
-            width: 100%;
-            max-width: 800px;
-            justify-content: space-between;
-            padding: 15px;
-            background: #1a1a1a;
-            border: 4px solid #ff4500;
-            border-top: none;
-        }
-
-        .control-group {
-            display: flex;
-            gap: 15px;
-        }
-
-        .btn {
-            width: 70px;
-            height: 70px;
-            background: #333;
-            border: 3px solid #fff;
-            color: #fff;
-            border-radius: 50%;
-            font-size: 1.5rem;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            touch-action: manipulation;
-        }
-
-        .btn:active {
-            background: #ff4500;
-            border-color: #ff4500;
-        }
-
-        /* Screen States Overlay Styling */
-        #screen-overlay {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.85);
-            border: 4px solid #ff4500;
-            padding: 30px;
-            text-align: center;
-            z-index: 10;
-            max-width: 400px;
-        }
-
-        #screen-overlay h1 {
-            color: #ff4500;
-            margin-bottom: 15px;
-            font-size: 2rem;
-            letter-spacing: 2px;
-        }
-
-        #screen-overlay p {
-            margin-bottom: 20px;
-            line-height: 1.4;
-        }
-
-        #start-btn {
-            background: #ff4500;
-            color: white;
-            border: none;
-            padding: 10px 25px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-        #start-btn:hover {
-            background: #e03d00;
-        }
-
-        @media (max-width: 768px) {
-            #mobile-controls { display: flex; }
-        }
-    </style>
-    <script src="/wallet.js"></script>
-    <script src="/lobby.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Monet Drift — Crypto Motorcycle Racing Game | Monet Money Arcade</title>
+<meta name="description" content="Play Monet Drift on Solana — a side-scrolling crypto motorcycle racer. Throttle vs turbo, manage your NITRO TEMP overheat bar, hit ramps, dodge obstacles. Win MONET prizes.">
+<meta name="keywords" content="crypto racing game, Solana motorcycle game, MONET racer, Web3 racing game, blockchain motorcycle game, Excitebike crypto, earn crypto racing">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://betterhavemymonet.com/racer.html">
+<meta property="og:title" content="Monet Drift — Crypto Motorcycle Racing on Solana">
+<meta property="og:description" content="Throttle, boost and race. Manage your NITRO TEMP. Win MONET token prizes.">
+<meta property="og:image" content="https://betterhavemymonet.com/logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://unpkg.com/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
+<script src="/wallet.js"></script>
+<script src="https://api.betterhavemymonet.com/levels.js"></script>
+<script src="/lobby.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body.game-page{background:#000;overflow:hidden}
+body.game-page::before{display:none}
+.gw{display:flex;flex-direction:column;height:100vh}
+#wbar{text-align:center;padding:3px 10px;background:#000;border-bottom:1px solid #0a0a1a;font-size:11px;flex-shrink:0}
+.arena{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000}
+#gc{display:block;image-rendering:crisp-edges}
+.ctrl{flex-shrink:0;background:rgba(0,0,5,.97);border-top:1px solid #110033;padding:6px 8px;display:grid;grid-template-columns:1fr 24px 1fr;gap:6px;align-items:center}
+.cb{height:64px;border-radius:12px;border:none;font-family:'Orbitron',sans-serif;font-weight:900;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;user-select:none;touch-action:manipulation;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.1}
+.cb:active{transform:scale(0.93)!important;filter:brightness(1.4)!important}
+.cbpair{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.lft{font-size:20px;background:linear-gradient(135deg,#0a1a0a,#051005);color:#00ff9d;border:1px solid #004400;box-shadow:0 4px 0 #001400}
+.rgt{font-size:20px;background:linear-gradient(135deg,#0a1a0a,#051005);color:#00ff9d;border:1px solid #004400;box-shadow:0 4px 0 #001400}
+.thr{font-size:13px;background:linear-gradient(135deg,#001133,#000d22);color:#00f0ff;border:1px solid #003366;box-shadow:0 4px 0 #000}
+.trb{font-size:13px;background:linear-gradient(135deg,#220011,#110008);color:#ff2244;border:1px solid #660022;box-shadow:0 4px 0 #000}
+.home{font-size:18px;color:#333;text-decoration:none;text-align:center;align-self:center}
+</style>
 </head>
-<body>
-
-    <!-- Top Scoreboard HUD Elements -->
-    <div id="hud">
-        <div class="stat">GEMS: <span id="gems-ui">0</span>/5</div>
-        <div class="stat">LAP: <span id="laps-ui">1</span>/3</div>
-        <div class="stat">SPEED: <span id="speed-ui">0</span> MPH</div>
+<body class="game-page">
+<div class="wallet-bar" id="wbar"></div>
+<div class="gw">
+  <div class="arena"><canvas id="gc"></canvas></div>
+  <div class="ctrl">
+    <div class="cbpair">
+      <button class="cb lft"
+        ontouchstart="setBtn('left',true,event)" ontouchend="setBtn('left',false)"
+        onmousedown="setBtn('left',true)" onmouseup="setBtn('left',false)"
+        onmouseleave="setBtn('left',false)"><span style="font-size:26px">&#9664;</span><span style="font-size:9px;opacity:.7">STEER</span></button>
+      <button class="cb rgt"
+        ontouchstart="setBtn('right',true,event)" ontouchend="setBtn('right',false)"
+        onmousedown="setBtn('right',true)" onmouseup="setBtn('right',false)"
+        onmouseleave="setBtn('right',false)"><span style="font-size:26px">&#9654;</span><span style="font-size:9px;opacity:.7">STEER</span></button>
     </div>
-
-    <!-- Arcade Canvas Interface -->
-    <canvas id="gameCanvas" width="800" height="500"></canvas>
-
-    <!-- On-screen Navigation System Layout -->
-    <div id="mobile-controls">
-        <div class="control-group">
-            <div class="btn" id="btn-left">◀</div>
-            <div class="btn" id="btn-right">▶</div>
-        </div>
-        <div class="control-group">
-            <div class="btn" id="btn-gas" style="background: #222; border-color: #ff4500;">GAS</div>
-        </div>
+    <a class="home" href="arcade.html">&#8962;</a>
+    <div class="cbpair">
+      <button class="cb thr"
+        ontouchstart="setBtn('throttle',true,event)" ontouchend="setBtn('throttle',false)"
+        onmousedown="setBtn('throttle',true)" onmouseup="setBtn('throttle',false)"
+        onmouseleave="setBtn('throttle',false)"><span style="font-size:18px">&#9889;</span><span style="font-size:9px">THROTTLE</span></button>
+      <button class="cb trb"
+        ontouchstart="setBtn('turbo',true,event)" ontouchend="setBtn('turbo',false)"
+        onmousedown="setBtn('turbo',true)" onmouseup="setBtn('turbo',false)"
+        onmouseleave="setBtn('turbo',false)"><span style="font-size:18px">&#128293;</span><span style="font-size:9px">TURBO</span></button>
     </div>
+  </div>
+</div>
+<script>
+const C=document.getElementById('gc'),X=C.getContext('2d');
+const LW=480,LH=270;
+let SC=1;
 
-    <!-- Main State Interaction Menu Overlay -->
-    <div id="screen-overlay">
-        <h1 id="title-text">MONET DRIFT</h1>
-        <p id="desc-text">Race across the hazardous track grid! Collect 5 neon gems and complete 3 full racing laps to unlock the victory terminal portal.</p>
-        <button id="start-btn" onclick="startGame()">START RACE</button>
-    </div>
+function resize(){
+  const p=C.parentElement;
+  SC=Math.min(p.clientWidth/LW,p.clientHeight/LH);
+  C.width=Math.floor(LW*SC);C.height=Math.floor(LH*SC);
+}
+window.addEventListener('resize',resize);
+resize();
 
-    <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
+// ── Layout constants ───────────────────────────────────────────────────────
+const HORIZON_Y = Math.round(LH*0.40); // horizon line (108px)
+const DASH_Y    = Math.round(LH*0.79); // top of dashboard overlay (213px)
+const RD_HW_TOP = 9;                   // road half-width at horizon
+const RD_HW_BOT = 195;                 // road half-width at DASH_Y
 
-        // Game Configuration Settings
-        let gameActive = false;
-        let gemsCollected = 0;
-        let lapsCompleted = 0;
-        let hasCrossedLine = false;
+// ── Controls ───────────────────────────────────────────────────────────────
+let keys={throttle:false,turbo:false,left:false,right:false};
+function setBtn(k,v,e){ if(e)e.preventDefault(); keys[k]=v; }
 
-        // Vector Input Registration State Tracker
-        const keys = { ArrowUp: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, d: false };
+// ── Game state ─────────────────────────────────────────────────────────────
+let bike={speed:0,heat:0,stalled:false,stallTimer:0};
+let roadCurve=0;        // current VP x offset (+ = right turn visible)
+let roadCurveTarget=0;  // steering target
+let wheelAngle=0;       // steering wheel visual rotation
+let roadScroll=0;       // stripe animation (0‥1)
+let bgScroll=0;         // parallax (0‥1)
+let score=0;
+let frameCount=0;
+let gameRunning=false;
+let phase='ready';
+let animId=null;
+let raceEnd=0;
 
-        // Player Physical Steering Metrics Tracker
-        const car = {
-            x: 400,
-            y: 430,
-            angle: -Math.PI / 2,
-            speed: 0,
-            maxSpeed: 6.5,
-            acceleration: 0.15,
-            deceleration: 0.08,
-            handling: 0.045,
-            radius: 12
-        };
+// ── Obstacles (first-person approach) ─────────────────────────────────────
+// depth: 0=at horizon (tiny), 1=at player (full size / collision)
+// laneX: -1 to +1 across road width
+let obstacles=[];
+let obsTimer=0;
 
-        // Static Level Circuit Track Vector Array
-        const checkpoints = [
-            { x: 400, y: 450, radius: 60, line: true }, // Start line marker
-            { x: 680, y: 400, radius: 50 },
-            { x: 700, y: 150, radius: 50 },
-            { x: 400, y: 80, radius: 50 },
-            { x: 100, y: 150, radius: 50 },
-            { x: 120, y: 380, radius: 50 }
-        ];
+function spawnObs(){
+  const types=['cone','oil','boulder'];
+  const t=types[Math.floor(Math.random()*types.length)];
+  // Spread across lane positions, bias toward center to keep it fair
+  const laneX=(Math.random()-0.5)*1.5;
+  obstacles.push({type:t,depth:0,laneX});
+}
 
-        // Collectible Entity Mapping Arrays
-        let gems = [];
-        const gemPositions = [
-            { x: 550, y: 430 },
-            { x: 710, y: 260 },
-            { x: 400, y: 75 },
-            { x: 90, y: 240 },
-            { x: 260, y: 420 }
-        ];
+// ── Projection helpers ─────────────────────────────────────────────────────
+// t = 0 (horizon) → 1 (DASH_Y bottom), interpolates perspective
+function roadCX(t){ return LW/2 + roadCurve*(1-t); }
+function roadHW(t){ return RD_HW_TOP + t*(RD_HW_BOT-RD_HW_TOP); }
+function roadScreenY(t){ return HORIZON_Y + t*(DASH_Y-HORIZON_Y); }
 
-        // Initialization Handling Function
-        function resetGame() {
-            gemsCollected = 0;
-            lapsCompleted = 0;
-            hasCrossedLine = true; 
-            car.x = 400;
-            car.y = 450;
-            car.angle = 0; 
-            car.speed = 0;
+// Obstacle depth → screen coords (use ^0.65 for natural perspective feel)
+function obsProject(o){
+  const eff=Math.pow(o.depth,0.65);
+  const sy=roadScreenY(eff);
+  const sx=roadCX(eff) + o.laneX*roadHW(eff);
+  return {sx,sy,eff};
+}
 
-            gems = gemPositions.map(pos => ({ ...pos, collected: false, radius: 10 }));
-            updateUI();
-        }
+// ── Physics update ─────────────────────────────────────────────────────────
+function maxSpeed(){ return bike.stalled?0:3.5+(score/2000)*0.8; }
 
-        function updateUI() {
-            document.getElementById("gems-ui").innerText = gemsCollected;
-            document.getElementById("laps-ui").innerText = lapsCompleted + 1;
-            document.getElementById("speed-ui").innerText = Math.round(car.speed * 20);
-        }
+function update(){
+  if(!gameRunning||phase!=='play') return;
+  frameCount++;
+  const MAX=maxSpeed();
 
-        // Action Trigger Framework
-        function startGame() {
-            document.getElementById("screen-overlay").style.display = "none";
-            resetGame();
-            gameActive = true;
-        }
+  if(!bike.stalled){
+    if(keys.turbo&&bike.heat<100){
+      bike.speed=Math.min(MAX*1.9,bike.speed+0.18);
+      bike.heat =Math.min(100,bike.heat+1.1);
+    } else if(keys.throttle){
+      bike.speed=Math.min(MAX,bike.speed+0.12);
+      bike.heat =Math.max(0,bike.heat-0.4);
+    } else {
+      bike.speed=Math.max(0,bike.speed-0.18);
+      bike.heat =Math.max(0,bike.heat-0.8);
+    }
+  }
 
-        function triggerEndState(victory) {
-            gameActive = false;
-            const overlay = document.getElementById("screen-overlay");
-            const title = document.getElementById("title-text");
-            const desc = document.getElementById("desc-text");
-            const btn = document.getElementById("start-btn");
+  // Stall
+  if(bike.heat>=100&&!bike.stalled){
+    bike.stalled=true; bike.stallTimer=120; bike.speed=0;
+  }
+  if(bike.stalled){
+    bike.stallTimer--;
+    bike.heat=Math.max(0,bike.heat-0.8);
+    if(bike.stallTimer<=0) bike.stalled=false;
+  }
 
-            overlay.style.display = "block";
-            if (victory) {
-                const finalScore = (lapsCompleted * 1000) + (gemsCollected * 100);
-                if (typeof arcadeSubmitScore === "function") {
-                    arcadeSubmitScore("racer", finalScore);
-                }
-                title.innerText = "VICTORY!";
-                desc.innerText = "Amazing driving! You collected all energy matrix gems and conquered the Monet Drift circuit!";
-                btn.innerText = "PLAY AGAIN";
-            } else {
-                title.innerText = "GAME OVER";
-                desc.innerText = "Engine blowout or boundary crash encountered.";
-                btn.innerText = "RETRY";
-            }
-        }
+  // Steering — road VP shifts opposite to turn direction
+  const CURVE_MAX=88, CURVE_RATE=4.5;
+  if(keys.left){
+    roadCurveTarget=Math.min(CURVE_MAX, roadCurveTarget+CURVE_RATE);
+    wheelAngle=Math.min( Math.PI*0.42, wheelAngle+0.07);
+  } else if(keys.right){
+    roadCurveTarget=Math.max(-CURVE_MAX,roadCurveTarget-CURVE_RATE);
+    wheelAngle=Math.max(-Math.PI*0.42, wheelAngle-0.07);
+  } else {
+    roadCurveTarget*=0.87;
+    wheelAngle     *=0.87;
+  }
+  roadCurve+=(roadCurveTarget-roadCurve)*0.13;
 
-        // Input Keyboard Monitor Event Hooks
-        window.addEventListener("keydown", (e) => { if (e.key in keys) keys[e.key] = true; });
-        window.addEventListener("keyup", (e) => { if (e.key in keys) keys[e.key] = false; });
+  // Score & scroll
+  score    +=bike.speed*0.3;
+  roadScroll=(roadScroll+bike.speed*0.009)%1;
+  bgScroll  =(bgScroll  +bike.speed*0.003)%1;
 
-        // Touch Input Hooks Setup
-        function setupTouchBtn(id, keyName) {
-            const btn = document.getElementById(id);
-            btn.addEventListener("touchstart", (e) => { e.preventDefault(); keys[keyName] = true; });
-            btn.addEventListener("touchend", (e) => { e.preventDefault(); keys[keyName] = false; });
-        }
-        setupTouchBtn("btn-left", "ArrowLeft");
-        setupTouchBtn("btn-right", "ArrowRight");
-        setupTouchBtn("btn-gas", "ArrowUp");
+  // Obstacle spawning
+  obsTimer++;
+  if(obsTimer>Math.max(75,150-score/200)){ obsTimer=0; spawnObs(); }
 
-        // Object Bound Collision Formula Solver
-        function getDistance(x1, y1, x2, y2) {
-            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-        }
+  // Approach & collision
+  obstacles=obstacles.filter(o=>{
+    o.depth+=bike.speed*0.0065;
+    if(o.depth>=1.0){
+      // Check if obstacle is in the player's lane at the moment of passing
+      if(Math.abs(o.laneX)*RD_HW_BOT < 44){
+        if(o.type==='oil') bike.speed=Math.max(0,bike.speed-1.5);
+        else { bike.speed=Math.max(0,bike.speed-2.5); score=Math.max(0,score-50); }
+      }
+      return false;
+    }
+    return true;
+  });
+}
 
-        // Central System Processing Loop Routine
-        function update() {
-            if (!gameActive) return;
+// ── Draw: Sky ──────────────────────────────────────────────────────────────
+function drawSky(){
+  const sky=X.createLinearGradient(0,0,0,HORIZON_Y);
+  sky.addColorStop(0,'#020208');
+  sky.addColorStop(0.55,'#08041a');
+  sky.addColorStop(1,'#1a0430');
+  X.fillStyle=sky; X.fillRect(0,0,LW,HORIZON_Y);
 
-            // Forward Acceleration Mechanics
-            if (keys.ArrowUp || keys.w) {
-                if (car.speed < car.maxSpeed) car.speed += car.acceleration;
-            } else {
-                if (car.speed > 0) car.speed -= car.deceleration;
-                else car.speed = 0;
-            }
+  // Stars
+  for(let i=0;i<55;i++){
+    const sx=((i*139+bgScroll*100)%LW);
+    const sy=((i*83)%(HORIZON_Y-8));
+    const r=i%7===0?1.5:0.8;
+    X.fillStyle=`rgba(255,255,255,${0.4+0.4*(i%3)/3})`;
+    X.beginPath(); X.arc(sx,sy,r,0,Math.PI*2); X.fill();
+  }
 
-            // Directional Steering Angles Mechanics
-            if (car.speed > 0.5) {
-                if (keys.ArrowLeft || keys.a) car.angle -= car.handling;
-                if (keys.ArrowRight || keys.d) car.angle += car.handling;
-            }
+  // Distant city skyline silhouette
+  for(let i=0;i<14;i++){
+    const bx=((i*61+bgScroll*40)%LW+LW)%LW;
+    const bh=10+((i*53)%24);
+    const bw=14+((i*31)%16);
+    X.fillStyle='rgba(22,0,45,0.85)';
+    X.fillRect(bx,HORIZON_Y-bh,bw,bh);
+    // Neon accent on some buildings
+    if(i%3===0){
+      X.fillStyle='rgba(160,0,255,0.25)';
+      X.fillRect(bx,HORIZON_Y-bh,bw,2);
+    }
+  }
 
-            // Velocity Vector Coordinate Translation Updates
-            car.x += Math.cos(car.angle) * car.speed;
-            car.y += Math.sin(car.angle) * car.speed;
+  // Horizon purple glow
+  const hg=X.createLinearGradient(0,HORIZON_Y-20,0,HORIZON_Y);
+  hg.addColorStop(0,'rgba(120,0,255,0)');
+  hg.addColorStop(1,'rgba(140,0,255,0.28)');
+  X.fillStyle=hg; X.fillRect(0,HORIZON_Y-20,LW,20);
+}
 
-            // Visual Frame Boundary Collision Recovery Restraints
-            if (car.x < 0) car.x = canvas.width;
-            if (car.x > canvas.width) car.x = 0;
-            if (car.y < 0) car.y = canvas.height;
-            if (car.y > canvas.height) car.y = 0;
+// ── Draw: Perspective Road ─────────────────────────────────────────────────
+function drawRoad(){
+  const N=38;
+  const roadH=DASH_Y-HORIZON_Y;
 
-            // Gem Entity Tracking Interactions
-            gems.forEach(gem => {
-ctx.fillRect(-12, 6, 6, 4);ctx.fillRect(6, 6, 6, 4);// Vehicle Body Chassis Core Sheetctx.fillStyle = "#ff4500"; // Hot Orange Primary Body Colorctx.fillRect(-14, -7, 24, 14);// Cockpit Windshield Overlay Layout Windowctx.fillStyle = "#87ceeb";ctx.fillRect(-2, -5, 6, 10);ctx.restore();}// Primary Frame Rate Callback Orchestration Loopfunction gameLoop() {update();draw();requestAnimationFrame(gameLoop);}// Launch Frame Initialization Execution CallsresetGame();gameActive=true;document.getElementById('screen-overlay').style.display='none';gameLoop();
+  // Grass belt (full strip bottom half)
+  const grass=X.createLinearGradient(0,HORIZON_Y,0,DASH_Y);
+  grass.addColorStop(0,'#051005');
+  grass.addColorStop(1,'#0a2010');
+  X.fillStyle=grass; X.fillRect(0,HORIZON_Y,LW,roadH);
 
+  // Road segments — bottom to top so closer segments draw on top
+  for(let i=N-1;i>=0;i--){
+    const t0=i/N, t1=(i+1)/N;
+    const y0=roadScreenY(t0), y1=roadScreenY(t1);
+    const cx0=roadCX(t0), cx1=roadCX(t1);
+    const hw0=roadHW(t0), hw1=roadHW(t1);
+
+    // Alternating stripe for motion effect (scroll offset driven)
+    const stripe=Math.floor(i+roadScroll*N*4)%2;
+    X.fillStyle=stripe===0?'#1c1c2e':'#24243a';
+    X.beginPath();
+    X.moveTo(cx0-hw0,y0); X.lineTo(cx0+hw0,y0);
+    X.lineTo(cx1+hw1,y1); X.lineTo(cx1-hw1,y1);
+    X.closePath(); X.fill();
+
+    // Rumble strips at road edges (alternating red/white every 3 segs)
+    const rumble=Math.floor(i+roadScroll*N*2)%6<3;
+    const rCol=rumble?'#cc1100':'#eeeeee';
+    const RW=7; // rumble strip width in px (perspective-scaled)
+    const rw0=RW*(hw0/RD_HW_BOT), rw1=RW*(hw1/RD_HW_BOT);
+    X.fillStyle=rCol;
+    // Left rumble
+    X.beginPath();
+    X.moveTo(cx0-hw0-rw0,y0); X.lineTo(cx0-hw0,y0);
+    X.lineTo(cx1-hw1,y1);     X.lineTo(cx1-hw1-rw1,y1);
+    X.closePath(); X.fill();
+    // Right rumble
+    X.beginPath();
+    X.moveTo(cx0+hw0,y0);     X.lineTo(cx0+hw0+rw0,y0);
+    X.lineTo(cx1+hw1+rw1,y1); X.lineTo(cx1+hw1,y1);
+    X.closePath(); X.fill();
+  }
+
+  // Solid white road edge lines
+  X.strokeStyle='rgba(255,255,255,0.85)'; X.lineWidth=1.5;
+  X.beginPath();
+  X.moveTo(roadCX(0)-roadHW(0),roadScreenY(0));
+  X.lineTo(roadCX(1)-roadHW(1),roadScreenY(1));
+  X.stroke();
+  X.beginPath();
+  X.moveTo(roadCX(0)+roadHW(0),roadScreenY(0));
+  X.lineTo(roadCX(1)+roadHW(1),roadScreenY(1));
+  X.stroke();
+
+  // Centre dashed line
+  for(let i=0;i<N;i++){
+    const dash=Math.floor(i+roadScroll*N*3)%2;
+    if(dash===1) continue;
+    const t=(i+0.5)/N;
+    const y0=roadScreenY(i/N), y1=roadScreenY((i+1)/N);
+    const cx=roadCX(t);
+    const dw=1+t*3.5;
+    X.fillStyle='rgba(255,255,255,0.65)';
+    X.beginPath();
+    X.moveTo(cx-dw,y0); X.lineTo(cx+dw,y0);
+    X.lineTo(cx+dw,y1); X.lineTo(cx-dw,y1);
+    X.closePath(); X.fill();
+  }
+
+  // Horizon glow line
+  X.strokeStyle='rgba(140,0,255,0.5)'; X.lineWidth=1.5;
+  X.beginPath(); X.moveTo(0,HORIZON_Y); X.lineTo(LW,HORIZON_Y); X.stroke();
+}
+
+// ── Draw: Incoming obstacles ───────────────────────────────────────────────
+function drawObstacles(){
+  // Sort: draw far ones first (depth ascending)
+  const sorted=[...obstacles].sort((a,b)=>a.depth-b.depth);
+  for(const o of sorted){
+    const {sx,sy,eff}=obsProject(o);
+    const s=eff; // scale 0‥1
+    if(s<0.04) continue; // too tiny to see
+    X.save(); X.translate(sx,sy);
+
+    if(o.type==='cone'){
+      const h=22*s, w=16*s;
+      X.fillStyle='#ff5500';
+      X.beginPath(); X.moveTo(0,-h); X.lineTo(w,0); X.lineTo(-w,0); X.closePath(); X.fill();
+      X.fillStyle='#ffffff';
+      X.fillRect(-w*0.75,-h*0.45,w*1.5,h*0.13);
+      // Shadow on ground
+      X.fillStyle='rgba(0,0,0,0.25)';
+      X.beginPath(); X.ellipse(0,2*s,w*0.8,3*s,0,0,Math.PI*2); X.fill();
+
+    } else if(o.type==='oil'){
+      const rx=28*s, ry=11*s;
+      // Iridescent slick
+      const slick=X.createRadialGradient(0,0,0,0,0,rx);
+      slick.addColorStop(0,'rgba(180,0,255,0.7)');
+      slick.addColorStop(0.5,'rgba(60,0,120,0.6)');
+      slick.addColorStop(1,'rgba(20,0,60,0.1)');
+      X.fillStyle=slick;
+      X.beginPath(); X.ellipse(0,0,rx,ry,0,0,Math.PI*2); X.fill();
+      if(s>0.25){
+        X.fillStyle='rgba(200,80,255,0.55)';
+        X.font=`bold ${Math.round(7*s)}px monospace`;
+        X.textAlign='center'; X.fillText('OIL SLICK',0,3*s);
+      }
+
+    } else { // boulder / block
+      const bw=28*s, bh=22*s;
+      X.fillStyle='#4a4a5a';
+      X.fillRect(-bw/2,-bh,bw,bh);
+      // Top face highlight
+      X.fillStyle='#6a6a7a';
+      X.fillRect(-bw/2,-bh,bw,bh*0.25);
+      // Side shadow
+      X.fillStyle='rgba(0,0,0,0.35)';
+      X.fillRect(bw/2-bw*0.15,-bh,bw*0.15,bh);
+      // Ground shadow
+      X.fillStyle='rgba(0,0,0,0.2)';
+      X.beginPath(); X.ellipse(0,2*s,bw*0.55,4*s,0,0,Math.PI*2); X.fill();
+    }
+
+    X.restore();
+  }
+}
+
+// ── Draw: Dashboard / cockpit ──────────────────────────────────────────────
+function drawDashboard(){
+  const dashH=LH-DASH_Y;
+
+  // Main dash panel
+  const dashG=X.createLinearGradient(0,DASH_Y,0,LH);
+  dashG.addColorStop(0,'#18082a');
+  dashG.addColorStop(0.4,'#0d0418');
+  dashG.addColorStop(1,'#040010');
+  X.fillStyle=dashG; X.fillRect(0,DASH_Y,LW,dashH);
+
+  // Dash top edge glow
+  const eg=X.createLinearGradient(0,DASH_Y,0,DASH_Y+5);
+  eg.addColorStop(0,'rgba(130,0,255,0.9)');
+  eg.addColorStop(1,'rgba(130,0,255,0)');
+  X.fillStyle=eg; X.fillRect(0,DASH_Y,LW,6);
+
+  // Car hood — tapered trapezoid from dash center toward horizon VP
+  const hoodG=X.createLinearGradient(0,DASH_Y,0,LH);
+  hoodG.addColorStop(0,'#22103a');
+  hoodG.addColorStop(1,'#100820');
+  X.fillStyle=hoodG;
+  X.beginPath();
+  X.moveTo(LW*0.28,DASH_Y+1);
+  X.lineTo(LW*0.72,DASH_Y+1);
+  X.lineTo(LW*0.88,LH);
+  X.lineTo(LW*0.12,LH);
+  X.closePath(); X.fill();
+
+  // Hood centre seam line
+  X.strokeStyle='rgba(100,0,200,0.25)'; X.lineWidth=1;
+  X.beginPath(); X.moveTo(LW/2,DASH_Y+3); X.lineTo(LW/2,LH); X.stroke();
+
+  // Hood edge accent lines
+  X.strokeStyle='rgba(100,0,200,0.18)'; X.lineWidth=0.8;
+  X.beginPath(); X.moveTo(LW*0.4,DASH_Y+2); X.lineTo(LW*0.22,LH); X.stroke();
+  X.beginPath(); X.moveTo(LW*0.6,DASH_Y+2); X.lineTo(LW*0.78,LH); X.stroke();
+
+  // ── Speed arc gauge (left side) ──
+  drawArcGauge(LW*0.16, DASH_Y+dashH*0.52, dashH*0.36,
+               Math.min(1,bike.speed/7), '#00f0ff', 'KM/H');
+
+  // ── Heat arc gauge (right of speed) ──
+  const ht=bike.heat/100;
+  const hcol=ht>0.8?'#ff2244':ht>0.5?'#ff8800':'#00ff9d';
+  drawArcGauge(LW*0.33, DASH_Y+dashH*0.58, dashH*0.27,
+               ht, hcol, 'TEMP');
+
+  // ── Steering wheel (right side) ──
+  const swX=LW*0.73, swY=DASH_Y+dashH*0.54, swR=dashH*0.40;
+  X.save(); X.translate(swX,swY); X.rotate(wheelAngle);
+  // Outer tyre ring
+  X.strokeStyle='#2a2a3a'; X.lineWidth=swR*0.22;
+  X.beginPath(); X.arc(0,0,swR,0,Math.PI*2); X.stroke();
+  X.strokeStyle='#3a3a4e'; X.lineWidth=swR*0.12;
+  X.beginPath(); X.arc(0,0,swR,0,Math.PI*2); X.stroke();
+  // Three spokes
+  X.strokeStyle='#38384a'; X.lineWidth=swR*0.09;
+  for(let a=0;a<3;a++){
+    const ang=a*(Math.PI*2/3)-Math.PI/2;
+    X.beginPath();
+    X.moveTo(Math.cos(ang)*swR*0.18, Math.sin(ang)*swR*0.18);
+    X.lineTo(Math.cos(ang)*swR*0.82, Math.sin(ang)*swR*0.82);
+    X.stroke();
+  }
+  // Hub
+  X.fillStyle='#1a1a28';
+  X.beginPath(); X.arc(0,0,swR*0.18,0,Math.PI*2); X.fill();
+  X.fillStyle='rgba(120,0,255,0.7)';
+  X.beginPath(); X.arc(0,0,swR*0.09,0,Math.PI*2); X.fill();
+  X.restore();
+
+  // Turbo indicator LED strip
+  if(keys.turbo&&!bike.stalled){
+    X.fillStyle=`rgba(255,60,0,${0.6+0.3*Math.sin(Date.now()/80)})`;
+    X.fillRect(LW*0.38,DASH_Y+3,LW*0.24,5);
+    X.fillStyle='rgba(255,120,0,0.8)';
+    X.font=`bold ${Math.round(dashH*0.22)}px Orbitron,sans-serif`;
+    X.textAlign='center';
+    X.fillText('TURBO',LW/2,DASH_Y+dashH*0.38);
+    X.textAlign='left';
+  }
+}
+
+function drawArcGauge(gx,gy,r,val,color,label){
+  const sa=-Math.PI*1.15, ea=Math.PI*0.15;
+  // Track arc
+  X.strokeStyle='rgba(255,255,255,0.08)'; X.lineWidth=r*0.22;
+  X.beginPath(); X.arc(gx,gy,r,sa,ea); X.stroke();
+  // Value arc
+  const fe=sa+(ea-sa)*Math.min(1,val);
+  X.strokeStyle=color; X.lineWidth=r*0.22;
+  X.shadowColor=color; X.shadowBlur=8;
+  X.beginPath(); X.arc(gx,gy,r,sa,fe); X.stroke();
+  X.shadowBlur=0;
+  // Label
+  X.fillStyle=color;
+  X.font=`bold ${Math.round(r*0.38)}px Orbitron,sans-serif`;
+  X.textAlign='center'; X.fillText(label,gx,gy+r*0.28);
+  // Numeric value
+  X.fillStyle='rgba(255,255,255,0.55)';
+  X.font=`${Math.round(r*0.3)}px Orbitron,sans-serif`;
+  X.textAlign='center'; X.fillText(Math.round(val*100),gx,gy-r*0.1);
+  X.textAlign='left';
+}
+
+// ── Draw: HUD overlay ─────────────────────────────────────────────────────
+function drawHUD(){
+  X.fillStyle='#00f0ff';
+  X.font='bold 11px Orbitron,sans-serif';
+  X.textAlign='left';
+  X.fillText('DIST: '+Math.floor(score)+'m', 6, 16);
+
+  if(bike.stalled&&Math.floor(Date.now()/220)%2===0){
+    X.fillStyle='#ff2244'; X.font='bold 14px Orbitron,sans-serif';
+    X.textAlign='center';
+    X.fillText('ENGINE OVERHEATED!',LW/2,HORIZON_Y/2-8);
+    X.fillText('COOLING DOWN...',LW/2,HORIZON_Y/2+10);
+    X.textAlign='left';
+  }
+}
+
+// ── Main draw ─────────────────────────────────────────────────────────────
+function draw(){
+  X.clearRect(0,0,C.width,C.height);
+  X.save(); X.scale(SC,SC);
+
+  drawSky();
+  drawRoad();
+  drawObstacles();
+  drawDashboard();
+  drawHUD();
+
+  // Phase overlays
+  if(phase==='over'){
+    X.fillStyle='rgba(0,0,0,0.78)'; X.fillRect(0,0,LW,LH);
+    X.fillStyle='#ff2244'; X.font='bold 22px Orbitron,sans-serif';
+    X.textAlign='center';
+    X.fillText('RACE OVER',LW/2,LH/2-22);
+    X.fillStyle='#ffd700'; X.font='bold 13px Orbitron,sans-serif';
+    X.fillText(Math.floor(score)+' POINTS',LW/2,LH/2+4);
+    X.fillStyle='#888'; X.font='9px Orbitron,sans-serif';
+    X.fillText('Score submitted!',LW/2,LH/2+22);
+    X.textAlign='left';
+  }
+  if(phase==='ready'){
+    X.fillStyle='rgba(0,0,0,0.72)'; X.fillRect(0,0,LW,LH);
+    X.fillStyle='#ff2244'; X.font='bold 22px Orbitron,sans-serif';
+    X.textAlign='center';
+    X.fillText('MONET DRIFT',LW/2,LH/2-46);
+    X.fillStyle='#00f0ff'; X.font='10px Orbitron,sans-serif';
+    X.fillText('THROTTLE to accelerate · TURBO for boost',LW/2,LH/2-14);
+    X.fillText('TURBO fills NITRO TEMP — overheat = stall!',LW/2,LH/2+4);
+    X.fillText('STEER LEFT / RIGHT to dodge obstacles',LW/2,LH/2+22);
+    X.textAlign='left';
+  }
+
+  X.restore();
+}
+
+// ── Game lifecycle ─────────────────────────────────────────────────────────
+function gameOver(){
+  gameRunning=false; phase='over';
+  arcadeSubmitScore('racer',Math.floor(score));
+  draw();
+}
+
+function startGame(){
+  score=0; frameCount=0; phase='play'; gameRunning=true; raceEnd=0;
+  bike={speed:0,heat:0,stalled:false,stallTimer:0};
+  roadCurve=0; roadCurveTarget=0; wheelAngle=0;
+  roadScroll=0; bgScroll=0;
+  obstacles=[]; obsTimer=0;
+  if(animId) cancelAnimationFrame(animId);
+  loop();
+}
+
+function loop(){
+  update();
+  if(gameRunning&&phase==='play'){
+    if(!raceEnd) raceEnd=Date.now()+3*60*1000;
+    if(Date.now()>raceEnd){ gameOver(); return; }
+  }
+  draw();
+  if(gameRunning) animId=requestAnimationFrame(loop);
+}
+
+// ── Keyboard ───────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.code==='ArrowUp'   ||e.code==='KeyW') keys.throttle=true;
+  if(e.code==='ShiftLeft' ||e.code==='ShiftRight'||e.code==='KeyZ') keys.turbo=true;
+  if(e.code==='ArrowLeft' ||e.code==='KeyA') keys.left=true;
+  if(e.code==='ArrowRight'||e.code==='KeyD') keys.right=true;
+});
+document.addEventListener('keyup',e=>{
+  if(e.code==='ArrowUp'   ||e.code==='KeyW') keys.throttle=false;
+  if(e.code==='ShiftLeft' ||e.code==='ShiftRight'||e.code==='KeyZ') keys.turbo=false;
+  if(e.code==='ArrowLeft' ||e.code==='KeyA') keys.left=false;
+  if(e.code==='ArrowRight'||e.code==='KeyD') keys.right=false;
+});
+
+
+function startFromSplash(){
+  if(phase === 'ready'){
+    startGame();
+  }
+}
+
+document.addEventListener('click', startFromSplash);
+document.addEventListener('touchstart', startFromSplash, { passive:true });
+
+document.addEventListener('keydown', e=>{
+  if(phase === 'ready'){
+    startGame();
+  }
+});
+
+document.addEventListener('DOMContentLoaded',()=>{
+  phase='ready';
+  requestAnimationFrame(()=>{ resize(); draw(); });
+  showGameLobby('racer',()=>{ startGame(); });
+});
+</script>
+</body>
+</html>
