@@ -236,6 +236,13 @@ input:focus, select:focus { outline:none; border-color:#a855ff; }
         <div class="game-opt" data-game="pong"     onclick="selectGame(this,'h2h')">&#127934; Pong</div>
         <div class="game-opt" data-game="mario"    onclick="selectGame(this,'h2h')">&#127812; Bros</div>
         <div class="game-opt" data-game="dino-realms" onclick="selectGame(this,'h2h')">🦖 Dino Realms</div>
+        <div class="game-opt" data-game="racer" onclick="selectGame(this,'h2h')">🏎️ Monet Drift</div>
+        <div class="game-opt" data-game="kong" onclick="selectGame(this,'h2h')">🦍 Kong</div>
+        <div class="game-opt" data-game="dodger" onclick="selectGame(this,'h2h')">💎 Dodger</div>
+        <div class="game-opt" data-game="duckhunt" onclick="selectGame(this,'h2h')">🦆 Duck Hunt</div>
+        <div class="game-opt" data-game="reaction" onclick="selectGame(this,'h2h')">⚡ Reaction</div>
+        <div class="game-opt" data-game="tap" onclick="selectGame(this,'h2h')">👆 Tap Frenzy</div>
+        <div class="game-opt" data-game="tetris" onclick="selectGame(this,'h2h')">🧩 Tetris</div>
       </div>
       <div style="margin:10px 0 6px">
         <div style="font-size:11px;color:#888;margin-bottom:6px">Wager amount:</div>
@@ -302,7 +309,24 @@ input:focus, select:focus { outline:none; border-color:#a855ff; }
 </div>
 
 <script>
-const GAME_LABELS = { frogger:"Feelin' Froggy", snake:'Slithering Serpent', pacman:'Rawr-man', pong:'Pong', dino:'Runner', invaders:'Space Invaders', mario:'Monet Bros', fighter:'Ready. Set. Fight.','dino-realms':'Dino Realms' };
+const GAME_LABELS = {
+  frogger:"Feelin' Froggy",
+  snake:'Slithering Serpent',
+  pacman:'Rawr-man',
+  pong:'Pong',
+  dino:'Runner',
+  invaders:'Space Invaders',
+  mario:'Monet Bros',
+  fighter:'Ready. Set. Fight.',
+  'dino-realms':'Dino Realms',
+  racer:'Monet Drift',
+  kong:'Kong',
+  dodger:'Dodger',
+  duckhunt:'Duck Hunt',
+  reaction:'Reaction',
+  tap:'Tap Frenzy',
+  tetris:'Tetris'
+};
 
 let selectedH2HGame  = 'pacman';
 let selectedH2HWager = 5;
