@@ -312,5 +312,5 @@
 
             // Gem Entity Tracking Interactions
             gems.forEach(gem => {
-ctx.fillRect(-12, 6, 6, 4);ctx.fillRect(6, 6, 6, 4);// Vehicle Body Chassis Core Sheetctx.fillStyle = "#ff4500"; // Hot Orange Primary Body Colorctx.fillRect(-14, -7, 24, 14);// Cockpit Windshield Overlay Layout Windowctx.fillStyle = "#87ceeb";ctx.fillRect(-2, -5, 6, 10);ctx.restore();}// Primary Frame Rate Callback Orchestration Loopfunction gameLoop() {update();draw();requestAnimationFrame(gameLoop);}// Launch Frame Initialization Execution Callsif(typeof showGameLobby==='function'){showGameLobby('racer',()=>{resetGame();gameLoop();});}else{resetGame();gameLoop();}
+ctx.fillRect(-12, 6, 6, 4);ctx.fillRect(6, 6, 6, 4);// Vehicle Body Chassis Core Sheetctx.fillStyle = "#ff4500"; // Hot Orange Primary Body Colorctx.fillRect(-14, -7, 24, 14);// Cockpit Windshield Overlay Layout Windowctx.fillStyle = "#87ceeb";ctx.fillRect(-2, -5, 6, 10);ctx.restore();}// Primary Frame Rate Callback Orchestration Loopfunction gameLoop() {update();draw();requestAnimationFrame(gameLoop);}// Launch Frame Initialization Execution CallsresetGame();gameActive=true;document.getElementById('screen-overlay').style.display='none';gameLoop();
 
