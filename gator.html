@@ -92,6 +92,7 @@ function setLevelBackground(){
 
 
 const ape=new Image();
+setInterval(()=>console.log('ASSETS',dino.complete,dino.naturalWidth,bg.complete,bg.naturalWidth,ape.complete,ape.naturalWidth,portalImg.complete,portalImg.naturalWidth),2000);
 ape.src='/assets/gorilla.png?v=1781862820';
 ape.onload=()=>console.log('GORILLA OK',ape.naturalWidth); ape.onerror=e=>console.log('GORILLA FAIL',e);
 
