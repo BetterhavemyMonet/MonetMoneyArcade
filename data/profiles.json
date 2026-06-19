@@ -1,0 +1,11 @@
+[
+  {
+    "wallet": "TEST123",
+    "username": "MonetTester",
+    "createdAt": 1781688715132,
+    "linkedWallets": [
+      "TEST123"
+    ],
+    "bonusClaimed": false
+  }
+]
