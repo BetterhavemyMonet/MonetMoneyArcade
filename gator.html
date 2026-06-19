@@ -43,7 +43,7 @@ Play Again
 <div id="hud">
 MONET: <span id="score">0</span> | 💎 <span id="crystals">0</span>/20 | 🏆 <span id="best">0</span>
  | ❤ <span id="health">3</span>
- | BEST: <span id="best">0</span> | TIME: <span id="time">120</span>
+ | BEST: <span id="best">0</span> | TIME: <span id="time">120</span> | LEVEL: <span id="level">1</span>
 </div>
 <button id="left" class="btn" ontouchstart="left=true" ontouchend="left=false" onmousedown="left=true" onmouseup="left=false">◀</button>
 <button id="jump" class="btn" ontouchstart="jump=true" ontouchend="jump=false" onmousedown="jump=true" onmouseup="jump=false">▲</button>
@@ -60,10 +60,22 @@ crystal.src='/assets/crystal-v2.png';
 
 const portalImg=new Image();
 portalImg.src='/assets/portal.png';
+const bg=new Image();
+
+function setLevelBackground(){
+ if(level===1) bg.src='/assets/bg-crystal-valley.png';
+ else if(level===2) bg.src='/assets/bg-emerald-jungle.png';
+ else if(level===3) bg.src='/assets/bg-frozen-peaks.png';
+ else if(level===4) bg.src='/assets/bg-magma-depths.png';
+ else bg.src='/assets/bg-portal-citadel.png';
+}
+
+
 const ape=new Image();
 ape.src='/assets/gorilla.png';
 
-let score=0,timeLeft=120,started=false,health=3;
+let score=0,timeLeft=120,started=false,health=3; let level=1;
+setLevelBackground();
 let bestScore=parseInt(localStorage.getItem('dino_best')||'0');
 document.getElementById("best").textContent=bestScore;
 let left=false,right=false,jump=false,glide=false;
@@ -79,12 +91,59 @@ hurtUntil:0
 const coins=[...Array(20)].map((_,i)=>({x:300+i*180,y:250+((i%3)*60),alive:true}));
 const enemies=[{x:400,y:348,dir:1},{x:1200,y:348,dir:1},{x:2000,y:348,dir:1},{x:2800,y:348,dir:1},{x:3600,y:348,dir:1}];
 const portal={x:4200,y:300,w:80,h:120,active:false};
-const platforms=[
+
+
+const LEVEL_PLATFORMS={
+1:[
 {x:600,y:300,w:180,h:20},
 {x:1100,y:290,w:180,h:20},
 {x:1700,y:300,w:180,h:20},
+{x:2400,y:300,w:180,h:20}
+],
+2:[
+{x:500,y:340,w:120,h:20},
+{x:850,y:270,w:120,h:20},
+{x:1200,y:220,w:120,h:20},
+{x:1600,y:300,w:120,h:20},
+{x:2100,y:250,w:120,h:20}
+],
+3:[
+{x:700,y:260,w:120,h:20},
+{x:1050,y:180,w:120,h:20},
+{x:1450,y:240,w:120,h:20},
+{x:1850,y:170,w:120,h:20},
+{x:2250,y:240,w:120,h:20}
+],
+4:[
+{x:800,y:320,w:100,h:20},
+{x:1400,y:260,w:100,h:20},
+{x:2100,y:220,w:100,h:20},
+{x:2800,y:180,w:100,h:20}
+],
+5:[
+{x:500,y:280,w:100,h:20},
+{x:800,y:220,w:100,h:20},
+{x:1100,y:180,w:100,h:20},
+{x:1400,y:220,w:100,h:20},
+{x:1700,y:280,w:100,h:20},
+{x:2100,y:180,w:100,h:20}
+]
+};
+
+
+const platforms=[
+{x:350,y:340,w:120,h:20},
+{x:600,y:300,w:180,h:20},
+{x:850,y:240,w:140,h:20},
+{x:1100,y:290,w:180,h:20},
+{x:1450,y:180,w:160,h:20},
+{x:1700,y:300,w:180,h:20},
+{x:2100,y:220,w:150,h:20},
 {x:2400,y:300,w:180,h:20},
-{x:3200,y:290,w:180,h:20}
+{x:2800,y:180,w:180,h:20},
+{x:3200,y:290,w:180,h:20},
+{x:3600,y:220,w:150,h:20},
+{x:4000,y:180,w:180,h:20}
 ];
 
 function startGame(){
@@ -120,6 +179,70 @@ function finish(win){
  }
 
  if(win){
+
+  if(level<5){
+    level++;
+    document.getElementById('level').textContent=level; setLevelBackground();
+
+    player.x=100;
+    player.y=300;
+
+    enemies.forEach((e,i)=>{
+      e.dead=false;
+      e.x=400+(i*700)+(level*150);
+      e.dir=Math.random()>0.5?1:-1;
+    });
+
+    if(level>=2 && enemies.length<8){
+      enemies.push({x:5200,y:348,dir:1});
+      enemies.push({x:5800,y:348,dir:-1});
+      enemies.push({x:6400,y:348,dir:1});
+    }
+
+    coins.forEach((c,i)=>{
+      c.alive=true;
+      c.x=300+(i*180)+(level*250);
+    });
+
+    portal.x=4200+(level*500);
+
+    platforms.length=0;
+    platforms.push(...LEVEL_PLATFORMS[level]);
+
+    if(level===1){
+      window.skyColor='#12001f';
+      window.platformColor='#00ccaa';
+      window.mountainColor='#24143f';
+    }
+
+    if(level===2){
+      window.skyColor='#002b12';
+      window.platformColor='#22dd55';
+      window.mountainColor='#014d20';
+    }
+
+    if(level===3){
+      window.skyColor='#002244';
+      window.platformColor='#88ddff';
+      window.mountainColor='#113366';
+    }
+
+    if(level===4){
+      window.skyColor='#330000';
+      window.platformColor='#ff6600';
+      window.mountainColor='#661100';
+    }
+
+    if(level===5){
+      window.skyColor='#000000';
+      window.platformColor='#bb66ff';
+      window.mountainColor='#220044';
+    }
+
+    started=true;
+    return;
+  }
+
   document.getElementById('victory').style.display='block';
   document.getElementById('victoryScore').textContent=
    'Score: '+finalScore+
@@ -252,10 +375,19 @@ enemies.forEach(e=>{
 }
 
 function draw(){
- ctx.fillStyle='#12001f'; ctx.fillRect(-10000,-10000,50000,50000);
  const cam=Math.max(0,player.x-cvs.width/2);
+ if(bg.complete){ctx.drawImage(bg,-cam*0.15,0,5000,cvs.height);}else{ctx.fillStyle='#12001f';ctx.fillRect(-10000,-10000,50000,50000);}
 
- ctx.fillStyle='#4a257a';
+ for(let i=0;i<12;i++){
+ ctx.fillStyle=(window.mountainColor||'#24143f');
+ ctx.beginPath();
+ ctx.moveTo(i*700-(cam*0.25),412);
+ ctx.lineTo(i*700+250-(cam*0.25),120);
+ ctx.lineTo(i*700+500-(cam*0.25),412);
+ ctx.fill();
+}
+
+ctx.fillStyle='#4a257a';
  ctx.fillRect(-cam,412,10000,cvs.height);
 ctx.fillStyle="#00ccaa";
 platforms.forEach(p=>ctx.fillRect(p.x-cam,p.y,p.w,p.h));
