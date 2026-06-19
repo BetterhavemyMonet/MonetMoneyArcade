@@ -92,6 +92,7 @@ function setLevelBackground(){
 
 
 const ape=new Image();
+dino.onload=()=>console.log("DINO READY",dino.naturalWidth); bg.onload=()=>console.log("BG READY",bg.naturalWidth); ape.onload=()=>console.log("APE READY",ape.naturalWidth);
 setInterval(()=>console.log('ASSETS',dino.complete,dino.naturalWidth,bg.complete,bg.naturalWidth,ape.complete,ape.naturalWidth,portalImg.complete,portalImg.naturalWidth),2000);
 setInterval(()=>console.log('ASSETS',dino.complete,dino.naturalWidth,bg.complete,bg.naturalWidth,ape.complete,ape.naturalWidth,portalImg.complete,portalImg.naturalWidth),2000);
 ape.src='/assets/gorilla.png?v=1781862820';
@@ -542,6 +543,7 @@ enemies.forEach(e=>{
  requestAnimationFrame(loop);
 }
 
+ ctx.fillStyle="white";ctx.font="20px Arial";ctx.fillText("BG:"+bg.naturalWidth+" DINO:"+dino.naturalWidth+" APE:"+ape.naturalWidth,20,40);
 function draw(){
  const cam=Math.max(0,player.x-cvs.width/2);
  if(bg.complete && bg.naturalWidth > 0){ctx.drawImage(bg,-cam*0.15,0,5000,cvs.height);}else{ctx.fillStyle='#12001f';ctx.fillRect(-10000,-10000,50000,50000);}
@@ -605,7 +607,7 @@ enemies.forEach(e=>{
   }
 });
 
- if(true){
+ if(false){
    ctx.strokeStyle='#00ffcc'; ctx.lineWidth=4;
    if(portalImg.complete){
  iceHazards.forEach(i=>{
