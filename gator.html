@@ -72,7 +72,7 @@ const cvs=document.getElementById('game'),ctx=cvs.getContext('2d');
 function resize(){cvs.width=innerWidth;cvs.height=innerHeight} resize(); addEventListener('resize',resize);
 
 const dino=new Image();
-dino.src='/assets/dino.png';
+dino.src='/assets/dino.png?v=1781862820';
 dino.onload=()=>console.log('DINO OK',dino.naturalWidth); dino.onerror=e=>console.log('DINO FAIL',e);
 
 const crystal=new Image();
@@ -92,7 +92,7 @@ function setLevelBackground(){
 
 
 const ape=new Image();
-ape.src='/assets/gorilla.png';
+ape.src='/assets/gorilla.png?v=1781862820';
 ape.onload=()=>console.log('GORILLA OK',ape.naturalWidth); ape.onerror=e=>console.log('GORILLA FAIL',e);
 
 let score=0,timeLeft=120,started=false,health=3; let level=1;
