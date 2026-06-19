@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dino Realms</title>
+<script src="wallet.js"></script>
+<script src="https://api.betterhavemymonet.com/levels.js"></script>
+<style>
+html,body{margin:0;padding:0;overflow:hidden;background:#12001f;color:#fff;font-family:Arial}
+#game{display:block}
+#hud{position:fixed;top:10px;left:10px;z-index:10;font-weight:bold}
+.btn{position:fixed;bottom:20px;width:70px;height:70px;border-radius:50%;background:#ffffff33;border:2px solid #fff;color:#fff;font-size:28px;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;z-index:9999;pointer-events:auto}
+#left{left:20px} #jump{left:110px} #right{left:200px}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+MONET: <span id="score">0</span>
+|
+❤ <span id="health">3</span>
+|
+TIME: <span id="time">120</span>
+</div>
+<button id="left" class="btn" ontouchstart="left=true" ontouchend="left=false" onmousedown="left=true" onmouseup="left=false">◀</button>
+<button id="jump" class="btn" ontouchstart="jump=true" ontouchend="jump=false" onmousedown="jump=true" onmouseup="jump=false">▲</button>
+<button id="right" class="btn" ontouchstart="right=true" ontouchend="right=false" onmousedown="right=true" onmouseup="right=false">▶</button>
+<script>
+const cvs=document.getElementById('game'),ctx=cvs.getContext('2d');
+function resize(){cvs.width=innerWidth;cvs.height=innerHeight} resize(); addEventListener('resize',resize);
+
+const dino=new Image(); dino.src='/dino-sprite.png';
+const ape=new Image(); ape.src='/silverback-small.png';
+
+let score=0,timeLeft=120,started=false,health=3;
+let left=false,right=false,jump=false,glide=false;
+
+const player={
+ x:100,
+ y:300,
+ w:72,
+ h:72,
+ vx:0,
+ vy:0,
+ ground:false,
+ jumps:0,
+ maxJumps:2,
+ facing:1,
+ hurtUntil:0
+};
+const coins=[...Array(20)].map((_,i)=>({x:300+i*180,y:250+((i%3)*60),alive:true}));
+const enemies=[{x:400,y:348,dir:1},{x:1200,y:348,dir:1},{x:2000,y:348,dir:1},{x:2800,y:348,dir:1},{x:3600,y:348,dir:1}];
+const portal={x:4200,y:300,w:80,h:120,active:false};
+const platforms=[
+{x:600,y:300,w:180,h:20},
+{x:1100,y:290,w:180,h:20},
+{x:1700,y:300,w:180,h:20},
+{x:2400,y:300,w:180,h:20},
+{x:3200,y:290,w:180,h:20}
+];
+
+function startGame(){
+ started=true;
+ setInterval(()=>{
+   if(!started)return;
+   timeLeft--;
+   document.getElementById('time').textContent=timeLeft;
+   if(timeLeft<=0) finish(false);
+ },1000);
+ requestAnimationFrame(loop);
+}
+
+if(typeof showGameLobby==='function'){
+ showGameLobby('gator', startGame);
+}else{
+ startGame();
+}
+
+function finish(win){
+ started=false;
+ const finalScore=score*100+timeLeft*10;
+ if(typeof arcadeSubmitScore==='function'){
+   arcadeSubmitScore('gator',finalScore).catch(console.error);
+ }
+ alert((win?'REALM COMPLETE':'GAME OVER')+'\\nScore: '+finalScore);
+}
+
+['left','right','jump'].forEach(id=>{
+ const el=document.getElementById(id);
+ const press=(e)=>{console.log("BUTTON",id);e.preventDefault();if(id=="left")left=true;else if(id=="right")right=true;else if(id=="jump")jump=true;};
+ const release=(e)=>{e.preventDefault();if(id=="left")left=false;else if(id=="right")right=false;else if(id=="jump")jump=false;};
+ el.addEventListener("pointerdown",press);
+ el.addEventListener("pointerup",release);
+ el.addEventListener("pointerleave",release);
+ el.addEventListener("pointercancel",release);
+ el.addEventListener("touchstart",press,{passive:false});
+ el.addEventListener("touchend",release,{passive:false});
+ el.addEventListener("touchcancel",release,{passive:false});
+});
+
+addEventListener('keydown',e=>{
+ if(e.key==='ArrowLeft') left=true;
+ if(e.key==='ArrowRight') right=true;
+ if(e.key==='ArrowUp') jump=true;
+});
+addEventListener('keyup',e=>{
+ if(e.key==='ArrowLeft') left=false;
+ if(e.key==='ArrowRight') right=false;
+ if(e.key==='ArrowUp') jump=false;
+});
+
+function loop(){
+ if(!started)return;
+
+ const speed=6;
+
+ if(left){
+   player.vx=Math.max(player.vx-0.7,-speed);
+   player.facing=-1;
+ }else if(right){
+   player.vx=Math.min(player.vx+0.7,speed);
+   player.facing=1;
+ }else{
+   player.vx*=0.85;
+ }
+
+ player.x+=player.vx;
+
+ if(jump && !player.jumpLock){
+
+   if(player.ground){
+     player.vy=-13;
+     player.jumps=1;
+     player.ground=false;
+   }else if(player.jumps<player.maxJumps){
+     player.vy=-12;
+     player.jumps++;
+   }
+
+   player.jumpLock=true;
+ }
+
+ if(!jump) player.jumpLock=false;
+ if(jump && !player.ground && player.vy>0){
+   player.vy+=0.05;
+ }else{
+   player.vy+=0.6;
+ }
+ player.y+=player.vy;
+
+ if(player.y>340){player.y=340;player.vy=0;player.ground=true;
+ player.jumps=0;}
+
+ platforms.forEach(p=>{
+   if( player.x+player.w > p.x &&
+       player.x < p.x+p.w &&
+       player.y+player.h > p.y &&
+       player.y+player.h < p.y+25 &&
+       player.vy >= 0 ){
+     player.y = p.y-player.h;
+     player.vy = 0;
+     player.ground = true;
+     player.jumps = 0;
+   }
+ });
+
+ coins.forEach(c=>{
+  if(c.alive && Math.abs(player.x-c.x)<40 && Math.abs(player.y-c.y)<40){
+    c.alive=false; score++; document.getElementById('score').textContent=score;
+    if(score>=20) portal.active=true;
+  }
+ });
+
+for(let i=enemies.length-1;i>=0;i--){
+ if(enemies[i].dead){
+   enemies.splice(i,1);
+ }
+}
+
+document.getElementById("health").textContent=health;
+
+enemies.forEach(e=>{
+  e.x+=e.dir*2;
+  if(e.x<200||e.x>4300)e.dir*=-1;
+
+  if(Math.abs(player.x-e.x)<50 && Math.abs(player.y-e.y)<50){
+
+    const stomp=
+      player.vy>2 &&
+      player.y+player.h-15<e.y+20;
+
+    if(stomp){
+
+      score+=2;
+      document.getElementById("score").textContent=score;
+      e.dead=true;
+      player.vy=-8;
+
+    }else if(Date.now()>player.hurtUntil){
+
+      health--;
+      player.hurtUntil=Date.now()+1500;
+
+      if(player.x<e.x){
+        player.vx=-10;
+      }else{
+        player.vx=10;
+      }
+
+      if(health<=0){
+        finish(false);
+        return;
+      }
+    }
+  }
+});
+
+ if(portal.active && Math.abs(player.x-portal.x)<60) finish(true);
+
+ try{draw();}catch(e){alert(e.message);console.error(e);}
+ requestAnimationFrame(loop);
+}
+
+function draw(){
+ ctx.fillStyle='#12001f';
+ctx.fillRect(-10000,-10000,50000,50000);
+ const cam=Math.max(0,player.x-cvs.width/2);
+
+
+
+for(let i=0;i<25;i++){
+ ctx.fillStyle="rgba(255,255,255,.5)";
+ ctx.beginPath();
+ ctx.arc(
+   ((i*500)-(cam*0.15))%12000,
+   80+(i%5)*50,
+   2,
+   0,
+   Math.PI*2
+ );
+ ctx.fill();
+}
+
+ctx.fillStyle="rgba(255,255,255,.03)";
+for(let i=0;i<8;i++){
+ ctx.fillRect(
+  (i*700)-(cam*.1),
+  50+i*30,
+  400,
+  40
+ );
+}
+
+ctx.fillStyle="#2d1d52";
+
+for(let i=0;i<15;i++){
+ ctx.fillRect(
+   i*800-(cam*0.3),
+   180,
+   400,
+   240
+ );
+}
+
+ ctx.fillStyle='#4a257a';
+ ctx.fillRect(-cam,412,10000,cvs.height);
+ctx.fillStyle="#00ccaa";
+platforms.forEach(p=>ctx.fillRect(p.x-cam,p.y,p.w,p.h));
+
+coins.forEach(c=>{
+ if(!c.alive)return;
+
+ const bob=Math.sin(Date.now()/200+c.x)*5;
+
+ ctx.fillStyle="#00ffcc";
+
+ ctx.beginPath();
+ ctx.moveTo(c.x-cam,c.y-12+bob);
+ ctx.lineTo(c.x-cam+10,c.y+bob);
+ ctx.lineTo(c.x-cam,c.y+12+bob);
+ ctx.lineTo(c.x-cam-10,c.y+bob);
+ ctx.closePath();
+ ctx.fill();
+});
+
+
+enemies.forEach(e=>{
+  if(ape.complete){
+    ctx.fillStyle="rgba(0,0,0,.35)";
+ctx.beginPath();
+ctx.ellipse(
+ e.x-cam+40,
+ e.y+110,
+ 40,
+ 12,
+ 0,
+ 0,
+ Math.PI*2
+);
+ctx.fill();
+
+ctx.drawImage(
+ ape,
+ e.x-cam-20,
+ e.y-40,
+ 120,
+ 120
+);
+  }else{
+    ctx.fillStyle="red";
+    ctx.fillRect(
+ e.x-cam-20,
+ e.y-40,
+ 120,
+ 120
+);
+  }
+});
+
+ if(portal.active){
+   ctx.strokeStyle='#00ffcc'; ctx.lineWidth=4;
+   const spin=Date.now()/300;
+
+ctx.save();
+
+ctx.translate(
+ portal.x-cam+40,
+ portal.y+60
+);
+
+ctx.rotate(spin);
+
+ctx.strokeRect(
+ -40,
+ -40,
+ 80,
+ 80
+);
+
+ctx.restore();
+ }
+
+ if(dino.complete) ctx.drawImage(dino,player.x-cam,player.y,player.w,player.h);
+ else {ctx.fillStyle='lime';ctx.fillRect(player.x-cam,player.y,player.w,player.h);}
+}
+</script>
+</body>
+</html>
