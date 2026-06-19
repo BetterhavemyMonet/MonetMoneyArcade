@@ -540,7 +540,7 @@ enemies.forEach(e=>{
 
 function draw(){
  const cam=Math.max(0,player.x-cvs.width/2);
- if(bg.complete){ctx.drawImage(bg,-cam*0.15,0,5000,cvs.height);}else{ctx.fillStyle='#12001f';ctx.fillRect(-10000,-10000,50000,50000);}
+ if(bg.complete && bg.naturalWidth > 0){ctx.drawImage(bg,-cam*0.15,0,5000,cvs.height);}else{ctx.fillStyle='#12001f';ctx.fillRect(-10000,-10000,50000,50000);}
 
  for(let i=0;i<12;i++){
  ctx.fillStyle=(window.mountainColor||'#24143f');
@@ -572,7 +572,7 @@ coins.forEach(c=>{
  if(crystal.complete){
   ctx.shadowBlur=15;
   ctx.shadowColor='#66ffff';
-  ctx.drawImage(crystal,c.x-cam-18,c.y-22+bob,48,58);
+  if(crystal.complete && crystal.naturalWidth > 0) ctx.drawImage(crystal,c.x-cam-18,c.y-22+bob,48,58);
  }else{
   ctx.fillStyle="gold";
   ctx.beginPath();
@@ -594,7 +594,7 @@ enemies.forEach(e=>{
   if(e.dead)return;
 
   if(ape.complete){
-    ctx.drawImage(ape,e.x-cam-15,e.y+35,110,110);
+    if(ape.complete && ape.naturalWidth > 0) ctx.drawImage(ape,e.x-cam-15,e.y+35,110,110);
   }else{
     ctx.fillStyle="red";
     ctx.fillRect(e.x-cam,e.y,64,64);
@@ -657,12 +657,12 @@ rockHazards.forEach(r=>{
  });
 ctx.shadowBlur=30;
  ctx.shadowColor='#00ffff';
- ctx.drawImage(portalImg,portal.x-cam-40,portal.y-40,220,220);
+ if(portalImg.complete && portalImg.naturalWidth > 0) ctx.drawImage(portalImg,portal.x-cam-40,portal.y-40,220,220);
  ctx.shadowBlur=0;
 }
  }
 
- if(dino.complete) ctx.drawImage(dino,player.x-cam,player.y+55,player.w,player.h);
+   if(dino.complete && dino.naturalWidth > 0){ctx.drawImage(dino,player.x-cam,player.y+55,player.w,player.h);}
  else {ctx.fillStyle='lime';ctx.fillRect(player.x-cam,player.y,player.w,player.h);}
 }
 </script>
