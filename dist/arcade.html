@@ -33,6 +33,7 @@
 <link rel="stylesheet" href="/styles.css">
 <script src="https://unpkg.com/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
 <script src="/wallet.js"></script>
+<script src="https://api.betterhavemymonet.com/levels.js"></script>
 <style>
 body {
   background-image: url('/background-image.jpg');
@@ -820,18 +821,19 @@ body::before {
     <span class="badge" style="background:linear-gradient(135deg,#ff8800,#cc4400);color:#000">PLATFORMER</span>
   </a>
 
-  <a class="card" data-href="racer.html" data-game="racer" data-icon="🏍️" data-title="Hash Racer" style="--accent:#ff2244;--accent2:#aa0022;--glow:#ff224444">
+  <a class="card" data-href="racer.html" data-game="racer" data-icon="🏍️" data-title="Monet Drift" style="--accent:#ff2244;--accent2:#aa0022;--glow:#ff224444">
     <div class="card-icon">🏍️</div>
-    <div class="card-title">Hash Racer</div>
+    <div class="card-title">Monet Drift</div>
     <div class="card-desc">Gun your crypto rig across blockchain terrain! Hit ramps, dodge obstacles, manage HASH TEMP!</div>
     <span class="badge" style="background:linear-gradient(135deg,#ff2244,#aa0022);color:#fff">RACING</span>
   </a>
 
-  <a class="card" data-href="dino-realms.html" data-game="dino_realms" data-icon="🦖" data-title="Dino Realms" style="--accent:#00ffcc;--accent2:#2ecc71;--glow:#00ffcc44">
-    <div class="card-icon">🦖</div>
-    <div class="card-title">Arcade Gator</div>
-    <div class="card-desc">Jump, hold UP to glide on air! Hold CHARGE to headbutt-dash. Grab M-Coins in 60 seconds!</div>
-  </a>
+    <a class="card" data-href='gator.html' data-game="gator" data-icon="🦖" data-title="Dino Realms" style="--accent:#ff8800;--accent2:#cc5500;--glow:#ff880044">
+      <div class="card-icon">🦖</div>
+      <div class="card-title">Dino Realms</div>
+      <div class="card-desc">Survive the realms, collect MONET crystals, defeat enemies and climb the leaderboard!</div>
+      <span class="badge" style="background:linear-gradient(135deg,#ff8800,#cc5500);color:#000">PLATFORMER</span>
+    </a>
 
   <a class="card" href="dino.html#create" style="--accent:#a855ff;--glow:#a855ff44" onclick="sessionStorage.setItem('dino_tab','create')">
     <div class="card-icon">&#127959;</div>
@@ -896,7 +898,6 @@ body::before {
         <span class="gm-btn-title">VS CPU</span>
         <span class="gm-btn-desc">Expert AI · $0.99 entry · Win double if you beat it</span>
       </span>
-      <span class="gm-btn-badge" style="background:rgba(255,68,136,0.15);color:#ff4488;border-color:#ff448844" id="gm-cpu-badge">$0.99</span>
     </button>
 
     <button class="gm-btn" style="--c:#00f0ff" onclick="goMode('wait')">
@@ -957,7 +958,6 @@ async function loadEntryFee() {
       const gmEl = document.getElementById('gm-monet-fee');
       if (gmEl) gmEl.textContent = fmt;
       // Update VS CPU badge
-      const cpuBadge = document.getElementById('gm-cpu-badge');
       if (cpuBadge) cpuBadge.textContent = fmt + ' M';
     }
   } catch(_) {}
@@ -987,7 +987,6 @@ function goMode(mode) {
   closeModal();
   const g = _curGame;
   if      (mode === 'practice')    location.href = _curHref + '?practice=1';
-  else if (mode === 'cpu')         location.href = `challenge.html?game=${g}&tab=cpu&diff=expert`;
   else if (mode === 'wait')        location.href = `challenge.html?game=${g}&tab=h2h&wait=1`;
   else if (mode === 'h2h')         location.href = `challenge.html?game=${g}&tab=h2h`;
   else if (mode === 'tournament')  location.href = `tournament.html?game=${g}`;

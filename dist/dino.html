@@ -132,6 +132,7 @@
 </style>
 <script src="https://unpkg.com/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
 <script src="/wallet.js"></script>
+<script src="https://api.betterhavemymonet.com/levels.js"></script>
 <script src="/gamepad.js"></script>
 </head>
 <body class="game-page">
@@ -327,7 +328,7 @@ function startEndless(){
   switchTab('play');
   player={x:70,y:GROUND-CHAR_H,vy:0,onGround:true};
   obstacles=[];coins=[];portals=[];
-  score=0;speed=5;frameCount=0;gameRunning=true;totalCoins=0;currentWorld=0;
+  score=0;speed=5 + (window.currentLevel?.speedBonus || 0);frameCount=0;gameRunning=true;totalCoins=0;currentWorld=0;document.getElementById("msg").textContent="LEVEL " + (window.currentLevel?.id || 1) + " • " + (window.currentLevel?.theme || "Classic");
   document.getElementById('msg').textContent='';
   document.getElementById('coinCount').textContent='0';
   if(animId) cancelAnimationFrame(animId);
@@ -351,7 +352,7 @@ function updateEndless(){
     localStorage.setItem('dino_best',bestScore);
   }
   updatePhysics(player);
-  if(frameCount%Math.max(35,90-Math.floor(score/80))===0) obstacles.push(makeRandomObs());
+  const spawnRate=Math.max(25,90-Math.floor(score/80)-((window.currentLevel?.spawnBonus||0)*5)); if(frameCount%spawnRate===0) obstacles.push(makeRandomObs());
   obstacles.forEach(o=>o.x-=speed);
   obstacles=obstacles.filter(o=>o.x>-60);
   spawnCoins();
@@ -634,7 +635,7 @@ function drawPortal(c,p){
 }
 
 function jump(){
-  if(!gameRunning){startEndless();return;}
+  if(!gameRunning) return;
   if(player&&player.onGround){player.vy=-15;player.onGround=false;}
 }
 function duck(){
@@ -646,7 +647,7 @@ function unduck(){
 
 function ctrlJump(e){ if(e) e.preventDefault(); jump(); }
 function ctrlDuck(e){ if(e) e.preventDefault(); duck(); }
-function ctrlStart(e){ if(e) e.preventDefault(); startEndless(); }
+function ctrlStart(e){ if(e) e.preventDefault(); if(document.getElementById('cpu-result-overlay')||document.getElementById('challenge-result-overlay')||document.getElementById('solo-result-overlay')) return; startEndless(); }
 
 document.addEventListener('keydown',e=>{
   if(window.isLobbyOpen&&window.isLobbyOpen())return;
@@ -1074,7 +1075,7 @@ GamepadMgr.on('up',    () => jump());
 GamepadMgr.on('down',  () => duck());
 GamepadMgr.on('a',     () => jump());
 GamepadMgr.on('b',     () => duck());
-GamepadMgr.on('start', () => startEndless());
+GamepadMgr.on('start', () => { if(document.getElementById('cpu-result-overlay')||document.getElementById('challenge-result-overlay')||document.getElementById('solo-result-overlay')) return; startEndless(); });
 
 document.addEventListener('DOMContentLoaded', () => {
   if (sessionStorage.getItem('dino_tab') === 'create') {

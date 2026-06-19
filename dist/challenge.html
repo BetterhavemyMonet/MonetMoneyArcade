@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/styles.css">
 <script src="https://unpkg.com/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
 <script src="/wallet.js"></script>
+<script src="https://api.betterhavemymonet.com/levels.js"></script>
 <style>
 body { background: #02040a url('/title.jpg') center/cover fixed; min-height:100vh; }
 body::before { content:''; position:fixed; inset:0; background:rgba(2,4,10,0.86); pointer-events:none; z-index:0; }
@@ -35,7 +36,6 @@ body::before { content:''; position:fixed; inset:0; background:rgba(2,4,10,0.86)
   transition: all .15s;
 }
 .tab-btn.active-h2h   { border-color:#00f0ff; background:#00f0ff18; color:#00f0ff; }
-.tab-btn.active-cpu   { border-color:#ff4488; background:#ff448818; color:#ff4488; }
 .tab-btn.active-join  { border-color:#a855ff; background:#a855ff18; color:#a855ff; }
 
 .card {
@@ -62,7 +62,6 @@ input:focus, select:focus { outline:none; border-color:#a855ff; }
   font-family:'Orbitron',sans-serif; font-size:11px; font-weight:800;
   white-space:nowrap;
 }
-.btn-cpu {
   padding:10px 18px; border-radius:10px; border:none; cursor:pointer;
   background:linear-gradient(135deg,#ff4488,#c0136c); color:#fff;
   font-family:'Orbitron',sans-serif; font-size:11px; font-weight:800;
@@ -105,11 +104,9 @@ input:focus, select:focus { outline:none; border-color:#a855ff; }
 
 .prize-box { border-radius:10px; padding:12px; margin-bottom:12px; text-align:center; }
 .prize-box.h2h-box { background:rgba(0,240,255,0.07); border:1px solid #00f0ff33; }
-.prize-box.cpu-box { background:rgba(255,68,136,0.07); border:1px solid #ff448833; }
 .prize-box .big { font-size:22px; font-weight:800; }
 .prize-box .sub { font-size:10px; color:#888; margin-top:2px; }
 .prize-box.h2h-box .big { color:#00f0ff; }
-.prize-box.cpu-box .big { color:#ff4488; }
 
 .diff-opts { display:flex; gap:6px; margin:8px 0; }
 .diff-opt  {
@@ -206,7 +203,7 @@ input:focus, select:focus { outline:none; border-color:#a855ff; }
 <div class="page">
 <img src="/logo.png" style="width:60px;display:block;margin:8px auto 4px;filter:drop-shadow(0 0 12px #a855ff)">
 <h1 style="background:linear-gradient(90deg,#00f0ff,#a855ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:0;font-size:20px">CHALLENGES</h1>
-<p style="color:#888;font-size:11px;margin:4px 0 12px;font-family:Orbitron,sans-serif">Play vs Friend · Play vs CPU · Winner takes all</p>
+<p style="color:#888;font-size:11px;margin:4px 0 12px;font-family:Orbitron,sans-serif">Play vs Friend · Live Challenges · Winner takes all</p>
 
 <div class="nav-row">
   <button class="nav-btn" onclick="location.href='arcade.html'">&#8592; Arcade</button>
@@ -217,7 +214,6 @@ input:focus, select:focus { outline:none; border-color:#a855ff; }
 
   <div class="tabs">
     <button class="tab-btn active-h2h" id="tab-h2h" onclick="switchTab('h2h')">&#9876; 1v1</button>
-    <button class="tab-btn" id="tab-cpu" onclick="switchTab('cpu')">&#129302; CPU</button>
     <button class="tab-btn" id="tab-lobby" onclick="switchTab('lobby')">&#127381; LOBBY</button>
     <button class="tab-btn" id="tab-join" onclick="switchTab('join')">&#128273; JOIN</button>
   </div>
@@ -239,7 +235,14 @@ input:focus, select:focus { outline:none; border-color:#a855ff; }
         <div class="game-opt" data-game="invaders" onclick="selectGame(this,'h2h')">&#128125; Invaders</div>
         <div class="game-opt" data-game="pong"     onclick="selectGame(this,'h2h')">&#127934; Pong</div>
         <div class="game-opt" data-game="mario"    onclick="selectGame(this,'h2h')">&#127812; Bros</div>
-        <div class="game-opt" data-game="fighter"  onclick="selectGame(this,'h2h')">&#129354; Ready. Set. Fight.</div>
+        <div class="game-opt" data-game="dino-realms" onclick="selectGame(this,'h2h')">🦖 Dino Realms</div>
+        <div class="game-opt" data-game="racer" onclick="selectGame(this,'h2h')">🏎️ Monet Drift</div>
+        <div class="game-opt" data-game="kong" onclick="selectGame(this,'h2h')">🦍 Kong</div>
+        <div class="game-opt" data-game="dodger" onclick="selectGame(this,'h2h')">💎 Dodger</div>
+        <div class="game-opt" data-game="duckhunt" onclick="selectGame(this,'h2h')">🦆 Duck Hunt</div>
+        <div class="game-opt" data-game="reaction" onclick="selectGame(this,'h2h')">⚡ Reaction</div>
+        <div class="game-opt" data-game="tap" onclick="selectGame(this,'h2h')">👆 Tap Frenzy</div>
+        <div class="game-opt" data-game="tetris" onclick="selectGame(this,'h2h')">🧩 Tetris</div>
       </div>
       <div style="margin:10px 0 6px">
         <div style="font-size:11px;color:#888;margin-bottom:6px">Wager amount:</div>
@@ -259,42 +262,6 @@ input:focus, select:focus { outline:none; border-color:#a855ff; }
       <div id="my-challenges"><div style="color:#555;font-size:11px">Connect wallet to see your challenges</div></div>
     </div>
   </div>
-
-  <!-- ── CPU Tab ── -->
-  <div class="tab-panel" id="panel-cpu">
-    <div class="card">
-      <div class="card-title">&#129302; PLAY vs CPU</div>
-      <div class="prize-box cpu-box" id="cpu-prize-box">
-        <div class="big" id="cpu-prize-amt">Win 90% back</div>
-        <div class="sub" id="cpu-prize-sub">Beat the CPU · Easy difficulty · house matches your entry</div>
-      </div>
-      <div style="font-size:11px;color:#888;margin-bottom:8px">Pick your game:</div>
-      <div class="game-opts" id="cpu-game-opts">
-        <div class="game-opt active" data-game="frogger"  onclick="selectGame(this,'cpu')">&#128056; Feelin' Froggy</div>
-        <div class="game-opt" data-game="snake"    onclick="selectGame(this,'cpu')">&#128013; Slithering Serpent</div>
-        <div class="game-opt" data-game="pacman"   onclick="selectGame(this,'cpu')">&#128049; Rawr-man</div>
-        <div class="game-opt" data-game="pong"     onclick="selectGame(this,'cpu')">&#127934; Pong</div>
-        <div class="game-opt" data-game="dino"     onclick="selectGame(this,'cpu')">&#9889; Runner</div>
-        <div class="game-opt" data-game="invaders" onclick="selectGame(this,'cpu')">&#128125; Invaders</div>
-        <div class="game-opt" data-game="mario"    onclick="selectGame(this,'cpu')">&#127812; Bros</div>
-        <div class="game-opt" data-game="fighter"  onclick="selectGame(this,'cpu')">&#129354; Ready. Set. Fight.</div>
-      </div>
-      <div style="font-size:11px;color:#888;margin:10px 0 6px">CPU difficulty:</div>
-      <div class="diff-opts">
-        <div class="diff-opt active" data-diff="easy" onclick="selectDiff(this)">&#128994; EASY</div>
-        <div class="diff-opt" data-diff="medium" onclick="selectDiff(this)">&#128992; MEDIUM</div>
-        <div class="diff-opt" data-diff="hard" onclick="selectDiff(this)">&#128308; HARD</div>
-        <div class="diff-opt" data-diff="expert" onclick="selectDiff(this)" style="border-color:#ff0066;color:#ff0066">💀 EXPERT</div>
-      </div>
-      <div style="font-size:10px;color:#555;margin:6px 0 10px" id="cpu-range-hint">CPU score target: 80 &#8211; 250 pts</div>
-      <button class="btn-cpu btn-full" id="cpu-start-btn" onclick="startCpuChallenge()">PAY ≈$0.99 IN MONET &amp; PLAY vs CPU</button>
-      <div class="err" id="cpu-err"></div>
-    </div>
-  </div>
-
-  <!-- ── Live Lobby Tab ── -->
-  <div class="tab-panel" id="panel-lobby">
-    <div class="card">
       <div class="lobby-header">
         <div>
           <div class="card-title" style="margin-bottom:2px">&#127381; LIVE CHALLENGE LOBBY</div>
@@ -313,6 +280,7 @@ input:focus, select:focus { outline:none; border-color:#a855ff; }
         <button class="gf-btn" data-game="invaders" onclick="setLobbyFilter(this)">&#128125; INVADERS</button>
         <button class="gf-btn" data-game="mario"    onclick="setLobbyFilter(this)">&#127812; BROS</button>
         <button class="gf-btn" data-game="fighter"  onclick="setLobbyFilter(this)">&#129354; READY. SET. FIGHT.</button>
+        <button class="gf-btn" data-game="dino-realms" onclick="setLobbyFilter(this)">🦖 DINO REALMS</button>
       </div>
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -341,23 +309,36 @@ input:focus, select:focus { outline:none; border-color:#a855ff; }
 </div>
 
 <script>
-const GAME_LABELS = { frogger:"Feelin' Froggy", snake:'Slithering Serpent', pacman:'Rawr-man', pong:'Pong', dino:'Runner', invaders:'Space Invaders', mario:'Monet Bros', fighter:'Ready. Set. Fight.' };
+const GAME_LABELS = {
+  frogger:"Feelin' Froggy",
+  snake:'Slithering Serpent',
+  pacman:'Rawr-man',
+  pong:'Pong',
+  dino:'Runner',
+  invaders:'Space Invaders',
+  mario:'Monet Bros',
+  fighter:'Ready. Set. Fight.',
+  'dino-realms':'Dino Realms',
+  racer:'Monet Drift',
+  kong:'Kong',
+  dodger:'Dodger',
+  duckhunt:'Duck Hunt',
+  reaction:'Reaction',
+  tap:'Tap Frenzy',
+  tetris:'Tetris'
+};
 
 let selectedH2HGame  = 'pacman';
 let selectedH2HWager = 5;
-let selectedCPUGame  = 'frogger';
-let selectedDiff     = 'easy';
 let _dynFee          = 5; // updated from /api/monet-price
 
 async function fetchDynFee() {
   try {
     const d = await fetch('https://api.betterhavemymonet.com/api/monet-price').then(r => r.json());
-    if (d.entryFee && d.entryFee > 0) {
-      _dynFee = d.entryFee;
+    if (d.entryFeeMonet && d.entryFeeMonet > 0) {
+      _dynFee = d.entryFeeMonet;
       selectedH2HWager = _dynFee;
       rebuildWagerOptions();
-      const cpuBtn = document.getElementById('cpu-start-btn');
-      if (cpuBtn) cpuBtn.textContent = `PAY ${_dynFee} MONET ≈$0.99 & PLAY vs CPU`;
     }
   } catch(e) { /* keep default */ }
 }
@@ -376,64 +357,10 @@ function rebuildWagerOptions() {
   document.getElementById('h2h-create-btn').textContent = `PAY ${_dynFee} MONET ≈$0.99 & CREATE CHALLENGE`;
 }
 
-const CPU_RANGES = {
-  easy:   { frogger:[100,350],    snake:[6,16],    pacman:[1000,3500],    pong:[2,4], dino:[300,900],    invaders:[500,1500],    mario:[800,2000],    fighter:[100,300]    },
-  medium: { frogger:[500,1100],   snake:[22,50],   pacman:[5000,11000],   pong:[5,7], dino:[1200,3000],  invaders:[3000,7000],   mario:[3000,7000],   fighter:[500,900]    },
-  hard:   { frogger:[1800,4000],  snake:[80,140],  pacman:[20000,40000],  pong:[7,9], dino:[5000,12000], invaders:[12000,30000], mario:[10000,25000], fighter:[1500,3000]  },
-  expert: { frogger:[8000,20000], snake:[200,500], pacman:[100000,500000],pong:[9,9], dino:[20000,80000],invaders:[50000,150000],mario:[40000,99999], fighter:[5000,12000] },
-};
 
-function switchTab(tab) {
-  ['h2h','cpu','lobby','join'].forEach(t => {
-    const panel = document.getElementById('panel-'+t);
-    if (panel) panel.classList.toggle('active', t===tab);
-    const btn = document.getElementById('tab-'+t);
-    if (btn) btn.className = 'tab-btn' + (t===tab ? ' active-'+t : '');
-  });
-  if (tab === 'lobby') loadLobby(false);
-}
-
-function selectGame(el, mode) {
-  const container = mode === 'h2h' ? 'h2h-game-opts' : 'cpu-game-opts';
-  document.querySelectorAll('#'+container+' .game-opt').forEach(e => e.classList.remove('active'));
-  el.classList.add('active');
-  if (mode === 'h2h') selectedH2HGame = el.dataset.game;
-  else { selectedCPUGame = el.dataset.game; updateCpuHint(); }
-}
-
-function selectH2HWager(el) {
-  document.querySelectorAll('#h2h-wager-opts .game-opt').forEach(e => e.classList.remove('active'));
-  el.classList.add('active');
-  selectedH2HWager = Number(el.dataset.wager);
-  const pot = (selectedH2HWager * 2 * 0.9).toFixed(1);
-  const usdAmt = _dynFee > 0 ? '$' + (selectedH2HWager / _dynFee * 0.99).toFixed(2) : '≈$0.99';
-  document.getElementById('h2h-pot-display').textContent = `Win ~${pot} MONET (90% of pot)`;
-  document.getElementById('h2h-create-btn').textContent = `PAY ${usdAmt} (${selectedH2HWager} MONET) & CREATE CHALLENGE`;
-}
-
-function selectDiff(el) {
-  document.querySelectorAll('.diff-opt').forEach(e => e.classList.remove('active'));
-  el.classList.add('active');
-  selectedDiff = el.dataset.diff;
-  updateCpuHint();
-}
-
-// CPU payout multipliers of base entry fee (matches server CPU_PAYOUT logic)
-const CPU_PAYOUT_MULT = { easy: 1.2, medium: 1.4, hard: 1.8, expert: 1.6 };
-const DIFF_LABELS     = { easy: 'Easy', medium: 'Medium', hard: 'Hard', expert: 'Expert' };
-
-function updateCpuHint() {
-  const r    = CPU_RANGES[selectedDiff]?.[selectedCPUGame];
-  const mult = CPU_PAYOUT_MULT[selectedDiff] ?? 1.6;
-  const pot  = Math.round(_dynFee * mult * 10) / 10;
-  const pct  = Math.round(mult * 100);
-  const hint = document.getElementById('cpu-range-hint');
-  const amt  = document.getElementById('cpu-prize-amt');
-  const sub  = document.getElementById('cpu-prize-sub');
-  if (hint && r) hint.textContent = `CPU score target: ${r[0].toLocaleString()} \u2013 ${r[1].toLocaleString()} pts`;
-  if (amt) amt.textContent = `Win ${pct}% back (~${pot} MONET)`;
-  if (sub) sub.textContent = `Beat the CPU · ${DIFF_LABELS[selectedDiff]} difficulty · house matches entry`;
-}
+function switchTab(tab){document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));const panel=document.getElementById("panel-"+tab);if(panel)panel.classList.add("active");document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active-h2h","active-join"));if(tab==="h2h")document.getElementById("tab-h2h")?.classList.add("active-h2h");if(tab==="join")document.getElementById("tab-join")?.classList.add("active-join");if(tab==="lobby")document.getElementById("tab-lobby")?.classList.add("active-join");if(tab==="lobby")loadLobby(true);}
+function selectGame(el){document.querySelectorAll("#h2h-game-opts .game-opt").forEach(e=>e.classList.remove("active"));el.classList.add("active");selectedH2HGame=el.dataset.game;}
+function selectH2HWager(el){document.querySelectorAll("#h2h-wager-opts .game-opt").forEach(e=>e.classList.remove("active"));el.classList.add("active");selectedH2HWager=parseInt(el.dataset.wager||_dynFee,10);}
 
 // ── Lobby ──────────────────────────────────────────────────────────────────
 let _lobbyFilter = 'all';
@@ -500,7 +427,7 @@ async function createH2HChallenge() {
     const res = await createChallenge(selectedH2HGame, selectedH2HWager);
     btn.textContent = label;
     btn.disabled = false;
-    showCreatedChallenge(res);
+      showCreatedChallenge(res);
   } catch(e) {
     btn.textContent = label;
     btn.disabled = false;
@@ -508,43 +435,23 @@ async function createH2HChallenge() {
   }
 }
 
-async function startCpuChallenge() {
-  const btn = document.getElementById('cpu-start-btn');
-  const err = document.getElementById('cpu-err');
-  err.textContent = '';
-  if (!WalletState.connected) { err.textContent = 'Connect your wallet first'; return; }
-  if (WalletState.monetBalance < _dynFee) { err.textContent = `Need ${_dynFee} MONET (≈$0.99) to play`; return; }
-
-  btn.disabled = true;
-  btn.textContent = 'SIGN IN WALLET...';
-  try {
-    const txId = await window.payEntryFee(selectedCPUGame);
-    btn.textContent = 'STARTING GAME...';
-    const res = await api('/api/cpu/start', 'POST', { wallet: WalletState.address, txId, game: selectedCPUGame, difficulty: selectedDiff });
-    sessionStorage.setItem('cpu_session', JSON.stringify({ cpuGameId: res.cpuGameId, cpuScore: res.cpuScore, txId }));
-    location.href = `/${selectedCPUGame}.html?cpu=${selectedDiff}&cpuGameId=${encodeURIComponent(res.cpuGameId)}&cpuScore=${res.cpuScore}`;
-  } catch(e) {
-    btn.textContent = `PAY ${_dynFee} MONET ≈$0.99 & PLAY vs CPU`;
-    btn.disabled = false;
-    err.textContent = e.message;
-  }
-}
-
 function showCreatedChallenge(res) {
   const shareUrl = `${location.origin}/${selectedH2HGame}.html?challenge=${res.code}`;
-  const section  = document.getElementById('panel-h2h');
+  const section = document.getElementById('panel-h2h');
+
   section.insertAdjacentHTML('afterbegin', `
     <div style="background:rgba(0,255,157,0.07);border:1px solid #00ff9d33;border-radius:14px;padding:18px;margin-bottom:16px;text-align:center">
       <div style="font-size:11px;color:#888;margin-bottom:4px">CHALLENGE CREATED</div>
       <div class="ch-code" style="font-size:30px;margin:8px 0;color:#00ff9d">${res.code}</div>
-      <div style="font-size:11px;color:#00ff9d">Pot: ${res.pot} MONET \u00b7 Share this code with your opponent</div>
+      <div style="font-size:11px;color:#00ff9d">Pot: ${res.pot} MONET · Share this code with your opponent</div>
       <div class="ch-share" style="margin-top:10px">
         <div class="ch-link">${shareUrl}</div>
         <button class="btn-copy" onclick="copyLink('${shareUrl}')">Copy Link</button>
       </div>
-      <button class="btn-green btn-full" style="margin-top:12px" onclick="location.href='/${selectedH2HGame}.html?challenge=${res.code}'">PLAY MY TURN &#9658;</button>
+      <button class="btn-green btn-full" style="margin-top:12px" onclick="location.href='/${selectedH2HGame}.html?challenge=${res.code}'">PLAY MY TURN ▶</button>
     </div>
   `);
+
   loadMyChallenges();
 }
 
@@ -656,13 +563,6 @@ document.addEventListener('DOMContentLoaded', () => {
       h2hOpt.classList.add('active');
       selectedH2HGame = pGame;
     }
-    // Pre-select game in CPU panel
-    const cpuOpt = document.querySelector(`#cpu-game-opts [data-game="${pGame}"]`);
-    if (cpuOpt) {
-      document.querySelectorAll('#cpu-game-opts .game-opt').forEach(e => e.classList.remove('active'));
-      cpuOpt.classList.add('active');
-      selectedCPUGame = pGame;
-    }
     // Pre-filter lobby
     const lobbyBtn = document.querySelector(`#lobby-filters [data-game="${pGame}"]`);
     if (lobbyBtn) { document.querySelectorAll('#lobby-filters .gf-btn').forEach(b => b.classList.remove('active')); lobbyBtn.classList.add('active'); }
@@ -674,13 +574,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (diffEl) {
       document.querySelectorAll('.diff-opt').forEach(e => e.classList.remove('active'));
       diffEl.classList.add('active');
-      selectedDiff = pDiff;
     }
   }
 
   fetchDynFee();
-  updateCpuHint();
-  loadMyChallenges();
 
   // Switch to requested tab
   if (pCode) {

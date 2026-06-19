@@ -42,7 +42,7 @@ setInterval(fetchEntryFee, 5 * 60 * 1000);
 // All balance/account queries now go through /api/balance (server-side) to
 // avoid browser CORS rate-limit 403s on these public endpoints.
 const RPC_ENDPOINTS = [
-  'https://api.mainnet-beta.solana.com',
+  'https://solana-mainnet.g.alchemy.com/v2/5f2UJclPRZdXt_Lfg5RMx',
   'https://mainnet.helius-rpc.com/',
 ];
 
@@ -199,7 +199,9 @@ async function getWorkingConnection() {
           setTimeout(() => reject(new Error(`timeout`)), RPC_TIMEOUT_MS)
         ),
       ]);
+      console.log("[RPC OK]", rpc);
       return conn;
+      console.error("[RPC FAIL]", rpc, e?.message || e);
     } catch (e) {
       console.warn(`[MONET] Connection probe failed (${rpc}):`, e.message ?? e);
       lastErr = e;
@@ -683,7 +685,7 @@ async function payEntryFee(gameName, onProgress, amount) {
         destATAExists = !!info;
       }
     }
-    if (!destATAExists) tx.add(createATAInstruction(payer, destATA, treasury, mint));
+    // treasury ATA already exists
   } catch(e) {
     throw new Error(`Transaction preparation failed: ${e.message}`);
   }
@@ -696,27 +698,13 @@ async function payEntryFee(gameName, onProgress, amount) {
   tx.add(createMemoInstruction(payer, `Monet Arcade | ${gameLabel} | ${fee} MONET entry fee`));
 
   // ── Step 3: sign & send via wallet (wallet uses its own RPC for broadcast) ─
-  try {
-    const conn = await getWorkingConnection();
-    const sim = await conn.simulateTransaction(tx);
-    alert("SIM ERR: "+JSON.stringify(sim.value?.err)+" LOGS: "+JSON.stringify(sim.value?.logs));
-    console.log("SIM LOGS", sim.value?.logs);
-  } catch(e) {
-    console.error("SIMULATION FAILED", e);
-  }
-
   report('signing');
   let txId;
   try {
-    if (provider.signAndSendTransaction) {
-      const result = await provider.signAndSendTransaction(tx);
-      txId = result.signature || result;
-    } else {
-      // signTransaction path — need a connection for sendRawTransaction
-      const conn = await getWorkingConnection();
+    const conn = await getWorkingConnection();
+      alert(JSON.stringify(tx.instructions.map(i => ({programId:i.programId.toString(),keyCount:i.keys.length})), null, 2));
       const signed = await provider.signTransaction(tx);
       txId = await conn.sendRawTransaction(signed.serialize());
-    }
   } catch(e) {
     throw new Error(`Signing failed: ${e.message}`);
   }
@@ -793,15 +781,6 @@ async function payEntryFeeSOL(gameName, onProgress, lamports) {
   const gameLabel = (gameName || 'GAME').toUpperCase();
   tx.add(createMemoInstruction(payer, `Monet Arcade | ${gameLabel} | SOL entry fee`));
 
-  try {
-    const conn = await getWorkingConnection();
-    const sim = await conn.simulateTransaction(tx);
-    alert("SIM ERR: "+JSON.stringify(sim.value?.err)+" LOGS: "+JSON.stringify(sim.value?.logs));
-    console.log("SIM LOGS", sim.value?.logs);
-  } catch(e) {
-    console.error("SIMULATION FAILED", e);
-  }
-
   report('signing');
   let txId;
   try {
@@ -810,6 +789,7 @@ async function payEntryFeeSOL(gameName, onProgress, lamports) {
       txId = result.signature || result;
     } else {
       const conn   = await getWorkingConnection();
+      alert(JSON.stringify(tx.instructions.map(i => ({programId:i.programId.toString(),keyCount:i.keys.length})), null, 2));
       const signed = await provider.signTransaction(tx);
       txId = await conn.sendRawTransaction(signed.serialize());
     }
@@ -950,15 +930,6 @@ async function treasuryPayout(toAddress, amount, claimId, onProgress) {
   tx.add(createMemoInstruction(payer,
     `Monet Arcade | Payout | ${amount} MONET${claimId ? ' | ' + claimId.slice(0,8) : ''}`));
 
-  try {
-    const conn = await getWorkingConnection();
-    const sim = await conn.simulateTransaction(tx);
-    alert("SIM ERR: "+JSON.stringify(sim.value?.err)+" LOGS: "+JSON.stringify(sim.value?.logs));
-    console.log("SIM LOGS", sim.value?.logs);
-  } catch(e) {
-    console.error("SIMULATION FAILED", e);
-  }
-
   report('signing');
   let txId;
   try {
@@ -967,6 +938,7 @@ async function treasuryPayout(toAddress, amount, claimId, onProgress) {
       txId = result.signature || result;
     } else {
       const conn   = await getWorkingConnection();
+      alert(JSON.stringify(tx.instructions.map(i => ({programId:i.programId.toString(),keyCount:i.keys.length})), null, 2));
       const signed = await provider.signTransaction(tx);
       txId = await conn.sendRawTransaction(signed.serialize());
     }
@@ -1319,6 +1291,7 @@ async function pgPay() {
             await api('/api/challenge/join', 'POST', { code: challengeCode, wallet: WalletState.address, txId, paymentType: 'monet' });
           }
           sessionStorage.setItem('challenge_session', JSON.stringify({ challengeId: ch.id, code: challengeCode, txId }));
+  location.href = `challenge.html?challenge=${res.code}`;
         }
       } catch(e2) { console.warn('[ARCADE] Challenge join error:', e2.message); }
     }
@@ -1405,6 +1378,7 @@ async function pgPaySOL() {
             await api('/api/challenge/join', 'POST', { code: challengeCode, wallet: WalletState.address, txId, paymentType: 'sol' });
           }
           sessionStorage.setItem('challenge_session', JSON.stringify({ challengeId: ch.id, code: challengeCode, txId }));
+  location.href = `challenge.html?challenge=${res.code}`;
         }
       } catch(e2) { console.warn('[ARCADE] Challenge join (SOL) error:', e2.message); }
     }
@@ -1757,6 +1731,7 @@ async function createChallenge(game, wager) {
   const txId = await payEntryFee(game, null, fee);
   const res  = await api('/api/challenge/create', 'POST', { wallet: WalletState.address, txId, game, entryFee: fee });
   sessionStorage.setItem('challenge_session', JSON.stringify({ challengeId: res.challengeId, code: res.code, txId, entryFee: fee, game }));
+  location.href = `challenge.html?challenge=${res.code}`;
   return res;
 }
 
