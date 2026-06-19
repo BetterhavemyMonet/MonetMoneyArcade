@@ -72,8 +72,9 @@ const cvs=document.getElementById('game'),ctx=cvs.getContext('2d');
 function resize(){cvs.width=innerWidth;cvs.height=innerHeight} resize(); addEventListener('resize',resize);
 
 const dino=new Image();
+function markAssetLoaded(){assetsLoaded++;if(assetsLoaded>=totalAssets){assetsReady=true;console.log("ASSETS READY");}}
 dino.src='/assets/dino.png?v=1781862820';
-dino.onload=()=>console.log('DINO OK',dino.naturalWidth); dino.onerror=e=>console.log('DINO FAIL',e);
+dino.onload=markAssetLoaded; dino.onload=()=>console.log('DINO OK',dino.naturalWidth); dino.onerror=e=>console.log('DINO FAIL',e);
 
 const crystal=new Image();
 crystal.src='/assets/crystal-v2.png';
@@ -92,13 +93,14 @@ function setLevelBackground(){
 
 
 const ape=new Image();
-dino.onload=()=>console.log("DINO READY",dino.naturalWidth); bg.onload=()=>console.log("BG READY",bg.naturalWidth); ape.onload=()=>console.log("APE READY",ape.naturalWidth);
+dino.onload=markAssetLoaded; dino.onload=()=>console.log("DINO READY",dino.naturalWidth); bg.onload=()=>console.log("BG READY",bg.naturalWidth); ape.onload=()=>console.log("APE READY",ape.naturalWidth);
 setInterval(()=>console.log('ASSETS',dino.complete,dino.naturalWidth,bg.complete,bg.naturalWidth,ape.complete,ape.naturalWidth,portalImg.complete,portalImg.naturalWidth),2000);
 setInterval(()=>console.log('ASSETS',dino.complete,dino.naturalWidth,bg.complete,bg.naturalWidth,ape.complete,ape.naturalWidth,portalImg.complete,portalImg.naturalWidth),2000);
 ape.src='/assets/gorilla.png?v=1781862820';
 ape.onload=()=>console.log('GORILLA OK',ape.naturalWidth); ape.onerror=e=>console.log('GORILLA FAIL',e);
 
 let score=0,timeLeft=120,started=false,health=3; let level=1;
+let assetsReady=false,assetsLoaded=0,totalAssets=5;
 setLevelBackground();
 
 function showLevelIntro(){
@@ -194,6 +196,7 @@ const platforms=[
 ];
 
 function startGame(){
+setTimeout(()=>{assetsReady=true;console.log("ASSET TIMEOUT FALLBACK");},2000);
  started=true;
  setInterval(()=>{
   timeLeft--;
@@ -330,6 +333,7 @@ addEventListener('keyup',e=>{
 });
 
 function loop(){
+if(!assetsReady){}
  
  
 if(level===3 && Math.random()<0.04){
