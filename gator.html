@@ -210,7 +210,7 @@ if(typeof showGameLobby==='function'){
 }
 
 function finish(win){
- started=false;
+ gameOver=true;
 
  const crystalBonus=score*250;
  const finalScore=score*100+timeLeft*10+crystalBonus+(score>=20?5000:0);
@@ -330,7 +330,7 @@ addEventListener('keyup',e=>{
 });
 
 function loop(){
- if(!started)return;
+ 
  
 if(level===3 && Math.random()<0.04){
  iceHazards.push({x:player.x+300+Math.random()*800,y:-20,vy:8});
