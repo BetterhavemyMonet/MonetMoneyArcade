@@ -120,6 +120,7 @@ jumps:0,
 maxJumps:2,
 hurtUntil:0
 };
+let sessionActive=false;
 const coins=[...Array(20)].map((_,i)=>({x:300+i*180,y:250+((i%3)*60),alive:true}));
 const iceHazards=[];
 const lavaHazards=[];
@@ -195,7 +196,7 @@ function startGame(){
 }
 
 if(typeof showGameLobby==='function'){
- showGameLobby('gator', startGame);
+ showGameLobby('gator',()=>{ sessionActive=true; startGame(); });
 }else{
  startGame();
 }
@@ -211,9 +212,10 @@ function finish(win){
   localStorage.setItem('dino_best',bestScore);
  }
 
- if(typeof arcadeSubmitScore==='function'){
-  arcadeSubmitScore('gator',finalScore).catch(console.error);
- }
+  if(sessionActive){
+   arcadeSubmitScore("gator",finalScore).catch(console.error);
+   sessionActive=false;
+  }
 
  if(win){
 
