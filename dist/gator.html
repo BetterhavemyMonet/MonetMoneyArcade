@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dino Realms</title>
 <script src="wallet.js"></script>
+<script src="https://api.betterhavemymonet.com/levels.js"></script>
 <style>
 html,body{margin:0;padding:0;overflow:hidden;background:#12001f;color:#fff;font-family:Arial}
 #game{display:block}
@@ -15,7 +16,35 @@ html,body{margin:0;padding:0;overflow:hidden;background:#12001f;color:#fff;font-
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud">MONET: <span id="score">0</span> | TIME: <span id="time">120</span></div>
+
+<div id="victory" style="
+display:none;
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.92);
+z-index:99999;
+color:white;
+text-align:center;
+padding-top:20vh;
+font-family:Arial;
+">
+<h1>🦖 REALM COMPLETE 🦖</h1>
+<h2 id="victoryScore"></h2>
+<p>All MONET Crystals Collected</p>
+<button onclick="location.reload()" style="
+padding:15px 30px;
+font-size:20px;
+border:none;
+border-radius:12px;
+">
+Play Again
+</button>
+</div>
+<div id="hud">
+MONET: <span id="score">0</span> | 💎 <span id="crystals">0</span>/20 | 🏆 <span id="best">0</span>
+ | ❤ <span id="health">3</span>
+ | BEST: <span id="best">0</span> | TIME: <span id="time">120</span> | LEVEL: <span id="level">1</span>
+</div>
 <button id="left" class="btn" ontouchstart="left=true" ontouchend="left=false" onmousedown="left=true" onmouseup="left=false">◀</button>
 <button id="jump" class="btn" ontouchstart="jump=true" ontouchend="jump=false" onmousedown="jump=true" onmouseup="jump=false">▲</button>
 <button id="right" class="btn" ontouchstart="right=true" ontouchend="right=false" onmousedown="right=true" onmouseup="right=false">▶</button>
@@ -23,22 +52,98 @@ html,body{margin:0;padding:0;overflow:hidden;background:#12001f;color:#fff;font-
 const cvs=document.getElementById('game'),ctx=cvs.getContext('2d');
 function resize(){cvs.width=innerWidth;cvs.height=innerHeight} resize(); addEventListener('resize',resize);
 
-const dino=new Image(); dino.src='/dino-sprite.png';
-const ape=new Image(); ape.src='/silverback-small.png';
+const dino=new Image();
+dino.src='/assets/dino.png';
 
-let score=0,timeLeft=120,started=false,health=3;
+const crystal=new Image();
+crystal.src='/assets/crystal-v2.png';
+
+const portalImg=new Image();
+portalImg.src='/assets/portal.png';
+const bg=new Image();
+
+function setLevelBackground(){
+ if(level===1) bg.src='/assets/bg-crystal-valley.png';
+ else if(level===2) bg.src='/assets/bg-emerald-jungle.png';
+ else if(level===3) bg.src='/assets/bg-frozen-peaks.png';
+ else if(level===4) bg.src='/assets/bg-magma-depths.png';
+ else bg.src='/assets/bg-portal-citadel.png';
+}
+
+
+const ape=new Image();
+ape.src='/assets/gorilla.png';
+
+let score=0,timeLeft=120,started=false,health=3; let level=1;
+setLevelBackground();
+let bestScore=parseInt(localStorage.getItem('dino_best')||'0');
+document.getElementById("best").textContent=bestScore;
 let left=false,right=false,jump=false,glide=false;
 
-const player={x:100,y:300,w:72,h:72,vx:0,vy:0,ground:false};
+const player={
+x:100,y:300,w:72,h:72,
+vx:0,vy:0,
+ground:false,
+jumps:0,
+maxJumps:2,
+hurtUntil:0
+};
 const coins=[...Array(20)].map((_,i)=>({x:300+i*180,y:250+((i%3)*60),alive:true}));
 const enemies=[{x:400,y:348,dir:1},{x:1200,y:348,dir:1},{x:2000,y:348,dir:1},{x:2800,y:348,dir:1},{x:3600,y:348,dir:1}];
 const portal={x:4200,y:300,w:80,h:120,active:false};
-const platforms=[
+
+
+const LEVEL_PLATFORMS={
+1:[
 {x:600,y:300,w:180,h:20},
 {x:1100,y:290,w:180,h:20},
 {x:1700,y:300,w:180,h:20},
+{x:2400,y:300,w:180,h:20}
+],
+2:[
+{x:500,y:340,w:120,h:20},
+{x:850,y:270,w:120,h:20},
+{x:1200,y:220,w:120,h:20},
+{x:1600,y:300,w:120,h:20},
+{x:2100,y:250,w:120,h:20}
+],
+3:[
+{x:700,y:260,w:120,h:20},
+{x:1050,y:180,w:120,h:20},
+{x:1450,y:240,w:120,h:20},
+{x:1850,y:170,w:120,h:20},
+{x:2250,y:240,w:120,h:20}
+],
+4:[
+{x:800,y:320,w:100,h:20},
+{x:1400,y:260,w:100,h:20},
+{x:2100,y:220,w:100,h:20},
+{x:2800,y:180,w:100,h:20}
+],
+5:[
+{x:500,y:280,w:100,h:20},
+{x:800,y:220,w:100,h:20},
+{x:1100,y:180,w:100,h:20},
+{x:1400,y:220,w:100,h:20},
+{x:1700,y:280,w:100,h:20},
+{x:2100,y:180,w:100,h:20}
+]
+};
+
+
+const platforms=[
+{x:350,y:340,w:120,h:20},
+{x:600,y:300,w:180,h:20},
+{x:850,y:240,w:140,h:20},
+{x:1100,y:290,w:180,h:20},
+{x:1450,y:180,w:160,h:20},
+{x:1700,y:300,w:180,h:20},
+{x:2100,y:220,w:150,h:20},
 {x:2400,y:300,w:180,h:20},
-{x:3200,y:290,w:180,h:20}
+{x:2800,y:180,w:180,h:20},
+{x:3200,y:290,w:180,h:20},
+{x:3600,y:220,w:150,h:20},
+{x:4000,y:180,w:180,h:20}
 ];
 
 function startGame(){
@@ -60,11 +165,92 @@ if(typeof showGameLobby==='function'){
 
 function finish(win){
  started=false;
- const finalScore=score*100+timeLeft*10;
- if(typeof arcadeSubmitScore==='function'){
-   arcadeSubmitScore('gator',finalScore).catch(console.error);
+
+ const crystalBonus=score*250;
+ const finalScore=score*100+timeLeft*10+crystalBonus+(score>=20?5000:0);
+
+ if(finalScore>bestScore){
+  bestScore=finalScore;
+  localStorage.setItem('dino_best',bestScore);
  }
- alert((win?'REALM COMPLETE':'GAME OVER')+'\\nScore: '+finalScore);
+
+ if(typeof arcadeSubmitScore==='function'){
+  arcadeSubmitScore('gator',finalScore).catch(console.error);
+ }
+
+ if(win){
+
+  if(level<5){
+    level++;
+    document.getElementById('level').textContent=level; setLevelBackground();
+
+    player.x=100;
+    player.y=300;
+
+    enemies.forEach((e,i)=>{
+      e.dead=false;
+      e.x=400+(i*700)+(level*150);
+      e.dir=Math.random()>0.5?1:-1;
+    });
+
+    if(level>=2 && enemies.length<8){
+      enemies.push({x:5200,y:348,dir:1});
+      enemies.push({x:5800,y:348,dir:-1});
+      enemies.push({x:6400,y:348,dir:1});
+    }
+
+    coins.forEach((c,i)=>{
+      c.alive=true;
+      c.x=300+(i*180)+(level*250);
+    });
+
+    portal.x=4200+(level*500);
+
+    platforms.length=0;
+    platforms.push(...LEVEL_PLATFORMS[level]);
+
+    if(level===1){
+      window.skyColor='#12001f';
+      window.platformColor='#00ccaa';
+      window.mountainColor='#24143f';
+    }
+
+    if(level===2){
+      window.skyColor='#002b12';
+      window.platformColor='#22dd55';
+      window.mountainColor='#014d20';
+    }
+
+    if(level===3){
+      window.skyColor='#002244';
+      window.platformColor='#88ddff';
+      window.mountainColor='#113366';
+    }
+
+    if(level===4){
+      window.skyColor='#330000';
+      window.platformColor='#ff6600';
+      window.mountainColor='#661100';
+    }
+
+    if(level===5){
+      window.skyColor='#000000';
+      window.platformColor='#bb66ff';
+      window.mountainColor='#220044';
+    }
+
+    started=true;
+    return;
+  }
+
+  document.getElementById('victory').style.display='block';
+  document.getElementById('victoryScore').textContent=
+   'Score: '+finalScore+
+   ' | Crystals: '+score+'/20'+
+   (score>=20?' | PERFECT +5000':'');
+ }else{
+  alert('GAME OVER\nScore: '+finalScore);
+ }
 }
 
 ['left','right','jump'].forEach(id=>{
@@ -94,18 +280,44 @@ addEventListener('keyup',e=>{
 function loop(){
  if(!started)return;
 
- player.vx=(right?5:0)-(left?5:0);
- player.x+=player.vx;
+ const speed=6;
 
- if(jump && player.ground){player.vy=-12;player.ground=false;}
+if(left){
+ player.vx=Math.max(player.vx-0.7,-speed);
+}else if(right){
+ player.vx=Math.min(player.vx+0.7,speed);
+}else{
+ player.vx*=0.85;
+}
+
+player.x+=player.vx;
+
+if(jump && !player.jumpLock){
+
+ if(player.ground){
+  player.vy=-13;
+  player.jumps=1;
+  player.ground=false;
+ }
+ else if(player.jumps<player.maxJumps){
+  player.vy=-12;
+  player.jumps++;
+ }
+
+ player.jumpLock=true;
+}
+
+if(!jump) player.jumpLock=false;
  if(jump && !player.ground && player.vy>0){
    player.vy+=0.05;
+  ctx.shadowBlur=0;
  }else{
    player.vy+=0.6;
  }
  player.y+=player.vy;
 
- if(player.y>340){player.y=340;player.vy=0;player.ground=true;}
+ if(player.y>340){player.y=340;player.vy=0;player.ground=true;
+player.jumps=0;}
 
  platforms.forEach(p=>{
    if( player.x+player.w > p.x &&
@@ -116,21 +328,37 @@ function loop(){
      player.y = p.y-player.h;
      player.vy = 0;
      player.ground = true;
+player.jumps=0;
    }
  });
 
  coins.forEach(c=>{
   if(c.alive && Math.abs(player.x-c.x)<40 && Math.abs(player.y-c.y)<40){
-    c.alive=false; score++; document.getElementById('score').textContent=score;
-    if(score>=20) portal.active=true;
+    c.alive=false; score++; player.vy=-2; player.vy=-2; document.getElementById('score').textContent=score;document.getElementById('crystals').textContent=score;
+    portal.active=true;
   }
  });
 
 enemies.forEach(e=>{
+
+  if(e.dead)return;
+
   e.x+=e.dir*2;
   if(e.x<200||e.x>4300)e.dir*=-1;
 
-  if(Math.abs(player.x-e.x)<50 && Math.abs(player.y-e.y)<50){
+  if(Math.abs(player.x-e.x)<80 && Math.abs(player.y-e.y)<90){
+
+    if(
+      player.vy>0 &&
+      player.y+player.h<e.y+80
+    ){
+      e.dead=true;
+      player.vy=-10;
+      score+=5;
+      document.getElementById("score").textContent=score;
+      return;
+    }
+
     if(!e.hit){
       e.hit=true;
       score=Math.max(0,score-1);
@@ -147,38 +375,62 @@ enemies.forEach(e=>{
 }
 
 function draw(){
- ctx.fillStyle='#12001f'; ctx.fillRect(-10000,-10000,50000,50000);
  const cam=Math.max(0,player.x-cvs.width/2);
+ if(bg.complete){ctx.drawImage(bg,-cam*0.15,0,5000,cvs.height);}else{ctx.fillStyle='#12001f';ctx.fillRect(-10000,-10000,50000,50000);}
 
- ctx.fillStyle='#4a257a';
+ for(let i=0;i<12;i++){
+ ctx.fillStyle=(window.mountainColor||'#24143f');
+ ctx.beginPath();
+ ctx.moveTo(i*700-(cam*0.25),412);
+ ctx.lineTo(i*700+250-(cam*0.25),120);
+ ctx.lineTo(i*700+500-(cam*0.25),412);
+ ctx.fill();
+}
+
+ctx.fillStyle='#4a257a';
  ctx.fillRect(-cam,412,10000,cvs.height);
 ctx.fillStyle="#00ccaa";
 platforms.forEach(p=>ctx.fillRect(p.x-cam,p.y,p.w,p.h));
 
 coins.forEach(c=>{
-  if(!c.alive)return;
+ if(!c.alive)return;
+ const bob=Math.sin(Date.now()/200+c.x)*5;
+ if(crystal.complete){
+  ctx.shadowBlur=15;
+  ctx.shadowColor='#66ffff';
+  ctx.drawImage(crystal,c.x-cam-18,c.y-22+bob,48,58);
+ }else{
   ctx.fillStyle="gold";
   ctx.beginPath();
   ctx.arc(c.x-cam,c.y,10,0,Math.PI*2);
   ctx.fill();
+ }
 });
 
 
 enemies.forEach(e=>{
+
+  if(e.dead)return;
+
   if(ape.complete){
-    ctx.drawImage(ape,e.x-cam,e.y,64,64);
+    ctx.drawImage(ape,e.x-cam-15,e.y+35,110,110);
   }else{
     ctx.fillStyle="red";
     ctx.fillRect(e.x-cam,e.y,64,64);
   }
 });
 
- if(portal.active){
+ if(true){
    ctx.strokeStyle='#00ffcc'; ctx.lineWidth=4;
-   ctx.strokeRect(portal.x-cam,portal.y,portal.w,portal.h);
+   if(portalImg.complete){
+ ctx.shadowBlur=30;
+ ctx.shadowColor='#00ffff';
+ ctx.drawImage(portalImg,portal.x-cam-40,portal.y-40,220,220);
+ ctx.shadowBlur=0;
+}
  }
 
- if(dino.complete) ctx.drawImage(dino,player.x-cam,player.y,player.w,player.h);
+ if(dino.complete) ctx.drawImage(dino,player.x-cam,player.y+55,player.w,player.h);
  else {ctx.fillStyle='lime';ctx.fillRect(player.x-cam,player.y,player.w,player.h);}
 }
 </script>
