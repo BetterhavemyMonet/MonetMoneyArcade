@@ -678,7 +678,7 @@ app.get('/api/leaderboard/:game', (req, res) => {
 
 // Global leaderboard across all games
 app.get('/api/leaderboard', (req, res) => {
-  const games = ['pacman','snake','frogger','pong','dino','invaders','mario','duckhunt','fighter'];
+  const games = ['pacman','snake','frogger','pong','dino','gator','invaders','mario','duckhunt','fighter'];
   const scores = {}; // wallet -> { score, game, payoutTxId, source }
 
   games.forEach(game => {
