@@ -201,7 +201,7 @@ setTimeout(()=>{assetsReady=true;console.log("ASSET TIMEOUT FALLBACK");},2000);
  setInterval(()=>{
   timeLeft--;
   document.getElementById("time").textContent=timeLeft;
-  if(timeLeft<=0) finish(false);
+  if(timeLeft<=0 if(timeLeft<=0) finish(false);if(timeLeft<=0) finish(false); started) finish(false);
  },1000);
  requestAnimationFrame(loop);
 }
@@ -213,6 +213,7 @@ if(typeof showGameLobby==='function'){
 }
 
 function finish(win){
+if(!started && !sessionActive) return;
  gameOver=true;
 
  const crystalBonus=score*250;
@@ -333,6 +334,7 @@ addEventListener('keyup',e=>{
 });
 
 function loop(){
+if(!ctx) return;
 if(!assetsReady){}
  
  
