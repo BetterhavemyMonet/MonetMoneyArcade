@@ -3,314 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Monet Drift</title>
+    <title>MonetMoney Sprite Racer</title>
     <style>
-        /* Global Retro Layout Styling */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        body {
-            background-color: #111;
-            font-family: 'Courier New', Courier, monospace;
-            color: #fff;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-        }
-
-        /* Top Dash HUD Configurations */
-        #hud {
-            width: 100%;
-            max-width: 800px;
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 20px;
-            background: #222;
-            border: 4px solid #ff4500;
-            border-bottom: none;
-            font-weight: bold;
-            font-size: 1.2rem;
-            box-shadow: 0 0 15px rgba(255, 69, 0, 0.4);
-        }
-
-        .stat span {
-            color: #ff4500;
-        }
-
-        /* Responsive Main Viewport Canvas */
-        canvas {
-            background-color: #2b2b2b;
-            border: 4px solid #ff4500;
-            max-width: 100%;
-            max-height: 70vh;
-            box-shadow: 0 0 25px rgba(255, 69, 0, 0.3);
-            display: block;
-        }
-
-        /* Mobile Controller Architecture Overlay */
-        #mobile-controls {
-            display: none;
-            width: 100%;
-            max-width: 800px;
-            justify-content: space-between;
-            padding: 15px;
-            background: #1a1a1a;
-            border: 4px solid #ff4500;
-            border-top: none;
-        }
-
-        .control-group {
-            display: flex;
-            gap: 15px;
-        }
-
-        .btn {
-            width: 70px;
-            height: 70px;
-            background: #333;
-            border: 3px solid #fff;
-            color: #fff;
-            border-radius: 50%;
-            font-size: 1.5rem;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            touch-action: manipulation;
-        }
-
-        .btn:active {
-            background: #ff4500;
-            border-color: #ff4500;
-        }
-
-        /* Screen States Overlay Styling */
-        #screen-overlay {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.85);
-            border: 4px solid #ff4500;
-            padding: 30px;
-            text-align: center;
-            z-index: 10;
-            max-width: 400px;
-        }
-
-        #screen-overlay h1 {
-            color: #ff4500;
-            margin-bottom: 15px;
-            font-size: 2rem;
-            letter-spacing: 2px;
-        }
-
-        #screen-overlay p {
-            margin-bottom: 20px;
-            line-height: 1.4;
-        }
-
-        #start-btn {
-            background: #ff4500;
-            color: white;
-            border: none;
-            padding: 10px 25px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-        #start-btn:hover {
-            background: #e03d00;
-        }
-
-        @media (max-width: 768px) {
-            #mobile-controls { display: flex; }
-        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #222; overflow: hidden; font-family: 'Courier New', Courier, monospace; touch-action: none; }
+        canvas { display: block; width: 100%; height: 100%; }
+        #ui { position: absolute; top: 10px; left: 10px; color: white; font-size: 18px; font-weight: bold; pointer-events: none; text-shadow: 2px 2px 0 #000; }
+        #message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #FFD700; font-size: 32px; font-weight: bold; text-align: center; text-shadow: 3px 3px 0 #000; pointer-events: none; display: none; }
+        #controls { position: absolute; bottom: 20px; width: 100%; text-align: center; color: rgba(255, 255, 255, 0.5); font-size: 14px; pointer-events: none; }
     </style>
-    <script src="/wallet.js"></script>
-    <script src="/lobby.js"></script>
 </head>
 <body>
 
-    <!-- Top Scoreboard HUD Elements -->
-    <div id="hud">
-        <div class="stat">GEMS: <span id="gems-ui">0</span>/5</div>
-        <div class="stat">LAP: <span id="laps-ui">1</span>/3</div>
-        <div class="stat">SPEED: <span id="speed-ui">0</span> MPH</div>
+    <div id="ui">
+        <div>LAP: <span id="lap">1</span> / 3</div>
+        <div>POS: <span id="pos">1</span> / 4</div>
+        <div>TIME: <span id="time">0.00</span></div>
     </div>
+    <div id="message"></div>
+    <div id="controls">Desktop: Arrow Keys | Mobile: Tap Left/Right to Steer</div>
 
-    <!-- Arcade Canvas Interface -->
-    <canvas id="gameCanvas" width="800" height="500"></canvas>
-
-    <!-- On-screen Navigation System Layout -->
-    <div id="mobile-controls">
-        <div class="control-group">
-            <div class="btn" id="btn-left">◀</div>
-            <div class="btn" id="btn-right">▶</div>
-        </div>
-        <div class="control-group">
-            <div class="btn" id="btn-gas" style="background: #222; border-color: #ff4500;">GAS</div>
-        </div>
-    </div>
-
-    <!-- Main State Interaction Menu Overlay -->
-    <div id="screen-overlay">
-        <h1 id="title-text">MONET DRIFT</h1>
-        <p id="desc-text">Race across the hazardous track grid! Collect 5 neon gems and complete 3 full racing laps to unlock the victory terminal portal.</p>
-        <button id="start-btn" onclick="startGame()">START RACE</button>
-    </div>
+    <canvas id="gameCanvas"></canvas>
 
     <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Resize canvas
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize);
+        resize();
 
-        // Game Configuration Settings
-        let gameActive = false;
-        let gemsCollected = 0;
-        let lapsCompleted = 0;
-        let hasCrossedLine = false;
+        // --- IMAGE LOADING ---
+        // We embed the generated spritesheet as a base64 string for zero external dependencies.
+        const spriteSheet = new Image();
+        spriteSheet.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlgAAACgCAYAAABv548OAAAAAXNSR0IArs4c6QAAAHhlWElmTU0AKgAAAAgABAEaAAUAAAABAAAAPgEbAAUAAAABAAAARgExAAIAAAAhAAAATgEyAAIAAAAUAAAAcIdpAAQAAAABAAAAhAAAAAAAAABIAAAAAQAAAEgAAAABMjAyNDowNToyMiAxNTo1MDowNAAAB6ABAAMAAAAB//8AAKACAAQAAAABAAACWKADAAQAAAABAAAAoAAAAACKY04oAAAACXBIWXMAAAsTAAALEwEAmpwYAAAFn0lEQVR4Ae3dP0sjQRQH4PHeIogiWliIdorYaSXYqKUl/gFbW6X4AWxtrSxCkEIrwU60sRBtREURUbSRIOr48v7AnZmdjXv3Zt8W9h4QmFtm3rMzs7OzK6l6vV4v+EGAAAECBAgQIEDguwI7v69SBAIECBAgQIAAAQJxAaxEAAAAAQIECBAgkBAALwsBAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEAJYCAAAAAQIECCQEfl4u+u6bHofD974795b5+z/v4V64V94XvP77vD7eZ/mFz67T9mB/r9W/VpUfBAgQIECAAAECPxF49vH08+O7X5vP+w6f/9536TOfv7Xv2n7at30v+Xn39YfPr9XmK45v8Y7Zp+453Y//4j6X7VdfX/5Z7vP5Nq8/fN/z4mPf8y6/8Pmue/lrfZfX5vX5K/y3vL7wGfc+7/V5r/vV8m+f24+8X7X+wmu553L5i/3tM3/iN45v8b7X9VzXw/V5Lf/wZ99z+f7m9YXXFp/L99/33OdfvO63P9/1//P8u/6X11ffn+/54X7v3z8/93O912//4b7wWv4Kj5b35/X5rL/wWb5/4XP7lP35PvdYfu8/Z/9u+W8P7w3X5/Zwfbiu56vV1+/7wvcH/X6r9Vff9z89Hw8f3z4Xv/N9+z/vs3Sve7+Xv7f38NqX7qW7vNff9//w/dfy3X3K+XUeW/p+S6/5zPeX45vHw+PlG99fjG/+i6vPue/786v3f+7w//HwWvep+93/ffZ/f+99Xl99X28PPvevXf73w3vp/bWvv45tVfX5F+4PPv/x/Y/v4brX+r6/5pZ+2/mrf15f8Xn49/L+XqffVvj33v/Hw2tdH3/P923ff/2z9bH999v7j/5a/y+9ltvn+/XfH8YFv5bX8l94ffwre//8D+/hffv7r/vN8u//f/P75/5v7zPe69O+G76f57H8vXz++b6W1+vnef9P++7/m9//h//b9357X58v/P/P70vXN3//3L9+/3Pf+/L6wuf56X/7/Z631275Wv6u5e/2nreX11ffx9/Ldf9939/5vu0vfvf3Pe9T97bPPu9Xy2t9X8uffS9/t/vF769v//88X3xf+89+v2t+u3+/PZbf+4/h73L6G/+n59z+Xv5+/D5f+P7bW/6O9+M1D/9fr/+559b6+vxf7v3WvX7P+8N1+Xp7fL28vvi9vb+eG757bPm78N/r2r9XfV5f//7tZ/7w/vA+fX9//9zHfvG1b//Xf4n4bWkAAAAAElFTkSuQmCC';
 
-        // Vector Input Registration State Tracker
-        const keys = { ArrowUp: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, d: false };
+        // --- GAME DEFINITIONS ---
+        const state = { laps: 3, startTime: 0, elapsedTime: 0, playing: true, finished: false };
+        const track = { x: canvas.width / 2, y: canvas.height / 2, outerRadius: Math.min(canvas.width, canvas.height) * 0.45, innerRadius: Math.min(canvas.width, canvas.height) * 0.25 };
 
-        // Player Physical Steering Metrics Tracker
-        const car = {
-            x: 400,
-            y: 430,
-            angle: -Math.PI / 2,
-            speed: 0,
-            maxSpeed: 6.5,
-            acceleration: 0.15,
-            deceleration: 0.08,
-            handling: 0.045,
-            radius: 12
+        // Define Car Types with specific sprite locations (x on spritesheet) and physics
+        const CAR_TYPES = {
+            super: { sx: 0,   w: 152, h: 160, maxSpd: 0.052, acc: 0.0012, frict: 0.96 }, // Red
+            tuner: { sx: 152, w: 152, h: 160, maxSpd: 0.048, acc: 0.0010, frict: 0.95 }, // Blue
+            truck: { sx: 304, w: 152, h: 160, maxSpd: 0.042, acc: 0.0009, frict: 0.97 }, // Green
+            proto: { sx: 456, w: 152, h: 160, maxSpd: 0.055, acc: 0.0015, frict: 0.94 }  // Grey
         };
 
-        // Static Level Circuit Track Vector Array
-        const checkpoints = [
-            { x: 400, y: 450, radius: 60, line: true }, // Start line marker
-            { x: 680, y: 400, radius: 50 },
-            { x: 700, y: 150, radius: 50 },
-            { x: 400, y: 80, radius: 50 },
-            { x: 100, y: 150, radius: 50 },
-            { x: 120, y: 380, radius: 50 }
-        ];
+        // --- INPUT HANDLING ---
+        const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+        window.addEventListener('keydown', e => { if (keys.hasOwnProperty(e.code)) keys[e.code] = true; });
+        window.addEventListener('keyup', e => { if (keys.hasOwnProperty(e.code)) keys[e.code] = false; });
+        window.addEventListener('touchstart', e => { 
+            const touchX = e.touches[0].clientX;
+            keys.ArrowUp = true; 
+            if (touchX < canvas.width / 2) { keys.ArrowLeft = true; keys.ArrowRight = false; }
+            else { keys.ArrowRight = true; keys.ArrowLeft = false; }
+        });
+        window.addEventListener('touchend', () => { keys.ArrowLeft = false; keys.ArrowRight = false; keys.ArrowUp = false; });
 
-        // Collectible Entity Mapping Arrays
-        let gems = [];
-        const gemPositions = [
-            { x: 550, y: 430 },
-            { x: 710, y: 260 },
-            { x: 400, y: 75 },
-            { x: 90, y: 240 },
-            { x: 260, y: 420 }
-        ];
+        // --- CAR CLASS ---
+        class Car {
+            constructor(type, isPlayer, startAngle) {
+                this.type = type;
+                this.isPlayer = isPlayer;
+                this.angle = startAngle;
+                this.distanceFromCenter = (track.outerRadius + track.innerRadius) / 2 + (isPlayer ? 20 : -20);
+                this.speed = 0;
+                this.lap = 1;
+                this.progress = 0; 
+                this.lastAngle = startAngle;
+            }
 
-        // Initialization Handling Function
-        function resetGame() {
-            gemsCollected = 0;
-            lapsCompleted = 0;
-            hasCrossedLine = true; 
-            car.x = 400;
-            car.y = 450;
-            car.angle = 0; 
-            car.speed = 0;
+            update() {
+                if (!state.playing) return;
+                const stats = CAR_TYPES[this.type];
 
-            gems = gemPositions.map(pos => ({ ...pos, collected: false, radius: 10 }));
-            updateUI();
-        }
-
-        function updateUI() {
-            document.getElementById("gems-ui").innerText = gemsCollected;
-            document.getElementById("laps-ui").innerText = lapsCompleted + 1;
-            document.getElementById("speed-ui").innerText = Math.round(car.speed * 20);
-        }
-
-        // Action Trigger Framework
-        function startGame() {
-            document.getElementById("screen-overlay").style.display = "none";
-            resetGame();
-            gameActive = true;
-        }
-
-        function triggerEndState(victory) {
-            gameActive = false;
-            const overlay = document.getElementById("screen-overlay");
-            const title = document.getElementById("title-text");
-            const desc = document.getElementById("desc-text");
-            const btn = document.getElementById("start-btn");
-
-            overlay.style.display = "block";
-            if (victory) {
-                const finalScore = (lapsCompleted * 1000) + (gemsCollected * 100);
-                if (typeof arcadeSubmitScore === "function") {
-                    arcadeSubmitScore("racer", finalScore);
+                if (this.isPlayer) {
+                    if (keys.ArrowUp) this.speed += stats.acc;
+                    if (keys.ArrowDown) this.speed -= stats.acc;
+                    if (keys.ArrowLeft) this.distanceFromCenter -= 3;
+                    if (keys.ArrowRight) this.distanceFromCenter += 3;
+                } else {
+                    this.speed += stats.acc * (0.9 + Math.random() * 0.2); // Add slight randomness to AI
+                    this.distanceFromCenter += Math.sin(Date.now() / 1000 + stats.maxSpd) * 0.5; 
                 }
-                title.innerText = "VICTORY!";
-                desc.innerText = "Amazing driving! You collected all energy matrix gems and conquered the Monet Drift circuit!";
-                btn.innerText = "PLAY AGAIN";
-            } else {
-                title.innerText = "GAME OVER";
-                desc.innerText = "Engine blowout or boundary crash encountered.";
-                btn.innerText = "RETRY";
+
+                this.speed *= stats.frict;
+                if (this.speed > stats.maxSpd) this.speed = stats.maxSpd;
+
+                this.angle += this.speed;
+
+                // Track boundaries
+                if (this.distanceFromCenter > track.outerRadius - 25) { this.distanceFromCenter = track.outerRadius - 25; this.speed *= 0.9; }
+                if (this.distanceFromCenter < track.innerRadius + 25) { this.distanceFromCenter = track.innerRadius + 25; this.speed *= 0.9; }
+
+                // Lap Counter
+                let angleDiff = this.angle - this.lastAngle;
+                if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                this.progress += angleDiff;
+                this.lastAngle = this.angle % (Math.PI * 2);
+                let currentLap = Math.floor(this.progress / (Math.PI * 2)) + 1;
+                if (currentLap > this.lap && this.isPlayer && currentLap <= state.laps) {
+                    this.lap = currentLap; document.getElementById('lap').innerText = this.lap;
+                }
+
+                // Win condition
+                if (currentLap > state.laps && this.isPlayer && !state.finished) {
+                    state.finished = true; state.playing = false;
+                    let position = calculatePositions().findIndex(c => c === this) + 1;
+                    showEndScreen(position);
+                }
+            }
+
+            draw() {
+                const stats = CAR_TYPES[this.type];
+                const x = track.x + Math.cos(this.angle) * this.distanceFromCenter;
+                const y = track.y + Math.sin(this.angle) * this.distanceFromCenter;
+
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(this.angle + Math.PI / 2);
+                
+                // Draw Sprite from spritesheet
+                // sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight
+                ctx.drawImage(spriteSheet, stats.sx, 0, stats.w, stats.h, -20, -25, 40, 50);
+                ctx.restore();
             }
         }
 
-        // Input Keyboard Monitor Event Hooks
-        window.addEventListener("keydown", (e) => { if (e.key in keys) keys[e.key] = true; });
-        window.addEventListener("keyup", (e) => { if (e.key in keys) keys[e.key] = false; });
+        // --- GAME LOOP & UTIL ---
+        const cars = [
+            new Car('super', true, 0),      // Player
+            new Car('tuner', false, -0.15), // AI 1
+            new Car('truck', false, -0.3),  // AI 2
+            new Car('proto', false, -0.45)  // AI 3
+        ];
 
-        // Touch Input Hooks Setup
-        function setupTouchBtn(id, keyName) {
-            const btn = document.getElementById(id);
-            btn.addEventListener("touchstart", (e) => { e.preventDefault(); keys[keyName] = true; });
-            btn.addEventListener("touchend", (e) => { e.preventDefault(); keys[keyName] = false; });
+        function calculatePositions() { return [...cars].sort((a, b) => b.progress - a.progress); }
+
+        function drawTrack() {
+            ctx.fillStyle = '#2c5e1a'; ctx.fillRect(0, 0, canvas.width, canvas.height); // Grass
+            ctx.beginPath(); ctx.arc(track.x, track.y, track.outerRadius, 0, Math.PI * 2); ctx.fillStyle = '#444'; ctx.fill(); // Road
+            ctx.beginPath(); ctx.arc(track.x, track.y, track.innerRadius, 0, Math.PI * 2); ctx.fillStyle = '#2c5e1a'; ctx.fill(); // Inner Grass
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.setLineDash([20, 20]);
+            ctx.beginPath(); ctx.arc(track.x, track.y, (track.outerRadius + track.innerRadius)/2, 0, Math.PI * 2); ctx.stroke(); // Lane Marker
+            ctx.setLineDash([]); ctx.strokeStyle = '#fff'; ctx.lineWidth = 10;
+            ctx.beginPath(); ctx.moveTo(track.x + track.innerRadius, track.y); ctx.lineTo(track.x + track.outerRadius, track.y); ctx.stroke(); // Finish
         }
-        setupTouchBtn("btn-left", "ArrowLeft");
-        setupTouchBtn("btn-right", "ArrowRight");
-        setupTouchBtn("btn-gas", "ArrowUp");
 
-        // Object Bound Collision Formula Solver
-        function getDistance(x1, y1, x2, y2) {
-            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        function showEndScreen(position) {
+            const msgBox = document.getElementById('message');
+            let text = position === 1 ? "🏆 1ST PLACE!" : (position === 2 ? "🥈 2ND PLACE!" : (position === 3 ? "🥉 3RD PLACE!" : "4TH PLACE"));
+            msgBox.innerHTML = `${text}<br><br><span style="font-size:20px; cursor:pointer;" onclick="location.reload()">Tap to Restart</span>`;
+            msgBox.style.display = 'block'; msgBox.style.pointerEvents = 'auto';
         }
 
-        // Central System Processing Loop Routine
-        function update() {
-            if (!gameActive) return;
+        function loop() {
+            if (state.startTime === 0 && (keys.ArrowUp || keys.ArrowLeft || keys.ArrowRight)) state.startTime = Date.now();
+            drawTrack();
+            cars.forEach(car => { car.update(); car.draw(); });
+            if (state.playing && state.startTime !== 0) document.getElementById('time').innerText = ((Date.now() - state.startTime) / 1000).toFixed(2);
+            let playerPos = calculatePositions().findIndex(c => c.isPlayer) + 1;
+            document.getElementById('pos').innerText = playerPos;
+            requestAnimationFrame(loop);
+        }
 
-            // Forward Acceleration Mechanics
-            if (keys.ArrowUp || keys.w) {
-                if (car.speed < car.maxSpeed) car.speed += car.acceleration;
-            } else {
-                if (car.speed > 0) car.speed -= car.deceleration;
-                else car.speed = 0;
-            }
-
-            // Directional Steering Angles Mechanics
-            if (car.speed > 0.5) {
-                if (keys.ArrowLeft || keys.a) car.angle -= car.handling;
-                if (keys.ArrowRight || keys.d) car.angle += car.handling;
-            }
-
-            // Velocity Vector Coordinate Translation Updates
-            car.x += Math.cos(car.angle) * car.speed;
-            car.y += Math.sin(car.angle) * car.speed;
-
-            // Visual Frame Boundary Collision Recovery Restraints
-            if (car.x < 0) car.x = canvas.width;
-            if (car.x > canvas.width) car.x = 0;
-            if (car.y < 0) car.y = canvas.height;
-            if (car.y > canvas.height) car.y = 0;
-
-            // Gem Entity Tracking Interactions
-            gems.forEach(gem => {
-ctx.fillRect(-12, 6, 6, 4);ctx.fillRect(6, 6, 6, 4);// Vehicle Body Chassis Core Sheetctx.fillStyle = "#ff4500"; // Hot Orange Primary Body Colorctx.fillRect(-14, -7, 24, 14);// Cockpit Windshield Overlay Layout Windowctx.fillStyle = "#87ceeb";ctx.fillRect(-2, -5, 6, 10);ctx.restore();}// Primary Frame Rate Callback Orchestration Loopfunction gameLoop() {update();draw();requestAnimationFrame(gameLoop);}// Launch Frame Initialization Execution CallsresetGame();gameLoop();
+        // Start when image loads
+        spriteSheet.onload = () => { loop(); };
+    </script>
+</body>
+</html>
 

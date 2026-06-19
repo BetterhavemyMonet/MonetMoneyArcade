@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HOT GEAR ARCADE</title>
+    <style>
+        /* Global Retro Layout Styling */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: #111;
+            font-family: 'Courier New', Courier, monospace;
+            color: #fff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        /* Top Dash HUD Configurations */
+        #hud {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: #222;
+            border: 4px solid #ff4500;
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 0 0 15px rgba(255, 69, 0, 0.4);
+        }
+
+        .stat span {
+            color: #ff4500;
+        }
+
+        /* Responsive Main Viewport Canvas */
+        canvas {
+            background-color: #2b2b2b;
+            border: 4px solid #ff4500;
+            max-width: 100%;
+            max-height: 70vh;
+            box-shadow: 0 0 25px rgba(255, 69, 0, 0.3);
+            display: block;
+        }
+
+        /* Mobile Controller Architecture Overlay */
+        #mobile-controls {
+            display: none;
+            width: 100%;
+            max-width: 800px;
+            justify-content: space-between;
+            padding: 15px;
+            background: #1a1a1a;
+            border: 4px solid #ff4500;
+            border-top: none;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            width: 70px;
+            height: 70px;
+            background: #333;
+            border: 3px solid #fff;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+
+        .btn:active {
+            background: #ff4500;
+            border-color: #ff4500;
+        }
+
+        /* Screen States Overlay Styling */
+        #screen-overlay {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            border: 4px solid #ff4500;
+            padding: 30px;
+            text-align: center;
+            z-index: 10;
+            max-width: 400px;
+        }
+
+        #screen-overlay h1 {
+            color: #ff4500;
+            margin-bottom: 15px;
+            font-size: 2rem;
+            letter-spacing: 2px;
+        }
+
+        #screen-overlay p {
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        #start-btn {
+            background: #ff4500;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        #start-btn:hover {
+            background: #e03d00;
+        }
+
+        @media (max-width: 768px) {
+            #mobile-controls { display: flex; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Scoreboard HUD Elements -->
+    <div id="hud">
+        <div class="stat">GEMS: <span id="gems-ui">0</span>/5</div>
+        <div class="stat">LAP: <span id="laps-ui">1</span>/3</div>
+        <div class="stat">SPEED: <span id="speed-ui">0</span> MPH</div>
+    </div>
+
+    <!-- Arcade Canvas Interface -->
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+    <!-- On-screen Navigation System Layout -->
+    <div id="mobile-controls">
+        <div class="control-group">
+            <div class="btn" id="btn-left">◀</div>
+            <div class="btn" id="btn-right">▶</div>
+        </div>
+        <div class="control-group">
+            <div class="btn" id="btn-gas" style="background: #222; border-color: #ff4500;">GAS</div>
+        </div>
+    </div>
+
+    <!-- Main State Interaction Menu Overlay -->
+    <div id="screen-overlay">
+        <h1 id="title-text">HOT GEAR RUN</h1>
+        <p id="desc-text">Race across the hazardous track grid! Collect 5 neon gems and complete 3 full racing laps to unlock the victory terminal portal.</p>
+        <button id="start-btn" onclick="startGame()">START RACE</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Game Configuration Settings
+        let gameActive = false;
+        let gemsCollected = 0;
+        let lapsCompleted = 0;
+        let hasCrossedLine = false;
+
+        // Vector Input Registration State Tracker
+        const keys = { ArrowUp: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, d: false };
+
+        // Player Physical Steering Metrics Tracker
+        const car = {
+            x: 400,
+            y: 430,
+            angle: -Math.PI / 2,
+            speed: 0,
+            maxSpeed: 6.5,
+            acceleration: 0.15,
+            deceleration: 0.08,
+            handling: 0.045,
+            radius: 12
+        };
+
+        // Static Level Circuit Track Vector Array
+        const checkpoints = [
+            { x: 400, y: 450, radius: 60, line: true }, // Start line marker
+            { x: 680, y: 400, radius: 50 },
+            { x: 700, y: 150, radius: 50 },
+            { x: 400, y: 80, radius: 50 },
+            { x: 100, y: 150, radius: 50 },
+            { x: 120, y: 380, radius: 50 }
+        ];
+
+        // Collectible Entity Mapping Arrays
+        let gems = [];
+        const gemPositions = [
+            { x: 550, y: 430 },
+            { x: 710, y: 260 },
+            { x: 400, y: 75 },
+            { x: 90, y: 240 },
+            { x: 260, y: 420 }
+        ];
+
+        // Initialization Handling Function
+        function resetGame() {
+            gemsCollected = 0;
+            lapsCompleted = 0;
+            hasCrossedLine = true; 
+            car.x = 400;
+            car.y = 450;
+            car.angle = 0; 
+            car.speed = 0;
+
+            gems = gemPositions.map(pos => ({ ...pos, collected: false, radius: 10 }));
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById("gems-ui").innerText = gemsCollected;
+            document.getElementById("laps-ui").innerText = lapsCompleted + 1;
+            document.getElementById("speed-ui").innerText = Math.round(car.speed * 20);
+        }
+
+        // Action Trigger Framework
+        function startGame() {
+            document.getElementById("screen-overlay").style.display = "none";
+            resetGame();
+            gameActive = true;
+        }
+
+        function triggerEndState(victory) {
+            gameActive = false;
+            const overlay = document.getElementById("screen-overlay");
+            const title = document.getElementById("title-text");
+            const desc = document.getElementById("desc-text");
+            const btn = document.getElementById("start-btn");
+
+            overlay.style.display = "block";
+            if (victory) {
+                title.innerText = "VICTORY!";
+                desc.innerText = "Amazing driving! You collected all energy matrix gems and conquered the Hot Gear speedway track circuit!";
+                btn.innerText = "PLAY AGAIN";
+            } else {
+                title.innerText = "GAME OVER";
+                desc.innerText = "Engine blowout or boundary crash encountered.";
+                btn.innerText = "RETRY";
+            }
+        }
+
+        // Input Keyboard Monitor Event Hooks
+        window.addEventListener("keydown", (e) => { if (e.key in keys) keys[e.key] = true; });
+        window.addEventListener("keyup", (e) => { if (e.key in keys) keys[e.key] = false; });
+
+        // Touch Input Hooks Setup
+        function setupTouchBtn(id, keyName) {
+            const btn = document.getElementById(id);
+            btn.addEventListener("touchstart", (e) => { e.preventDefault(); keys[keyName] = true; });
+            btn.addEventListener("touchend", (e) => { e.preventDefault(); keys[keyName] = false; });
+        }
+        setupTouchBtn("btn-left", "ArrowLeft");
+        setupTouchBtn("btn-right", "ArrowRight");
+        setupTouchBtn("btn-gas", "ArrowUp");
+
+        // Object Bound Collision Formula Solver
+        function getDistance(x1, y1, x2, y2) {
+            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        }
+
+        // Central System Processing Loop Routine
+        function update() {
+            if (!gameActive) return;
+
+            // Forward Acceleration Mechanics
+            if (keys.ArrowUp || keys.w) {
+                if (car.speed < car.maxSpeed) car.speed += car.acceleration;
+            } else {
+                if (car.speed > 0) car.speed -= car.deceleration;
+                else car.speed = 0;
+            }
+
+            // Directional Steering Angles Mechanics
+            if (car.speed > 0.5) {
+                if (keys.ArrowLeft || keys.a) car.angle -= car.handling;
+                if (keys.ArrowRight || keys.d) car.angle += car.handling;
+            }
+
+            // Velocity Vector Coordinate Translation Updates
+            car.x += Math.cos(car.angle) * car.speed;
+            car.y += Math.sin(car.angle) * car.speed;
+
+            // Visual Frame Boundary Collision Recovery Restraints
+            if (car.x < 0) car.x = canvas.width;
+            if (car.x > canvas.width) car.x = 0;
+            if (car.y < 0) car.y = canvas.height;
+            if (car.y > canvas.height) car.y = 0;
+
+            // Gem Entity Tracking Interactions
+            gems.forEach(gem => {
+ctx.fillRect(-12, 6, 6, 4);ctx.fillRect(6, 6, 6, 4);// Vehicle Body Chassis Core Sheetctx.fillStyle = "#ff4500"; // Hot Orange Primary Body Colorctx.fillRect(-14, -7, 24, 14);// Cockpit Windshield Overlay Layout Windowctx.fillStyle = "#87ceeb";ctx.fillRect(-2, -5, 6, 10);ctx.restore();}// Primary Frame Rate Callback Orchestration Loopfunction gameLoop() {update();draw();requestAnimationFrame(gameLoop);}// Launch Frame Initialization Execution CallsresetGame();gameLoop();
+

@@ -163,7 +163,7 @@ async function getMonetPrice() {
 }
 
 // Returns the current MONET entry fee (how many MONET = $0.99 USD)
-// Falls back to ENTRY_FEE (5) if price cannot be fetched.
+// Falls back to ENTRY_FEE (100) if price cannot be fetched.
 async function getDynamicEntryFee() {
   return 100;
 }
@@ -1945,6 +1945,77 @@ app.post("/api/dino-realms/finish", async (req, res) => {
     console.error(e);
     res.status(500).json({ ok:false, error:e.message });
   }
+});
+
+app.post('/api/register', async (req, res) => {
+  try {
+    const { wallet, username } = req.body || {};
+
+    if (!wallet) {
+      return res.status(400).json({ error: 'wallet required' });
+    }
+
+    const profiles = dbRead('profiles');
+
+    const existing = profiles.find(p => p.wallet === wallet);
+
+    if (existing) {
+      return res.json({
+        ok: true,
+        existing: true,
+        profile: existing
+      });
+    }
+
+    const profile = {
+      wallet,
+      username: username || wallet.slice(0, 8),
+      createdAt: Date.now(),
+      linkedWallets: [wallet],
+      bonusClaimed: false
+    };
+
+    if (profiles.length < 100) {
+      try {
+        const tx = await sendPayout(wallet, 1000);
+
+        profile.bonusClaimed = true;
+        profile.bonusTx = tx;
+
+      } catch (e) {
+        console.error('[SIGNUP BONUS]', e.message);
+      }
+    }
+
+    profiles.push(profile);
+    dbWrite('profiles', profiles);
+
+    res.json({
+      ok: true,
+      profile,
+      bonusAwarded: profile.bonusClaimed
+    });
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/profile/:wallet', (req, res) => {
+  const profiles = dbRead('profiles');
+
+  const profile = profiles.find(
+    p =>
+      p.wallet === req.params.wallet ||
+      (p.linkedWallets || []).includes(req.params.wallet)
+  );
+
+  if (!profile) {
+    return res.status(404).json({ error: 'Profile not found' });
+  }
+
+  res.json(profile);
 });
 
 app.listen(PORT, '0.0.0.0', () => {
