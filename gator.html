@@ -17,6 +17,22 @@ html,body{margin:0;padding:0;overflow:hidden;background:#12001f;color:#fff;font-
 <body>
 <canvas id="game"></canvas>
 
+<div id="levelIntro" style="
+position:fixed;
+inset:0;
+display:none;
+align-items:center;
+justify-content:center;
+font-size:48px;
+font-weight:bold;
+color:white;
+background:rgba(0,0,0,.55);
+z-index:9998;
+text-shadow:0 0 20px #fff;
+">
+LEVEL
+</div>
+
 <div id="victory" style="
 display:none;
 position:fixed;
@@ -76,6 +92,22 @@ ape.src='/assets/gorilla.png';
 
 let score=0,timeLeft=120,started=false,health=3; let level=1;
 setLevelBackground();
+
+function showLevelIntro(){
+ const names={
+ 1:'💎 CRYSTAL VALLEY',
+ 2:'🌴 EMERALD JUNGLE',
+ 3:'❄️ FROZEN PEAKS',
+ 4:'🌋 MAGMA DEPTHS',
+ 5:'🏰 PORTAL CITADEL'
+ };
+ const box=document.getElementById('levelIntro');
+ box.textContent=names[level]||('LEVEL '+level);
+ box.style.display='flex';
+ setTimeout(()=>box.style.display='none',2000);
+}
+
+setTimeout(showLevelIntro,500);
 let bestScore=parseInt(localStorage.getItem('dino_best')||'0');
 document.getElementById("best").textContent=bestScore;
 let left=false,right=false,jump=false,glide=false;
@@ -89,7 +121,13 @@ maxJumps:2,
 hurtUntil:0
 };
 const coins=[...Array(20)].map((_,i)=>({x:300+i*180,y:250+((i%3)*60),alive:true}));
-const enemies=[{x:400,y:348,dir:1},{x:1200,y:348,dir:1},{x:2000,y:348,dir:1},{x:2800,y:348,dir:1},{x:3600,y:348,dir:1}];
+const iceHazards=[];
+const lavaHazards=[];
+const rockHazards=[];
+const branchHazards=[];
+const enemyRocks=[];
+
+const enemies=[{x:400,y:348,dir:1,type:"basic",attackTimer:0},{x:1200,y:348,dir:1,type:"thrower",attackTimer:0},{x:2000,y:348,dir:1,type:"charger",attackTimer:0},{x:2800,y:348,dir:1,type:"basic",attackTimer:0},{x:3600,y:348,dir:1,type:"heavy",attackTimer:0}];
 const portal={x:4200,y:300,w:80,h:120,active:false};
 
 
@@ -149,10 +187,9 @@ const platforms=[
 function startGame(){
  started=true;
  setInterval(()=>{
-   if(!started)return;
-   timeLeft--;
-   document.getElementById('time').textContent=timeLeft;
-   if(timeLeft<=0) finish(false);
+  timeLeft--;
+  document.getElementById("time").textContent=timeLeft;
+  if(timeLeft<=0) finish(false);
  },1000);
  requestAnimationFrame(loop);
 }
@@ -182,7 +219,7 @@ function finish(win){
 
   if(level<5){
     level++;
-    document.getElementById('level').textContent=level; setLevelBackground();
+    document.getElementById('level').textContent=level; setLevelBackground(); showLevelIntro();
 
     player.x=100;
     player.y=300;
@@ -204,7 +241,7 @@ function finish(win){
       c.x=300+(i*180)+(level*250);
     });
 
-    portal.x=4200+(level*500);
+    portal.x=5200+(level*700);
 
     platforms.length=0;
     platforms.push(...LEVEL_PLATFORMS[level]);
@@ -212,26 +249,31 @@ function finish(win){
     if(level===1){
       window.skyColor='#12001f';
       window.platformColor='#00ccaa';
+      window.groundColor='#3b245f';
       window.mountainColor='#24143f';
     }
 
     if(level===2){
       window.skyColor='#002b12';
+      window.groundColor='#3b2a18';
       window.platformColor='#22dd55';
       window.mountainColor='#014d20';
     }
 
     if(level===3){
+      window.groundColor='#b8eaff';
       window.skyColor='#002244';
       window.platformColor='#88ddff';
       window.mountainColor='#113366';
     }
 
+      window.groundColor='#1a1010';
     if(level===4){
       window.skyColor='#330000';
       window.platformColor='#ff6600';
       window.mountainColor='#661100';
     }
+      window.groundColor='#16002b';
 
     if(level===5){
       window.skyColor='#000000';
@@ -279,6 +321,54 @@ addEventListener('keyup',e=>{
 
 function loop(){
  if(!started)return;
+ 
+if(level===3 && Math.random()<0.04){
+ iceHazards.push({x:player.x+300+Math.random()*800,y:-20,vy:8});
+}
+
+if(level===2 && Math.random()<0.25){
+ branchHazards.push({x:player.x+300+Math.random()*900,y:-30,vy:6+Math.random()*3});
+}
+
+if(level===4 && Math.random()<0.05){
+ lavaHazards.push({x:player.x+300+Math.random()*1000,timer:80});
+ 
+if((level===2||level===4) && Math.random()<0.04){
+ rockHazards.push({x:player.x+400+Math.random()*900,y:-20,vy:5+Math.random()*4});
+}
+}
+
+iceHazards.forEach(i=>{
+ i.y+=i.vy;
+ if(i.y>500)i.dead=true;
+});
+
+for(let n=iceHazards.length-1;n>=0;n--){
+ if(iceHazards[n].dead)iceHazards.splice(n,1);
+}
+
+lavaHazards.forEach(l=>{
+ 
+rockHazards.forEach(r=>{
+ 
+ if(Math.abs(player.x-r.x)<100 && Math.abs(player.y-r.y)<100){
+  player.hurtUntil=Date.now()+500;
+  health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);
+  r.dead=true;
+ }
+ r.y+=r.vy;
+ if(r.y>500)r.dead=true;
+});
+for(let n=rockHazards.length-1;n>=0;n--){
+ if(rockHazards[n].dead)rockHazards.splice(n,1);
+}
+ l.timer--;
+ if(l.timer<=0)l.dead=true;
+});
+
+for(let n=lavaHazards.length-1;n>=0;n--){
+ if(lavaHazards[n].dead)lavaHazards.splice(n,1);
+}
 
  const speed=6;
 
@@ -291,6 +381,43 @@ if(left){
 }
 
 player.x+=player.vx;
+ 
+const now=Date.now();
+
+iceHazards.forEach(i=>{
+ if(now>(player.hurtUntil||0) && Math.abs(player.x-i.x)<100 && Math.abs(player.y-i.y)<100){
+  health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);
+  player.hurtUntil=now+1000;
+  i.dead=true;
+ }
+});
+
+rockHazards.forEach(r=>{
+ if(now>(player.hurtUntil||0) && Math.abs(player.x-r.x)<100 && Math.abs(player.y-r.y)<100){
+  health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);
+  player.hurtUntil=now+1000;
+  r.dead=true;
+ }
+});
+
+branchHazards.forEach(b=>{
+ if(now>(player.hurtUntil||0) && Math.abs(player.x-b.x)<100 && Math.abs(player.y-b.y)<100){
+  health=Math.max(0,health-1);
+  document.getElementById("health").textContent=health;
+  console.log("HIT",health);
+  player.hurtUntil=now+1000;
+  b.dead=true;
+ }
+});
+
+lavaHazards.forEach(l=>{
+ if(now>(player.hurtUntil||0) && l.timer>40 && Math.abs(player.x-l.x)<60 && player.y>240){
+  health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);
+  player.hurtUntil=now+1000;
+ }
+});
+
+if(health<=0) finish(false);
 
 if(jump && !player.jumpLock){
 
@@ -339,11 +466,43 @@ player.jumps=0;
   }
  });
 
+
+  enemyRocks.forEach(r=>{
+    r.x+=r.vx;
+    r.y+=r.vy;
+    r.vy+=0.25;
+    if(r.y>500)r.dead=true;
+
+    if(Math.abs(player.x-r.x)<40 && Math.abs(player.y-r.y)<40){
+      health=Math.max(0,health-1);
+      document.getElementById("health").textContent=health;
+      console.log("GORILLA ROCK HIT",health);
+      r.dead=true;
+    }
+  });
+
+  for(let n=enemyRocks.length-1;n>=0;n--){
+    if(enemyRocks[n].dead)enemyRocks.splice(n,1);
+  }
 enemies.forEach(e=>{
 
   if(e.dead)return;
 
   e.x+=e.dir*2;
+
+    if(e.type==="thrower"){
+      e.attackTimer=(e.attackTimer||0)-1;
+      if(e.attackTimer<=0 && Math.abs(player.x-e.x)<450){
+        enemyRocks.push({
+          x:e.x,
+          y:e.y+20,
+          vx:player.x>e.x?6:-6,
+          vy:-8,
+          enemy:true
+        });
+        e.attackTimer=120;
+      }
+    }
   if(e.x<200||e.x>4300)e.dir*=-1;
 
   if(Math.abs(player.x-e.x)<80 && Math.abs(player.y-e.y)<90){
@@ -387,10 +546,20 @@ function draw(){
  ctx.fill();
 }
 
-ctx.fillStyle='#4a257a';
- ctx.fillRect(-cam,412,10000,cvs.height);
-ctx.fillStyle="#00ccaa";
-platforms.forEach(p=>ctx.fillRect(p.x-cam,p.y,p.w,p.h));
+  ctx.fillStyle=(window.groundColor||"#4a257a");
+  ctx.fillRect(-cam,412,10000,cvs.height);
+      platforms.forEach(p=>{
+       let body=window.platformColor||"#00ccaa";
+       let cap=window.groundColor||"#4a257a";
+       if(level===2){body="#4b2e18";cap="#3fa34d";}
+       if(level===3){body="#5bbde8";cap="#e8f8ff";}
+       if(level===4){body="#2b1b1b";cap="#ff6600";}
+       if(level===5){body="#2a1245";cap="#bb66ff";}
+       ctx.fillStyle=body;
+       ctx.fillRect(p.x-cam,p.y,p.w,p.h);
+       ctx.fillStyle=cap;
+       ctx.fillRect(p.x-cam,p.y,p.w,5);
+      });
 
 coins.forEach(c=>{
  if(!c.alive)return;
@@ -408,6 +577,13 @@ coins.forEach(c=>{
 });
 
 
+
+  enemyRocks.forEach(r=>{
+    ctx.fillStyle="#6b4f2a";
+    ctx.beginPath();
+    ctx.arc(r.x-cam,r.y,10,0,Math.PI*2);
+    ctx.fill();
+  });
 enemies.forEach(e=>{
 
   if(e.dead)return;
@@ -423,7 +599,58 @@ enemies.forEach(e=>{
  if(true){
    ctx.strokeStyle='#00ffcc'; ctx.lineWidth=4;
    if(portalImg.complete){
- ctx.shadowBlur=30;
+ iceHazards.forEach(i=>{
+ ctx.fillStyle='#aeefff';
+ ctx.beginPath();
+ ctx.arc(i.x-cam,i.y,10,0,Math.PI*2);
+ ctx.fill();
+});
+
+lavaHazards.forEach(l=>{
+ 
+rockHazards.forEach(r=>{
+ 
+ if(Math.abs(player.x-r.x)<100 && Math.abs(player.y-r.y)<100){
+  player.hurtUntil=Date.now()+500;
+  
+  r.dead=true;
+ }
+ r.y+=r.vy;
+ if(r.y>500)r.dead=true;
+});
+for(let n=rockHazards.length-1;n>=0;n--){
+ if(rockHazards[n].dead)rockHazards.splice(n,1);
+}
+ if(l.timer>40){
+  ctx.fillStyle='#ff6600';
+  ctx.fillRect(l.x-cam-20,220,40,180);
+ }
+});
+
+ 
+rockHazards.forEach(r=>{
+ 
+ if(Math.abs(player.x-r.x)<100 && Math.abs(player.y-r.y)<100){
+  player.hurtUntil=Date.now()+500;
+  
+  r.dead=true;
+ }
+ ctx.fillStyle="#555";
+ ctx.beginPath();
+ ctx.arc(r.x-cam,r.y,8,0,Math.PI*2);
+ ctx.fill();
+});
+
+ branchHazards.forEach(b=>{
+  ctx.fillStyle="#8b4513";
+  ctx.save();
+  ctx.translate(b.x-cam,b.y);
+  ctx.rotate(0.4);
+  ctx.fillRect(-25,-5,50,10);
+  ctx.fillRect(0,-15,8,20);
+  ctx.restore();
+ });
+ctx.shadowBlur=30;
  ctx.shadowColor='#00ffff';
  ctx.drawImage(portalImg,portal.x-cam-40,portal.y-40,220,220);
  ctx.shadowBlur=0;
