@@ -73,6 +73,7 @@ function resize(){cvs.width=innerWidth;cvs.height=innerHeight} resize(); addEven
 
 const dino=new Image();
 dino.src='/assets/dino.png';
+dino.onload=()=>console.log('DINO OK',dino.naturalWidth); dino.onerror=e=>console.log('DINO FAIL',e);
 
 const crystal=new Image();
 crystal.src='/assets/crystal-v2.png';
@@ -92,6 +93,7 @@ function setLevelBackground(){
 
 const ape=new Image();
 ape.src='/assets/gorilla.png';
+ape.onload=()=>console.log('GORILLA OK',ape.naturalWidth); ape.onerror=e=>console.log('GORILLA FAIL',e);
 
 let score=0,timeLeft=120,started=false,health=3; let level=1;
 setLevelBackground();
