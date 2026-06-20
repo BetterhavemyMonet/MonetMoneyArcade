@@ -56,6 +56,21 @@ border-radius:12px;
 Play Again
 </button>
 </div>
+<div id="gameOver" style="
+display:none;
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.92);
+z-index:99999;
+color:white;
+text-align:center;
+padding-top:20vh;
+font-family:Arial;
+">
+<h1>💀 GAME OVER 💀</h1>
+<h2 id="gameOverScore"></h2>
+<button onclick="location.href='arcade.html'" style="padding:15px 30px;font-size:20px;border:none;border-radius:12px;">🏠 RETURN TO LOBBY</button>
+</div>
 <div id="hud">
 MONET: <span id="score">0</span> | 💎 <span id="crystals">0</span>/20 | 🏆 <span id="best">0</span>
  | ❤ <span id="health">3</span>
@@ -292,7 +307,17 @@ function finish(win){
    ' | Crystals: '+score+'/20'+
    (score>=20?' | PERFECT +5000':'');
  }else{
-  alert('GAME OVER\nScore: '+finalScore);
+  const go=document.getElementById('gameOver');
+  if(go){
+    go.style.display='block';
+    go.innerHTML=`
+      <h1>GAME OVER</h1>
+      <p>Score: ${finalScore}</p>
+      <button onclick="location.href='arcade.html'">🏠 RETURN TO LOBBY</button>
+    `;
+  }else{
+    alert('GAME OVER\nScore: '+finalScore);
+  }
  }
 }
 
@@ -659,7 +684,7 @@ ctx.shadowBlur=30;
  }
 
  if(dino.complete) ctx.drawImage(dino,player.x-cam,player.y+55,player.w,player.h);
- else {ctx.fillStyle='lime';ctx.fillRect(player.x-cam,player.y,player.w,player.h);}
+ else {ctx.fillStyle='lime';ctx.fillRect(player.x-cam,player.y-16,player.w,player.h);}
 }
 </script>
 </body>
