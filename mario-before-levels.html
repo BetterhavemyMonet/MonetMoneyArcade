@@ -257,22 +257,6 @@ function pipe(c,topR,h){
   for(let r=topR+1;r<topR+h;r++){st(c,r,PIPE_B);st(c+1,r,PIPE_B);}
 }
 pipe(9,6,2); pipe(21,5,3); pipe(36,6,2); pipe(58,5,3);
-// Extended Monet Realm
-for(let c=80;c<=84;c++){st(c,8,AIR);st(c,9,AIR);}
-for(let c=100;c<=105;c++){st(c,8,AIR);st(c,9,AIR);}
-rowFill(72,78,5,BRICK);
-rowFill(86,92,3,BRICK);
-rowFill(108,115,4,BRICK);
-rowFill(122,130,2,BRICK);
-st(74,4,QBLOCK);
-st(88,2,QBLOCK);
-st(111,3,QBLOCK);
-st(126,1,QBLOCK);
-pipe(82,5,3);
-pipe(96,6,2);
-pipe(118,5,3);
-for(let i=0;i<7;i++){rowFill(132+i,132+i,8-i,GROUND);}
-
 
 // Power-up assignment for Q-blocks (key = "c,r" → type)
 const QPOWERUP={
