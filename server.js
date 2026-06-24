@@ -9,6 +9,8 @@ import {
   Keypair, SystemProgram,
 } from '@solana/web3.js';
 import Stripe from 'stripe';
+import http from 'http';
+import { WebSocketServer } from 'ws';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR   = path.join(__dirname, 'data');
@@ -1158,7 +1160,12 @@ async function settleTournament(tourneys, idx) {
 
   const ranked = [...t.players]
     .filter(p => p.score !== null)
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => {
+        if (game === 'racing') {
+          if (a.time && b.time) return a.time - b.time;
+        }
+        return b.score - a.score;
+      });
 
   ranked.forEach((p, i) => {
     const pl = t.players.find(x => x.wallet === p.wallet);
@@ -1263,10 +1270,19 @@ app.post('/api/claims/process', async (req, res) => {
 
 // POST /api/leaderboard/submit — record a solo-play score (no payout, leaderboard only)
 app.post('/api/leaderboard/submit', (req, res) => {
-  const { wallet, game, score, txId } = req.body || {};
+  const { wallet, game, score, txId, laps, time, finishedAt } = req.body || {};
   if (!wallet || !game || score == null) return res.status(400).json({ error: 'wallet, game, score required' });
   const soloScores = dbRead('solo_scores');
-  soloScores.push({ wallet, game, score: Number(score), txId: txId || null, submittedAt: new Date().toISOString() });
+  soloScores.push({
+      wallet,
+      game,
+      score: Number(score),
+      laps: Number(laps || 0),
+      time: Number(time || 0),
+      finishedAt: finishedAt || new Date().toISOString(),
+      txId: txId || null,
+      submittedAt: new Date().toISOString()
+    });
   dbWrite('solo_scores', soloScores);
   console.log(`[SOLO] ${wallet.slice(0,8)}… scored ${score} on ${game}`);
   res.json({ ok: true });
@@ -1283,7 +1299,14 @@ app.get('/api/leaderboard/:game', (req, res) => {
   const scores = {}; // wallet -> { score, payoutTxId, entryTxId, source }
   const addScore = (wallet, score, payoutTxId, entryTxId, source) => {
     if (!scores[wallet] || score > scores[wallet].score) {
-      scores[wallet] = { score, payoutTxId: payoutTxId || null, entryTxId: entryTxId || null, source: source || 'challenge' };
+      scores[wallet] = {
+          score,
+          time: null,
+          laps: null,
+          payoutTxId: payoutTxId || null,
+          entryTxId: entryTxId || null,
+          source: source || 'challenge'
+        };
     }
   };
 
@@ -1302,11 +1325,24 @@ app.get('/api/leaderboard/:game', (req, res) => {
   cpuGames.forEach(g => {
     if (g.playerScore) addScore(g.wallet, g.playerScore, g.payoutTxId, g.txId, 'cpu');
   });
-  soloEntries.forEach(s => addScore(s.wallet, s.score, null, s.txId, 'solo'));
+  soloEntries.forEach(s => {
+      addScore(s.wallet, s.score, null, s.txId, 'solo');
+      if (game === 'racing' && scores[s.wallet]) {
+        scores[s.wallet].time = s.time || 0;
+        scores[s.wallet].laps = s.laps || 0;
+      }
+    });
 
   const board = Object.entries(scores)
     .map(([wallet, d]) => ({ wallet, ...d }))
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => {
+        if (game === 'racing') {
+          if (a.time && b.time) return a.time - b.time;
+          if (a.time) return -1;
+          if (b.time) return 1;
+        }
+        return b.score - a.score;
+      })
     .slice(0, 20);
 
   res.json({ ok: true, game, leaderboard: board });
@@ -1344,7 +1380,14 @@ app.get('/api/leaderboard', (req, res) => {
   });
 
   const board = Object.values(scores)
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => {
+        if (game === 'racing') {
+          if (a.time && b.time) return a.time - b.time;
+          if (a.time) return -1;
+          if (b.time) return 1;
+        }
+        return b.score - a.score;
+      })
     .slice(0, 50);
 
   res.json({ ok: true, leaderboard: board });
@@ -2018,7 +2061,56 @@ app.get('/api/profile/:wallet', (req, res) => {
   res.json(profile);
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+
+const server = http.createServer(app);
+
+const wss = new WebSocketServer({ server });
+
+const liveRaces = {};
+
+wss.on('connection', (socket) => {
+
+  console.log('[RACE WS] player connected');
+
+  socket.on('message', (msg) => {
+    try {
+      const data = JSON.parse(msg);
+
+      if (data.type === 'race_update') {
+
+        const wallet = data.wallet || 'guest';
+
+        liveRaces[wallet] = {
+          wallet,
+          position: Number(data.position || 0),
+          speed: Number(data.speed || 0)
+        };
+
+        const state = JSON.stringify({
+          type:'race_state',
+          players: liveRaces
+        });
+
+        wss.clients.forEach(client=>{
+          if(client.readyState === WebSocket.OPEN){
+            client.send(state);
+          }
+        });
+      }
+
+    } catch(e){
+      console.log('[RACE WS ERROR]', e.message);
+    }
+  });
+
+  socket.on('close',()=>{
+    console.log('[RACE WS] player disconnected');
+  });
+
+});
+
+
+server.listen(PORT, '0.0.0.0', () => {
   const kp = getTreasuryKP();
   if (kp) {
     const kpAddr = kp.publicKey.toString();
