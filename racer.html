@@ -148,49 +148,6 @@
 
 <script>
 
-
-// LIVE MULTIPLAYER CONNECTION
-let raceSocket = null;
-let livePlayers = {};
-
-function connectRaceSocket(){
-    try {
-        raceSocket = new WebSocket(
-            location.origin.replace("http","ws")
-        );
-
-        raceSocket.onopen = ()=>{
-            console.log("LIVE RACE CONNECTED");
-        };
-
-        raceSocket.onmessage = (event)=>{
-            const data = JSON.parse(event.data);
-
-            if(data.type === "race_state"){
-                livePlayers = data.players || {};
-            }
-        };
-
-        raceSocket.onclose = ()=>{
-            console.log("LIVE RACE DISCONNECTED");
-        };
-
-    } catch(e){
-        console.log("WS error", e);
-    }
-}
-
-function sendRaceUpdate(){
-    if(!raceSocket || raceSocket.readyState !== 1) return;
-
-    raceSocket.send(JSON.stringify({
-        type:"race_update",
-        position:pos,
-        speed:speed,
-        wallet:window.MONET_WALLET || localStorage.getItem("wallet_address") || "guest"
-    }));
-}
-
 // MULTIPLAYER RACE SYSTEM
 const MAX_PLAYERS = 8;
 
@@ -209,12 +166,42 @@ let raceResults=[];
 
 function updateRacePositions(){
     racers.forEach((r,i)=>{
+
         if(!r.finished){
+
             if(i!==0){
-                r.speed = 3 + Math.random()*3;
+
+                // CPU personality setup
+                if(r.skill === undefined){
+                    r.skill = 0.75 + Math.random()*0.25;
+                    r.cornerSkill = 0.7 + Math.random()*0.3;
+                    r.aggression = Math.random();
+                }
+
+                let part = getTrackPart(r.position);
+
+                let targetSpeed = 5 + (r.skill * 4);
+
+                // Slow down for corners
+                if(part.type === "hairpin"){
+                    targetSpeed *= 0.55;
+                }
+                else if(part.type === "left" || part.type === "right"){
+                    targetSpeed *= 0.78;
+                }
+
+                // Smooth CPU acceleration
+                r.speed += (targetSpeed - r.speed) * 0.08;
+
+                // Occasional mistakes
+                if(Math.random() < (1-r.cornerSkill)*0.01){
+                    r.speed *= 0.85;
+                }
+
                 r.position += r.speed;
             }
-            if(r.position > 10000){
+
+            if(r.position > trackLength){
                 r.finished=true;
                 raceResults.push(r);
             }
@@ -312,7 +299,11 @@ let speed = 0;
 let maxSpeed = 60;
 let pos = 0; // Forward travel distance
 let camera_x = 0; // Horizontal position (Steering)
+let carAngle = 0;
 let roadCurve = 0;
+let trackHeading = 0;
+let carWorldX = 0;
+let carWorldY = 0;
 let score = 0;
 let lap = 1;
 let totalLaps = 3;
@@ -411,7 +402,6 @@ async function submitRaceScore(){
 
 // Start Game Reset
 function startGame() {
-    connectRaceSocket();
     initAudio();
     document.getElementById('screen-start').classList.add('hidden');
     document.getElementById('screen-gameover').classList.add('hidden');
@@ -449,7 +439,6 @@ if (keys.ArrowUp) {
 speed = Math.max(0, Math.min(speed, maxSpeed));
 
 pos += speed;
-
 
 // Lap detection
 if (Math.floor(pos / trackLength) > lastLap) {
@@ -490,15 +479,27 @@ if (Math.floor(pos / trackLength) > lastLap) {
 
 const trackPart = getTrackPart(pos);
 
-let trackPull = 0;
+  let turnForce = 0;
 
-if(trackPart.type === "left") trackPull = -2.0;
-if(trackPart.type === "right") trackPull = 2.0;
-if(trackPart.type === "hairpin") trackPull = 4.5;
+  if(trackPart.type === "left") turnForce = -0.006;
+  if(trackPart.type === "right") turnForce = 0.006;
+  if(trackPart.type === "hairpin") turnForce = 0.012;
 
-camera_x += trackPull * (speed / 12);
+  carAngle += turnForce * (speed / maxSpeed);
 
-let steerFactor = speed / maxSpeed;
+  // Real track direction movement
+  trackHeading += turnForce * (speed / maxSpeed);
+
+  carWorldX += Math.sin(trackHeading) * speed;
+  carWorldY += Math.cos(trackHeading) * speed;
+
+  // steering visual response
+  camera_x += Math.sin(trackHeading) * speed * 0.08;
+
+  // natural recovery
+  carAngle *= 0.985;
+
+  let steerFactor = speed / maxSpeed;
 
 if (keys.ArrowLeft)
     camera_x -= 35 * (0.5 + steerFactor);
@@ -562,14 +563,16 @@ document.getElementById('scoreVal').innerText =
 
   document.getElementById('lapVal').innerText = lap;
 
-  // Send live race position
-  sendRaceUpdate();
-
 }
 
 
 // Advanced 3D Car Renderer using Gradients
-function drawCar(x, y, scale, color, isPlayer, type="sport") {
+function drawCar(x, y, scale, color, isPlayer, type="sport", angle=0) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    x = 0;
+    y = 0;
     let w = 260 * scale;
     let h = 130 * scale;
 
@@ -675,6 +678,8 @@ function drawCar(x, y, scale, color, isPlayer, type="sport") {
         ctx.fillStyle = '#222';
         ctx.fillRect(x-w*0.15,y-h*0.98,w*0.3,h*0.05);
     }
+
+    ctx.restore();
 }
 
 function drawBackground() {
@@ -866,49 +871,10 @@ if (segmentDistance % trackLength < seg_len) {
         let scale = fov / dz;
         let sx = width / 2 + ((e.world_x - camera_x) * scale);
         let sy = horizon_y + (camera_height * scale);
-        drawCar(sx, sy, scale, e.color, false, e.type);
+        drawCar(sx, sy, scale, e.color, false, e.type, 0);
     }
 
-    
-// Render Live Multiplayer Racers
-let visibleLive = Object.values(livePlayers || {}).filter(p =>
-    p.wallet !== wallet &&
-    p.position > pos &&
-    p.position < pos + (draw_distance * seg_len)
-);
-
-visibleLive.sort((a,b)=>b.position-a.position);
-
-for (let p of visibleLive) {
-
-    let dz = p.position - pos;
-    let scale = fov / dz;
-
-    let laneOffset = p.lane || 0;
-
-    let sx = width / 2 + ((laneOffset - camera_x) * scale);
-    let sy = horizon_y + (camera_height * scale);
-
-    drawCar(
-        sx,
-        sy,
-        scale,
-        "#00ff99",
-        false,
-        "sport"
-    );
-
-    ctx.fillStyle="#ffffff";
-    ctx.font="14px Arial";
-    ctx.fillText(
-        (p.wallet || "PLAYER").slice(0,8),
-        sx-25,
-        sy-40
-    );
-}
-
-
-// Render Player (Anchored at bottom center plane)
+    // Render Player (Anchored at bottom center plane)
     if (!gameOver || Math.floor(Date.now() / 200) % 2 === 0) { // Blink if dead
         let p_scale = fov / 100; // Near plane Z
         let p_sy = horizon_y + (camera_height * p_scale);
@@ -919,10 +885,6 @@ for (let p of visibleLive) {
 }
 
 // Game Loop
-window.onerror = function(msg, src, line, col){
-    console.log("GAME ERROR:", msg, "LINE:", line);
-};
-
 function gameLoop() {
     update();
     draw();
@@ -931,7 +893,6 @@ function gameLoop() {
 
 // Initial draw behind the start screen
 drawBackground();
-
 </script>
 </body>
 </html>
