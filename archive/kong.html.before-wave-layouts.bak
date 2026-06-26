@@ -97,44 +97,6 @@ const BARREL_DIR=[1, -1, 1, -1, 1];
 
 let player, barrels, score, lives, gameRunning, animId, phase;
 let barrelTimer=0, wave=0, kongAnim=0, kongThrow=false;
-
-const WAVE_LAYOUTS=[
-{
-floors:[
-{y:72,x1:60,x2:260},{y:155,x1:0,x2:276},{y:240,x1:44,x2:320},{y:330,x1:0,x2:276},{y:420,x1:0,x2:320}
-],
-ladders:[
-{x:152,y1:72,y2:155},{x:252,y1:155,y2:240},{x:68,y1:240,y2:330},{x:252,y1:330,y2:420}
-]
-},
-{
-floors:[
-{y:70,x1:20,x2:210},{y:150,x1:120,x2:320},{y:230,x1:0,x2:220},{y:320,x1:100,x2:320},{y:420,x1:0,x2:260}
-],
-ladders:[
-{x:180,y1:70,y2:150},{x:140,y1:150,y2:230},{x:200,y1:230,y2:320},{x:120,y1:320,y2:420}
-]
-},
-{
-floors:[
-{y:65,x1:140,x2:320},{y:150,x1:20,x2:180},{y:235,x1:120,x2:320},{y:330,x1:0,x2:180},{y:420,x1:80,x2:320}
-],
-ladders:[
-{x:220,y1:65,y2:150},{x:70,y1:150,y2:235},{x:250,y1:235,y2:330},{x:120,y1:330,y2:420}
-]
-}
-];
-
-function loadWaveLayout(){
- let l=WAVE_LAYOUTS[Math.min(wave,WAVE_LAYOUTS.length-1)];
- if(l){
-  FLOORS.length=0;
-  FLOORS.push(...l.floors);
-  LADDERS.length=0;
-  LADDERS.push(...l.ladders);
- }
-}
-
 let keys={left:false,right:false,up:false,down:false};
 let jumpQueued=false;
 
@@ -215,7 +177,7 @@ function checkWin(){
   if(player.floorIdx===0){
     phase='win'; score+=500+wave*100;
     setTimeout(()=>{
-      wave=Math.min(wave+1,8); loadWaveLayout();
+      wave=Math.min(wave+1,8);
       if(wave>=8){ endGame(); return; }
       barrels=[]; barrelTimer=0;
       resetPlayer(); phase='play';

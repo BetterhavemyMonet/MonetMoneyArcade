@@ -1,152 +1,47 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Arcade Racer</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body {
-            background: #000;
-            color: #fff;
-            font-family: 'Arial Black', sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-        #game-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            max-width: 800px;
-            max-height: 600px;
-            box-shadow: 0 0 20px rgba(255, 100, 0, 0.3);
-            background: #111;
-        }
-        canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-        #hud {
-            position: absolute;
-            top: 15px;
-            left: 20px;
-            right: 20px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 1.2rem;
-            text-shadow: 2px 2px 0 #000;
-            pointer-events: none;
-            z-index: 10;
-        }
-        .text-neon { color: #ffcc00; }
-        
-        /* Mobile Controls */
-        #mobile-controls {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            padding: 0 20px;
-            z-index: 20;
-        }
-        .control-group { display: flex; gap: 15px; }
-        .touch-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            width: 65px;
-            height: 65px;
-            color: white;
-            font-size: 24px;
-            font-weight: bold;
-            backdrop-filter: blur(4px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-        .touch-btn:active, .touch-btn.active {
-            background: rgba(255, 255, 255, 0.4);
-            transform: scale(0.95);
-        }
-        #btn-gas { background: rgba(255, 50, 50, 0.2); border-color: rgba(255, 50, 50, 0.5); }
-        #btn-gas:active, #btn-gas.active { background: rgba(255, 50, 50, 0.6); }
 
-        /* Overlays */
-        .overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 30;
-        }
-        h1 { font-size: 3rem; color: #ff3300; margin-bottom: 20px; text-transform: uppercase; text-shadow: 0 0 15px #ff3300; }
-        .btn-start {
-            background: #ff3300; color: #fff; border: none; padding: 15px 40px;
-            font-size: 1.5rem; font-weight: bold; cursor: pointer; border-radius: 5px;
-            box-shadow: 0 6px 0 #990000; transition: 0.1s; font-family: inherit;
-        }
-        .btn-start:active { transform: translateY(4px); box-shadow: 0 2px 0 #990000; }
-        .hidden { display: none !important; }
-        
-        @media (min-width: 800px) {
-            #mobile-controls { display: none; } /* Hide touch controls on desktop */
-            #hud { font-size: 1.5rem; }
-        }
-    </style>
-</head>
-<body>
 
-<div id="game-container">
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-    <div id="hud">
-        <div>SCORE <span id="scoreVal" class="text-neon">0</span></div>
-        <div><span id="speedVal" class="text-neon">0</span> MPH</div>
-          <div>LAP <span id="lapVal" class="text-neon">1</span>/3</div>
-    </div>
+// LIVE MULTIPLAYER CONNECTION
+let raceSocket = null;
+let livePlayers = {};
 
-    <!-- Touch Controls -->
-    <div id="mobile-controls">
-        <div class="control-group">
-            <div class="touch-btn" id="btn-left">◀</div>
-            <div class="touch-btn" id="btn-right">▶</div>
-        </div>
-        <div class="control-group">
-            <div class="touch-btn" id="btn-brake" style="font-size: 14px;">BRK</div>
-            <div class="touch-btn" id="btn-gas" style="font-size: 14px;">GAS</div>
-        </div>
-    </div>
+function connectRaceSocket(){
+    try {
+        raceSocket = new WebSocket(
+            location.origin.replace("http","ws")
+        );
 
-    <!-- Start / Game Over Screens -->
-    <div id="screen-start" class="overlay">
-        <h1>VIRTUAL RACER</h1>
-        <p style="margin-bottom: 20px; color: #aaa;">Arrows/WASD to Drive</p>
-        <button class="btn-start" onclick="startGame()">START ENGINE</button>
-    </div>
+        raceSocket.onopen = ()=>{
+            console.log("LIVE RACE CONNECTED");
+        };
 
-    <div id="screen-gameover" class="overlay hidden">
-          <h1>🏁 RACE COMPLETE!</h1>
-          <h2 id="placeResult" class="text-neon">FINISHING...</h2>
+        raceSocket.onmessage = (event)=>{
+            const data = JSON.parse(event.data);
 
-          <p>TIME: <span id="finalTime">0</span></p>
-          <p>LAPS: <span id="finalLaps">0</span>/3</p>
-          <p>SCORE: <span id="finalScore" class="text-neon">0</span></p>
+            if(data.type === "race_state"){
+                livePlayers = data.players || {};
+            }
+        };
 
-          <button class="btn-start" onclick="startGame()">RACE AGAIN</button>
-      </div>
-</div>
+        raceSocket.onclose = ()=>{
+            console.log("LIVE RACE DISCONNECTED");
+        };
 
-<script>
+    } catch(e){
+        console.log("WS error", e);
+    }
+}
+
+function sendRaceUpdate(){
+    if(!raceSocket || raceSocket.readyState !== 1) return;
+
+    raceSocket.send(JSON.stringify({
+        type:"race_update",
+        position:pos,
+        speed:speed,
+        wallet:window.MONET_WALLET || localStorage.getItem("wallet_address") || "guest"
+    }));
+}
 
 // MULTIPLAYER RACE SYSTEM
 const MAX_PLAYERS = 8;
@@ -166,42 +61,12 @@ let raceResults=[];
 
 function updateRacePositions(){
     racers.forEach((r,i)=>{
-
         if(!r.finished){
-
             if(i!==0){
-
-                // CPU personality setup
-                if(r.skill === undefined){
-                    r.skill = 0.75 + Math.random()*0.25;
-                    r.cornerSkill = 0.7 + Math.random()*0.3;
-                    r.aggression = Math.random();
-                }
-
-                let part = getTrackPart(r.position);
-
-                let targetSpeed = 5 + (r.skill * 4);
-
-                // Slow down for corners
-                if(part.type === "hairpin"){
-                    targetSpeed *= 0.55;
-                }
-                else if(part.type === "left" || part.type === "right"){
-                    targetSpeed *= 0.78;
-                }
-
-                // Smooth CPU acceleration
-                r.speed += (targetSpeed - r.speed) * 0.08;
-
-                // Occasional mistakes
-                if(Math.random() < (1-r.cornerSkill)*0.01){
-                    r.speed *= 0.85;
-                }
-
+                r.speed = 3 + Math.random()*3;
                 r.position += r.speed;
             }
-
-            if(r.position > trackLength){
+            if(r.position > 10000){
                 r.finished=true;
                 raceResults.push(r);
             }
@@ -296,53 +161,10 @@ function getTrackPart(distance){
 
 // Game State
 let speed = 0;
-
-let livePlayers = {};
-let raceSocket = null;
-
-function connectRaceSocket(){
-    try{
-        raceSocket = new WebSocket(
-            location.origin.replace("http","ws")
-        );
-
-        raceSocket.onopen = ()=>{
-            console.log("LIVE RACE CONNECTED");
-        };
-
-        raceSocket.onmessage = (event)=>{
-            const data = JSON.parse(event.data);
-
-            if(data.type === "race_state"){
-                livePlayers = data.players || {};
-            }
-        };
-
-    }catch(e){
-        console.log("WS ERROR",e);
-    }
-}
-
-function sendRaceUpdate(){
-    if(!raceSocket || raceSocket.readyState !== 1) return;
-
-    raceSocket.send(JSON.stringify({
-        type:"race_update",
-        position:pos,
-        speed:speed,
-        wallet:window.wallet || "guest"
-    }));
-}
-
-
 let maxSpeed = 60;
 let pos = 0; // Forward travel distance
 let camera_x = 0; // Horizontal position (Steering)
-let carAngle = 0;
 let roadCurve = 0;
-let trackHeading = 0;
-let carWorldX = 0;
-let carWorldY = 0;
 let score = 0;
 let lap = 1;
 let totalLaps = 3;
@@ -377,8 +199,6 @@ const bindTouch = (id, key) => {
 };
 bindTouch('btn-left', 'ArrowLeft'); bindTouch('btn-right', 'ArrowRight');
 bindTouch('btn-gas', 'ArrowUp'); bindTouch('btn-brake', 'ArrowDown');
-
-connectRaceSocket();
 
 // Initialize Web Audio API
 function initAudio() {
@@ -443,11 +263,16 @@ async function submitRaceScore(){
 
 // Start Game Reset
 function startGame() {
+    document.title = "STEP 1";
+    // connectRaceSocket();
     initAudio();
+    document.title = "STEP 2";
     document.getElementById('screen-start').classList.add('hidden');
+      document.title = "GAME STARTED";
     document.getElementById('screen-gameover').classList.add('hidden');
     speed = 0; pos = 0; camera_x = 0; score = 0; enemies = []; gameOver = false; lap = 1; lastLap = 0; raceStartTime = Date.now(); raceFinishTime = 0; raceSubmitted = false; lap = 1; lastLap = 0;
     engineGain.gain.value = 0.05; // turn on engine sound
+    document.title = "STEP 3";
     requestAnimationFrame(gameLoop);
 }
 
@@ -480,6 +305,7 @@ if (keys.ArrowUp) {
 speed = Math.max(0, Math.min(speed, maxSpeed));
 
 pos += speed;
+document.title = "SPEED " + speed.toFixed(1) + " POS " + Math.floor(pos);
 
 // Lap detection
 if (Math.floor(pos / trackLength) > lastLap) {
@@ -520,27 +346,15 @@ if (Math.floor(pos / trackLength) > lastLap) {
 
 const trackPart = getTrackPart(pos);
 
-  let turnForce = 0;
+let trackPull = 0;
 
-  if(trackPart.type === "left") turnForce = -0.006;
-  if(trackPart.type === "right") turnForce = 0.006;
-  if(trackPart.type === "hairpin") turnForce = 0.012;
+if(trackPart.type === "left") trackPull = -2.0;
+if(trackPart.type === "right") trackPull = 2.0;
+if(trackPart.type === "hairpin") trackPull = 4.5;
 
-  carAngle += turnForce * (speed / maxSpeed);
+camera_x += trackPull * (speed / 12);
 
-  // Real track direction movement
-  trackHeading += turnForce * (speed / maxSpeed);
-
-  carWorldX += Math.sin(trackHeading) * speed;
-  carWorldY += Math.cos(trackHeading) * speed;
-
-  // steering visual response
-  camera_x += Math.sin(trackHeading) * speed * 0.08;
-
-  // natural recovery
-  carAngle *= 0.985;
-
-  let steerFactor = speed / maxSpeed;
+let steerFactor = speed / maxSpeed;
 
 if (keys.ArrowLeft)
     camera_x -= 35 * (0.5 + steerFactor);
@@ -604,16 +418,14 @@ document.getElementById('scoreVal').innerText =
 
   document.getElementById('lapVal').innerText = lap;
 
+  // Send live race position
+  sendRaceUpdate();
+
 }
 
 
 // Advanced 3D Car Renderer using Gradients
-function drawCar(x, y, scale, color, isPlayer, type="sport", angle=0) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    x = 0;
-    y = 0;
+function drawCar(x, y, scale, color, isPlayer, type="sport") {
     let w = 260 * scale;
     let h = 130 * scale;
 
@@ -719,8 +531,6 @@ function drawCar(x, y, scale, color, isPlayer, type="sport", angle=0) {
         ctx.fillStyle = '#222';
         ctx.fillRect(x-w*0.15,y-h*0.98,w*0.3,h*0.05);
     }
-
-    ctx.restore();
 }
 
 function drawBackground() {
@@ -912,7 +722,7 @@ if (segmentDistance % trackLength < seg_len) {
         let scale = fov / dz;
         let sx = width / 2 + ((e.world_x - camera_x) * scale);
         let sy = horizon_y + (camera_height * scale);
-        drawCar(sx, sy, scale, e.color, false, e.type, 0);
+        drawCar(sx, sy, scale, e.color, false, e.type);
     }
 
     // Render Player (Anchored at bottom center plane)
@@ -926,6 +736,10 @@ if (segmentDistance % trackLength < seg_len) {
 }
 
 // Game Loop
+window.onerror = function(msg, src, line, col){
+    console.log("GAME ERROR:", msg, "LINE:", line);
+};
+
 function gameLoop() {
     update();
     draw();
@@ -934,7 +748,3 @@ function gameLoop() {
 
 // Initial draw behind the start screen
 drawBackground();
-</script>
-</body>
-</html>
-

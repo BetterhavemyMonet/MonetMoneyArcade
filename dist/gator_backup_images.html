@@ -84,27 +84,27 @@ const cvs=document.getElementById('game'),ctx=cvs.getContext('2d');
 function resize(){cvs.width=innerWidth;cvs.height=innerHeight} resize(); addEventListener('resize',resize);
 
 const dino=new Image();
-dino.src='assets/dino.png';
+dino.src='/assets/dino.png';
 dino.onload=()=>console.log("DINO LOADED",dino.naturalWidth); dino.onerror=()=>console.log("DINO FAILED");
 
 const crystal=new Image();
-crystal.src='assets/crystal-v2.png';
+crystal.src='/assets/crystal-v2.png';
 
 const portalImg=new Image();
-portalImg.src='assets/portal.png';
+portalImg.src='/assets/portal.png';
 const bg=new Image();
 
 function setLevelBackground(){
- if(level===1) bg.src='assets/bg-crystal-valley.png';
- else if(level===2) bg.src='assets/bg-emerald-jungle.png';
- else if(level===3) bg.src='assets/bg-frozen-peaks.png';
- else if(level===4) bg.src='assets/bg-magma-depths.png';
- else bg.src='assets/bg-portal-citadel.png';
+ if(level===1) bg.src='/assets/bg-crystal-valley.png';
+ else if(level===2) bg.src='/assets/bg-emerald-jungle.png';
+ else if(level===3) bg.src='/assets/bg-frozen-peaks.png';
+ else if(level===4) bg.src='/assets/bg-magma-depths.png';
+ else bg.src='/assets/bg-portal-citadel.png';
 }
 
 
 const ape=new Image();
-ape.src='assets/gorilla.png';
+ape.src='/assets/gorilla.png';
 
 let score=0,timeLeft=120,started=false,health=3; let level=1;
 setLevelBackground();
@@ -379,7 +379,7 @@ rockHazards.forEach(r=>{
  
  if(Math.abs(player.x-r.x)<100 && Math.abs(player.y-r.y)<100){
   player.hurtUntil=Date.now()+500;
-  if(now>(player.hurtUntil||0)){health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);player.hurtUntil=now+1000;}
+  health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);
   r.dead=true;
  }
  r.y+=r.vy;
@@ -412,7 +412,7 @@ const now=Date.now();
 
 iceHazards.forEach(i=>{
  if(now>(player.hurtUntil||0) && Math.abs(player.x-i.x)<100 && Math.abs(player.y-i.y)<100){
-  if(now>(player.hurtUntil||0)){health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);player.hurtUntil=now+1000;}
+  health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);
   player.hurtUntil=now+1000;
   i.dead=true;
  }
@@ -420,7 +420,7 @@ iceHazards.forEach(i=>{
 
 rockHazards.forEach(r=>{
  if(now>(player.hurtUntil||0) && Math.abs(player.x-r.x)<100 && Math.abs(player.y-r.y)<100){
-  if(now>(player.hurtUntil||0)){health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);player.hurtUntil=now+1000;}
+  health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);
   player.hurtUntil=now+1000;
   r.dead=true;
  }
@@ -432,14 +432,13 @@ branchHazards.forEach(b=>{
   document.getElementById("health").textContent=health;
   console.log("HIT",health);
   player.hurtUntil=now+1000;
-  player.hurtUntil=now+1000;
   b.dead=true;
  }
 });
 
 lavaHazards.forEach(l=>{
  if(now>(player.hurtUntil||0) && l.timer>40 && Math.abs(player.x-l.x)<60 && player.y>240){
-  if(now>(player.hurtUntil||0)){health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);player.hurtUntil=now+1000;}
+  health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);
   player.hurtUntil=now+1000;
  }
 });
@@ -500,12 +499,10 @@ player.jumps=0;
     r.vy+=0.25;
     if(r.y>500)r.dead=true;
 
-    if(now>(player.hurtUntil||0) && Math.abs(player.x-r.x)<40 && Math.abs(player.y-r.y)<40){
+    if(Math.abs(player.x-r.x)<40 && Math.abs(player.y-r.y)<40){
       health=Math.max(0,health-1);
       document.getElementById("health").textContent=health;
       console.log("GORILLA ROCK HIT",health);
-      player.hurtUntil=now+1000;
-      player.hurtUntil=now+1000;
       r.dead=true;
     }
   });
@@ -564,7 +561,7 @@ enemies.forEach(e=>{
 
 function draw(){
  const cam=Math.max(0,player.x-cvs.width/2);
- if(bg.complete && bg.naturalWidth > 0){ctx.drawImage(bg,-cam*0.15,0,5000,cvs.height);}else{ctx.fillStyle='#12001f';ctx.fillRect(-10000,-10000,50000,50000);}
+ if(bg.complete){ctx.drawImage(bg,-cam*0.15,0,5000,cvs.height);}else{ctx.fillStyle='#12001f';ctx.fillRect(-10000,-10000,50000,50000);}
 
  for(let i=0;i<12;i++){
  ctx.fillStyle=(window.mountainColor||'#24143f');
@@ -596,7 +593,7 @@ coins.forEach(c=>{
  if(crystal.complete){
   ctx.shadowBlur=15;
   ctx.shadowColor='#66ffff';
-  if(crystal.complete && crystal.naturalWidth > 0) ctx.drawImage(crystal,c.x-cam-18,c.y-22+bob,48,58);
+  ctx.drawImage(crystal,c.x-cam-18,c.y-22+bob,48,58);
  }else{
   ctx.fillStyle="gold";
   ctx.beginPath();
@@ -618,7 +615,7 @@ enemies.forEach(e=>{
   if(e.dead)return;
 
   if(ape.complete){
-    if(ape.complete && ape.naturalWidth > 0) ctx.drawImage(ape,e.x-cam-15,e.y+35,110,110);
+    ctx.drawImage(ape,e.x-cam-15,e.y+35,110,110);
   }else{
     ctx.fillStyle="red";
     ctx.fillRect(e.x-cam,e.y,64,64);
@@ -681,12 +678,12 @@ rockHazards.forEach(r=>{
  });
 ctx.shadowBlur=30;
  ctx.shadowColor='#00ffff';
- if(portalImg.complete && portalImg.naturalWidth > 0) ctx.drawImage(portalImg,portal.x-cam-40,portal.y-40,220,220);
+ ctx.drawImage(portalImg,portal.x-cam-40,portal.y-40,220,220);
  ctx.shadowBlur=0;
 }
  }
 
- if(dino.complete && dino.naturalWidth > 0) ctx.drawImage(dino,player.x-cam,player.y+55,player.w,player.h);
+ if(dino.complete) ctx.drawImage(dino,player.x-cam,player.y+55,player.w,player.h);
  else {ctx.fillStyle='lime';ctx.fillRect(player.x-cam,player.y-16,player.w,player.h);}
 }
 </script>

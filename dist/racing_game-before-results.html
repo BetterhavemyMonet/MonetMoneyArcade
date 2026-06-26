@@ -135,15 +135,10 @@
     </div>
 
     <div id="screen-gameover" class="overlay hidden">
-          <h1>🏁 RACE COMPLETE!</h1>
-          <h2 id="placeResult" class="text-neon">FINISHING...</h2>
-
-          <p>TIME: <span id="finalTime">0</span></p>
-          <p>LAPS: <span id="finalLaps">0</span>/3</p>
-          <p>SCORE: <span id="finalScore" class="text-neon">0</span></p>
-
-          <button class="btn-start" onclick="startGame()">RACE AGAIN</button>
-      </div>
+        <h1>RACE COMPLETE!</h1>
+        <h2 style="margin-bottom: 30px;">FINAL SCORE: <span id="finalScore" class="text-neon">0</span></h2>
+        <button class="btn-start" onclick="startGame()">RACE AGAIN</button>
+    </div>
 </div>
 
 <script>
@@ -166,42 +161,12 @@ let raceResults=[];
 
 function updateRacePositions(){
     racers.forEach((r,i)=>{
-
         if(!r.finished){
-
             if(i!==0){
-
-                // CPU personality setup
-                if(r.skill === undefined){
-                    r.skill = 0.75 + Math.random()*0.25;
-                    r.cornerSkill = 0.7 + Math.random()*0.3;
-                    r.aggression = Math.random();
-                }
-
-                let part = getTrackPart(r.position);
-
-                let targetSpeed = 5 + (r.skill * 4);
-
-                // Slow down for corners
-                if(part.type === "hairpin"){
-                    targetSpeed *= 0.55;
-                }
-                else if(part.type === "left" || part.type === "right"){
-                    targetSpeed *= 0.78;
-                }
-
-                // Smooth CPU acceleration
-                r.speed += (targetSpeed - r.speed) * 0.08;
-
-                // Occasional mistakes
-                if(Math.random() < (1-r.cornerSkill)*0.01){
-                    r.speed *= 0.85;
-                }
-
+                r.speed = 3 + Math.random()*3;
                 r.position += r.speed;
             }
-
-            if(r.position > trackLength){
+            if(r.position > 10000){
                 r.finished=true;
                 raceResults.push(r);
             }
@@ -296,53 +261,10 @@ function getTrackPart(distance){
 
 // Game State
 let speed = 0;
-
-let livePlayers = {};
-let raceSocket = null;
-
-function connectRaceSocket(){
-    try{
-        raceSocket = new WebSocket(
-            location.origin.replace("http","ws")
-        );
-
-        raceSocket.onopen = ()=>{
-            console.log("LIVE RACE CONNECTED");
-        };
-
-        raceSocket.onmessage = (event)=>{
-            const data = JSON.parse(event.data);
-
-            if(data.type === "race_state"){
-                livePlayers = data.players || {};
-            }
-        };
-
-    }catch(e){
-        console.log("WS ERROR",e);
-    }
-}
-
-function sendRaceUpdate(){
-    if(!raceSocket || raceSocket.readyState !== 1) return;
-
-    raceSocket.send(JSON.stringify({
-        type:"race_update",
-        position:pos,
-        speed:speed,
-        wallet:window.wallet || "guest"
-    }));
-}
-
-
 let maxSpeed = 60;
 let pos = 0; // Forward travel distance
 let camera_x = 0; // Horizontal position (Steering)
-let carAngle = 0;
 let roadCurve = 0;
-let trackHeading = 0;
-let carWorldX = 0;
-let carWorldY = 0;
 let score = 0;
 let lap = 1;
 let totalLaps = 3;
@@ -377,8 +299,6 @@ const bindTouch = (id, key) => {
 };
 bindTouch('btn-left', 'ArrowLeft'); bindTouch('btn-right', 'ArrowRight');
 bindTouch('btn-gas', 'ArrowUp'); bindTouch('btn-brake', 'ArrowDown');
-
-connectRaceSocket();
 
 // Initialize Web Audio API
 function initAudio() {
@@ -487,29 +407,7 @@ if (Math.floor(pos / trackLength) > lastLap) {
 
     if (lap >= totalLaps) {
         raceFinishTime = Date.now();
-
-        racers[0].finished = true;
-        racers[0].position = pos;
-        raceResults.push(racers[0]);
-
-        updateRacePositions();
-
-        let place = raceResults.findIndex(r => r.name === "YOU") + 1;
-
-        document.getElementById("placeResult").innerText =
-            place === 1 ? "🥇 1st PLACE" :
-            place === 2 ? "🥈 2nd PLACE" :
-            place === 3 ? "🥉 3rd PLACE" :
-            "🏁 " + place + "th PLACE";
-
-        document.getElementById("finalScore").innerText = Math.floor(pos/10);
-
-        let elapsed = (raceFinishTime - raceStartTime) / 1000;
-        document.getElementById("finalTime").innerText = elapsed.toFixed(2) + "s";
-        document.getElementById("finalLaps").innerText = totalLaps;
-
         submitRaceScore();
-
         gameOver = true;
         document.getElementById('screen-gameover').classList.remove('hidden');
     } else {
@@ -520,27 +418,15 @@ if (Math.floor(pos / trackLength) > lastLap) {
 
 const trackPart = getTrackPart(pos);
 
-  let turnForce = 0;
+let trackPull = 0;
 
-  if(trackPart.type === "left") turnForce = -0.006;
-  if(trackPart.type === "right") turnForce = 0.006;
-  if(trackPart.type === "hairpin") turnForce = 0.012;
+if(trackPart.type === "left") trackPull = -2.0;
+if(trackPart.type === "right") trackPull = 2.0;
+if(trackPart.type === "hairpin") trackPull = 4.5;
 
-  carAngle += turnForce * (speed / maxSpeed);
+camera_x += trackPull * (speed / 12);
 
-  // Real track direction movement
-  trackHeading += turnForce * (speed / maxSpeed);
-
-  carWorldX += Math.sin(trackHeading) * speed;
-  carWorldY += Math.cos(trackHeading) * speed;
-
-  // steering visual response
-  camera_x += Math.sin(trackHeading) * speed * 0.08;
-
-  // natural recovery
-  carAngle *= 0.985;
-
-  let steerFactor = speed / maxSpeed;
+let steerFactor = speed / maxSpeed;
 
 if (keys.ArrowLeft)
     camera_x -= 35 * (0.5 + steerFactor);
@@ -608,12 +494,7 @@ document.getElementById('scoreVal').innerText =
 
 
 // Advanced 3D Car Renderer using Gradients
-function drawCar(x, y, scale, color, isPlayer, type="sport", angle=0) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    x = 0;
-    y = 0;
+function drawCar(x, y, scale, color, isPlayer, type="sport") {
     let w = 260 * scale;
     let h = 130 * scale;
 
@@ -719,8 +600,6 @@ function drawCar(x, y, scale, color, isPlayer, type="sport", angle=0) {
         ctx.fillStyle = '#222';
         ctx.fillRect(x-w*0.15,y-h*0.98,w*0.3,h*0.05);
     }
-
-    ctx.restore();
 }
 
 function drawBackground() {
@@ -912,7 +791,7 @@ if (segmentDistance % trackLength < seg_len) {
         let scale = fov / dz;
         let sx = width / 2 + ((e.world_x - camera_x) * scale);
         let sy = horizon_y + (camera_height * scale);
-        drawCar(sx, sy, scale, e.color, false, e.type, 0);
+        drawCar(sx, sy, scale, e.color, false, e.type);
     }
 
     // Render Player (Anchored at bottom center plane)

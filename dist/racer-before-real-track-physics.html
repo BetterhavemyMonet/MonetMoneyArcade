@@ -166,42 +166,12 @@ let raceResults=[];
 
 function updateRacePositions(){
     racers.forEach((r,i)=>{
-
         if(!r.finished){
-
             if(i!==0){
-
-                // CPU personality setup
-                if(r.skill === undefined){
-                    r.skill = 0.75 + Math.random()*0.25;
-                    r.cornerSkill = 0.7 + Math.random()*0.3;
-                    r.aggression = Math.random();
-                }
-
-                let part = getTrackPart(r.position);
-
-                let targetSpeed = 5 + (r.skill * 4);
-
-                // Slow down for corners
-                if(part.type === "hairpin"){
-                    targetSpeed *= 0.55;
-                }
-                else if(part.type === "left" || part.type === "right"){
-                    targetSpeed *= 0.78;
-                }
-
-                // Smooth CPU acceleration
-                r.speed += (targetSpeed - r.speed) * 0.08;
-
-                // Occasional mistakes
-                if(Math.random() < (1-r.cornerSkill)*0.01){
-                    r.speed *= 0.85;
-                }
-
+                r.speed = 3 + Math.random()*3;
                 r.position += r.speed;
             }
-
-            if(r.position > trackLength){
+            if(r.position > 10000){
                 r.finished=true;
                 raceResults.push(r);
             }
@@ -296,45 +266,6 @@ function getTrackPart(distance){
 
 // Game State
 let speed = 0;
-
-let livePlayers = {};
-let raceSocket = null;
-
-function connectRaceSocket(){
-    try{
-        raceSocket = new WebSocket(
-            location.origin.replace("http","ws")
-        );
-
-        raceSocket.onopen = ()=>{
-            console.log("LIVE RACE CONNECTED");
-        };
-
-        raceSocket.onmessage = (event)=>{
-            const data = JSON.parse(event.data);
-
-            if(data.type === "race_state"){
-                livePlayers = data.players || {};
-            }
-        };
-
-    }catch(e){
-        console.log("WS ERROR",e);
-    }
-}
-
-function sendRaceUpdate(){
-    if(!raceSocket || raceSocket.readyState !== 1) return;
-
-    raceSocket.send(JSON.stringify({
-        type:"race_update",
-        position:pos,
-        speed:speed,
-        wallet:window.wallet || "guest"
-    }));
-}
-
-
 let maxSpeed = 60;
 let pos = 0; // Forward travel distance
 let camera_x = 0; // Horizontal position (Steering)
@@ -377,8 +308,6 @@ const bindTouch = (id, key) => {
 };
 bindTouch('btn-left', 'ArrowLeft'); bindTouch('btn-right', 'ArrowRight');
 bindTouch('btn-gas', 'ArrowUp'); bindTouch('btn-brake', 'ArrowDown');
-
-connectRaceSocket();
 
 // Initialize Web Audio API
 function initAudio() {
@@ -528,16 +457,9 @@ const trackPart = getTrackPart(pos);
 
   carAngle += turnForce * (speed / maxSpeed);
 
-  // Real track direction movement
-  trackHeading += turnForce * (speed / maxSpeed);
+  camera_x += Math.sin(carAngle) * speed * 0.25;
 
-  carWorldX += Math.sin(trackHeading) * speed;
-  carWorldY += Math.cos(trackHeading) * speed;
-
-  // steering visual response
-  camera_x += Math.sin(trackHeading) * speed * 0.08;
-
-  // natural recovery
+  // natural steering recovery
   carAngle *= 0.985;
 
   let steerFactor = speed / maxSpeed;

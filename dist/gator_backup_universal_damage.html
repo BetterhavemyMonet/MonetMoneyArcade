@@ -379,7 +379,7 @@ rockHazards.forEach(r=>{
  
  if(Math.abs(player.x-r.x)<100 && Math.abs(player.y-r.y)<100){
   player.hurtUntil=Date.now()+500;
-  if(now>(player.hurtUntil||0)){health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);player.hurtUntil=now+1000;}
+  health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);
   r.dead=true;
  }
  r.y+=r.vy;
@@ -412,7 +412,7 @@ const now=Date.now();
 
 iceHazards.forEach(i=>{
  if(now>(player.hurtUntil||0) && Math.abs(player.x-i.x)<100 && Math.abs(player.y-i.y)<100){
-  if(now>(player.hurtUntil||0)){health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);player.hurtUntil=now+1000;}
+  health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);
   player.hurtUntil=now+1000;
   i.dead=true;
  }
@@ -420,7 +420,7 @@ iceHazards.forEach(i=>{
 
 rockHazards.forEach(r=>{
  if(now>(player.hurtUntil||0) && Math.abs(player.x-r.x)<100 && Math.abs(player.y-r.y)<100){
-  if(now>(player.hurtUntil||0)){health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);player.hurtUntil=now+1000;}
+  health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);
   player.hurtUntil=now+1000;
   r.dead=true;
  }
@@ -432,14 +432,13 @@ branchHazards.forEach(b=>{
   document.getElementById("health").textContent=health;
   console.log("HIT",health);
   player.hurtUntil=now+1000;
-  player.hurtUntil=now+1000;
   b.dead=true;
  }
 });
 
 lavaHazards.forEach(l=>{
  if(now>(player.hurtUntil||0) && l.timer>40 && Math.abs(player.x-l.x)<60 && player.y>240){
-  if(now>(player.hurtUntil||0)){health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);player.hurtUntil=now+1000;}
+  health=Math.max(0,health-1);document.getElementById('health').textContent=health;console.log('HIT',health);
   player.hurtUntil=now+1000;
  }
 });
@@ -504,7 +503,6 @@ player.jumps=0;
       health=Math.max(0,health-1);
       document.getElementById("health").textContent=health;
       console.log("GORILLA ROCK HIT",health);
-      player.hurtUntil=now+1000;
       player.hurtUntil=now+1000;
       r.dead=true;
     }

@@ -222,7 +222,7 @@ const STARS=Array.from({length:120},()=>({
 }));
 
 // ─── Level ────────────────────────────────────────────────────────────────────
-const LW=72,LH=10;
+const LW=140,LH=10;
 const _map=Array.from({length:LH},()=>new Array(LW).fill(AIR));
 const origMap=[];
 
@@ -285,7 +285,7 @@ const COIN_STARTS=[
   ...[10,11,12,13].map(c=>({c,r:2})),
   ...[31,32,33,34,35].map(c=>({c,r:2})),
 ];
-const FLAG_X=68*T, FLAG_Y0=1*T, FLAG_Y1=8*T;
+const FLAG_X=138*T, FLAG_Y0=1*T, FLAG_Y1=8*T;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let state='title';

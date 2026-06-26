@@ -111,8 +111,8 @@
 
     <div id="hud">
         <div>SCORE <span id="scoreVal" class="text-neon">0</span></div>
+        <div>LAP <span id="lapVal" class="text-neon">1/3</span></div>
         <div><span id="speedVal" class="text-neon">0</span> MPH</div>
-          <div>LAP <span id="lapVal" class="text-neon">1</span>/3</div>
     </div>
 
     <!-- Touch Controls -->
@@ -135,15 +135,10 @@
     </div>
 
     <div id="screen-gameover" class="overlay hidden">
-          <h1>🏁 RACE COMPLETE!</h1>
-          <h2 id="placeResult" class="text-neon">FINISHING...</h2>
-
-          <p>TIME: <span id="finalTime">0</span></p>
-          <p>LAPS: <span id="finalLaps">0</span>/3</p>
-          <p>SCORE: <span id="finalScore" class="text-neon">0</span></p>
-
-          <button class="btn-start" onclick="startGame()">RACE AGAIN</button>
-      </div>
+        <h1>WRECKED!</h1>
+        <h2 style="margin-bottom: 30px;">FINAL SCORE: <span id="finalScore" class="text-neon">0</span></h2>
+        <button class="btn-start" onclick="startGame()">RACE AGAIN</button>
+    </div>
 </div>
 
 <script>
@@ -166,42 +161,12 @@ let raceResults=[];
 
 function updateRacePositions(){
     racers.forEach((r,i)=>{
-
         if(!r.finished){
-
             if(i!==0){
-
-                // CPU personality setup
-                if(r.skill === undefined){
-                    r.skill = 0.75 + Math.random()*0.25;
-                    r.cornerSkill = 0.7 + Math.random()*0.3;
-                    r.aggression = Math.random();
-                }
-
-                let part = getTrackPart(r.position);
-
-                let targetSpeed = 5 + (r.skill * 4);
-
-                // Slow down for corners
-                if(part.type === "hairpin"){
-                    targetSpeed *= 0.55;
-                }
-                else if(part.type === "left" || part.type === "right"){
-                    targetSpeed *= 0.78;
-                }
-
-                // Smooth CPU acceleration
-                r.speed += (targetSpeed - r.speed) * 0.08;
-
-                // Occasional mistakes
-                if(Math.random() < (1-r.cornerSkill)*0.01){
-                    r.speed *= 0.85;
-                }
-
+                r.speed = 3 + Math.random()*3;
                 r.position += r.speed;
             }
-
-            if(r.position > trackLength){
+            if(r.position > 10000){
                 r.finished=true;
                 raceResults.push(r);
             }
@@ -245,112 +210,16 @@ const roadWidth = 1800;
 const seg_len = 200;
 const draw_distance = 40; // How many segments ahead to render
 
-
-
-// RACE TRACK DATA
-const raceTrack = [
- {type:"straight", length:10000},
-
- {type:"left", length:3500},
- {type:"straight", length:7000},
-
- {type:"right", length:4000},
- {type:"right", length:2500},
-
- {type:"straight", length:9000},
-
- {type:"left", length:4500},
- {type:"right", length:3500},
-
- {type:"hairpin", length:2200},
-
- {type:"straight", length:10000},
-
- {type:"right", length:4000},
- {type:"left", length:5000},
-
- {type:"straight", length:9000},
-
- {type:"hairpin", length:2500},
-
- {type:"straight", length:12000},
-
- {type:"left", length:3500},
- {type:"right", length:4000},
-
- {type:"straight", length:8000}
-];
-
-const trackLength = raceTrack.reduce((sum,part)=>sum+part.length,0);
-
-function getTrackPart(distance){
-    let d = distance % trackLength;
-
-    for(let part of raceTrack){
-        if(d <= part.length) return part;
-        d -= part.length;
-    }
-
-    return raceTrack[0];
-}
-
 // Game State
 let speed = 0;
-
-let livePlayers = {};
-let raceSocket = null;
-
-function connectRaceSocket(){
-    try{
-        raceSocket = new WebSocket(
-            location.origin.replace("http","ws")
-        );
-
-        raceSocket.onopen = ()=>{
-            console.log("LIVE RACE CONNECTED");
-        };
-
-        raceSocket.onmessage = (event)=>{
-            const data = JSON.parse(event.data);
-
-            if(data.type === "race_state"){
-                livePlayers = data.players || {};
-            }
-        };
-
-    }catch(e){
-        console.log("WS ERROR",e);
-    }
-}
-
-function sendRaceUpdate(){
-    if(!raceSocket || raceSocket.readyState !== 1) return;
-
-    raceSocket.send(JSON.stringify({
-        type:"race_update",
-        position:pos,
-        speed:speed,
-        wallet:window.wallet || "guest"
-    }));
-}
-
-
 let maxSpeed = 60;
 let pos = 0; // Forward travel distance
 let camera_x = 0; // Horizontal position (Steering)
-let carAngle = 0;
-let roadCurve = 0;
-let trackHeading = 0;
-let carWorldX = 0;
-let carWorldY = 0;
 let score = 0;
+let gameOver = false;
 let lap = 1;
 let totalLaps = 3;
 let lastLap = 0;
-let raceStartTime = 0;
-let raceFinishTime = 0;
-let raceSubmitted = false;
-let gameOver = false;
 let shake = 0;
 
 // Entities
@@ -377,8 +246,6 @@ const bindTouch = (id, key) => {
 };
 bindTouch('btn-left', 'ArrowLeft'); bindTouch('btn-right', 'ArrowRight');
 bindTouch('btn-gas', 'ArrowUp'); bindTouch('btn-brake', 'ArrowDown');
-
-connectRaceSocket();
 
 // Initialize Web Audio API
 function initAudio() {
@@ -410,210 +277,160 @@ function playCrash() {
     osc.start(); osc.stop(audioCtx.currentTime + 0.5);
 }
 
-
-async function submitRaceScore(){
-    if (raceSubmitted) return;
-    raceSubmitted = true;
-
-    const wallet = window.MONET_WALLET || localStorage.getItem("wallet_address") || "guest";
-
-    try {
-        const res = await fetch("/api/leaderboard/submit", {
-            method:"POST",
-            headers:{
-                "Content-Type":"application/json"
-            },
-            body:JSON.stringify({
-                wallet: wallet,
-                game:"racing",
-                score:score,
-                laps: totalLaps,
-                time: raceFinishTime - raceStartTime,
-                finishedAt: new Date().toISOString()
-            })
-        });
-
-        const data = await res.json();
-        console.log("Race score submitted:", data);
-
-    } catch(err){
-        console.error("Race score submit failed:", err);
-    }
-}
-
 // Start Game Reset
 function startGame() {
     initAudio();
     document.getElementById('screen-start').classList.add('hidden');
     document.getElementById('screen-gameover').classList.add('hidden');
-    speed = 0; pos = 0; camera_x = 0; score = 0; enemies = []; gameOver = false; lap = 1; lastLap = 0; raceStartTime = Date.now(); raceFinishTime = 0; raceSubmitted = false; lap = 1; lastLap = 0;
+    speed = 0; pos = 0; camera_x = 0; score = 0; enemies = []; gameOver = false; lap = 1; lastLap = 0;
     engineGain.gain.value = 0.05; // turn on engine sound
     requestAnimationFrame(gameLoop);
 }
 
 // Spawn Traffic
 function spawnEnemy() {
-    if (Math.random() < 0.015 && enemies.length < 4) {
+    if (Math.random() < 0.04 && enemies.length < 8) {
         const lanes = [-roadWidth/3, 0, roadWidth/3]; // 3 Lanes
         enemies.push({
             world_x: lanes[Math.floor(Math.random() * lanes.length)],
             world_z: pos + (draw_distance * seg_len), // Spawn far away
             speed: Math.random() * 15 + 15, // Enemy speed
-            color: `hsl(${Math.random() * 360}, 80%, 55%)`,
-              type: ["sport","muscle","supercar"][Math.floor(Math.random()*3)]
+            color: `hsl(${Math.random() * 360}, 80%, 55%)`
         });
     }
 }
 
 // Main Update Logic
 function update() {
-if (gameOver) return;
+    if (gameOver) return;
 
-if (keys.ArrowUp) {
-    speed += 0.5;
-} else if (keys.ArrowDown) {
-    speed -= 1.5;
-} else {
-    speed -= 0.3;
-}
-
-speed = Math.max(0, Math.min(speed, maxSpeed));
-
-pos += speed;
-
-// Lap detection
-if (Math.floor(pos / trackLength) > lastLap) {
-    lastLap = Math.floor(pos / trackLength);
-
-    if (lap >= totalLaps) {
-        raceFinishTime = Date.now();
-
-        racers[0].finished = true;
-        racers[0].position = pos;
-        raceResults.push(racers[0]);
-
-        updateRacePositions();
-
-        let place = raceResults.findIndex(r => r.name === "YOU") + 1;
-
-        document.getElementById("placeResult").innerText =
-            place === 1 ? "🥇 1st PLACE" :
-            place === 2 ? "🥈 2nd PLACE" :
-            place === 3 ? "🥉 3rd PLACE" :
-            "🏁 " + place + "th PLACE";
-
-        document.getElementById("finalScore").innerText = Math.floor(pos/10);
-
-        let elapsed = (raceFinishTime - raceStartTime) / 1000;
-        document.getElementById("finalTime").innerText = elapsed.toFixed(2) + "s";
-        document.getElementById("finalLaps").innerText = totalLaps;
-
-        submitRaceScore();
-
-        gameOver = true;
-        document.getElementById('screen-gameover').classList.remove('hidden');
+    // Acceleration & Friction
+    if (keys.ArrowUp) {
+        speed += 0.5;
+    } else if (keys.ArrowDown) {
+        speed -= 1.5;
     } else {
+        speed -= 0.3; // Coasting
+    }
+    
+    // Off-road friction penalty
+    if (Math.abs(camera_x) > roadWidth / 2 && speed > maxSpeed / 2) {
+        speed -= 0.8;
+    }
+
+    speed = Math.max(0, Math.min(speed, maxSpeed + (score / 500))); // Scale max speed slightly with score
+    pos += speed;
+
+    // Lap Counter
+    if (Math.floor(pos / trackLength) > lastLap) {
+        lastLap = Math.floor(pos / trackLength);
         lap++;
+
         console.log("LAP", lap);
-    }
-}
 
-const trackPart = getTrackPart(pos);
+        if (lap > totalLaps) {
+            gameOver = true;
 
-  let turnForce = 0;
+            document.getElementById('screen-gameover').innerHTML = `
+                <h1 style="color:#00ff99">FINISH!</h1>
+                <p>Race Complete</p>
+                <button class="btn-start" onclick="startGame()">RACE AGAIN</button>
+            `;
 
-  if(trackPart.type === "left") turnForce = -0.006;
-  if(trackPart.type === "right") turnForce = 0.006;
-  if(trackPart.type === "hairpin") turnForce = 0.012;
+            document.getElementById('screen-gameover')
+                .classList.remove('hidden');
 
-  carAngle += turnForce * (speed / maxSpeed);
-
-  // Real track direction movement
-  trackHeading += turnForce * (speed / maxSpeed);
-
-  carWorldX += Math.sin(trackHeading) * speed;
-  carWorldY += Math.cos(trackHeading) * speed;
-
-  // steering visual response
-  camera_x += Math.sin(trackHeading) * speed * 0.08;
-
-  // natural recovery
-  carAngle *= 0.985;
-
-  let steerFactor = speed / maxSpeed;
-
-if (keys.ArrowLeft)
-    camera_x -= 35 * (0.5 + steerFactor);
-
-if (keys.ArrowRight)
-    camera_x += 35 * (0.5 + steerFactor);
-
-if (Math.abs(camera_x) > roadWidth / 2) {
-    speed -= 1.2;
-}
-
-camera_x = Math.max(
-    -roadWidth * 0.9,
-    Math.min(camera_x, roadWidth * 0.9)
-);
-
-spawnEnemy();
-
-for (let i = enemies.length - 1; i >= 0; i--) {
-
-    let e = enemies[i];
-    e.world_z += e.speed;
-
-    if (e.world_z < pos - 200) {
-        enemies.splice(i, 1);
-        score += 10;
-        continue;
-    }
-
-    let dz = e.world_z - pos;
-
-      // Protect finish line approach
-      let nearFinish = (trackLength - (pos % trackLength)) < 1000;
-
-    if (!nearFinish && dz > 0 && dz < 140) {
-        if (Math.abs(e.world_x - camera_x) < 220) {
-            shake = 30;
-              playCrash();
-              speed *= 0.55;
-              e.world_z += 250;
-              camera_x += (Math.random() > 0.5 ? 80 : -80);
-              score = Math.max(0, score - 10);
+            return;
         }
     }
+
+    // Lap Detection
+    if (Math.floor(pos / trackLength) > lastLap) {
+        lastLap = Math.floor(pos / trackLength);
+        lap++;
+
+        console.log("LAP", lap);
+
+        const lapEl = document.getElementById('lapVal');
+        if (lapEl) lapEl.innerText = Math.min(lap, totalLaps) + "/" + totalLaps;
+
+        if (lap > totalLaps) {
+            gameOver = true;
+
+            document.getElementById('screen-gameover').innerHTML = `
+            <h1 style="color:#00ff99">FINISH!</h1>
+            <p>Race Complete</p>
+            <button class="btn-start" onclick="startGame()">RACE AGAIN</button>`;
+            document.getElementById('screen-gameover').classList.remove('hidden');
+            return;
+        }
+    }
+
+    // Steering Physics (Tighter handling at higher speeds)
+    let steerFactor = speed > 0 ? (speed / maxSpeed) : 0;
+    if (keys.ArrowLeft) camera_x -= 30 * (0.4 + steerFactor);
+    if (keys.ArrowRight) camera_x += 30 * (0.4 + steerFactor);
+
+    // Keep camera bounded to the playable area
+    camera_x = Math.max(-roadWidth * 0.8, Math.min(camera_x, roadWidth * 0.8));
+
+    // Update Enemies & Check Collisions
+    spawnEnemy();
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        let e = enemies[i];
+        e.world_z += e.speed;
+
+        // Clean up passed enemies
+        if (e.world_z < pos - 200) {
+            enemies.splice(i, 1);
+            score += 10;
+            continue;
+        }
+
+        // 3D Collision Detection
+        let dz = e.world_z - pos;
+        if (dz > 0 && dz < 180) { // Same Z-depth plane as player
+            if (Math.abs(e.world_x - camera_x) < 220) { // Hitbox overlap
+                crash();
+            }
+        }
+    }
+
+    // Engine Audio Pitch
+    if (engineOsc) {
+        engineOsc.frequency.value = 40 + (speed * 1.8);
+    }
+
+    // Update UI
+    document.getElementById('speedVal').innerText = Math.floor(speed * 2.5);
+    document.getElementById('scoreVal').innerText = score;
+
+    const lapEl = document.getElementById('lapVal');
+    if (lapEl) {
+        lapEl.innerText =
+            Math.min(lap, totalLaps) + "/" + totalLaps;
+    }
 }
 
-if (engineOsc) {
-    engineOsc.frequency.value = 40 + (speed * 1.8);
+function crash() {
+    // Crash penalty - continue race
+    shake = 30;
+    playCrash();
+
+    speed *= 0.3;
+
+    camera_x += (Math.random() > 0.5 ? 100 : -100);
+
+    let savedMax = maxSpeed;
+    maxSpeed *= 0.5;
+
+    setTimeout(()=>{
+        maxSpeed = savedMax;
+    },2000);
 }
-
-updateRacePositions();
-
-racers[0].position = pos;
-racers[0].speed = speed;
-
-document.getElementById('speedVal').innerText =
-    Math.floor(speed * 2.5);
-
-document.getElementById('scoreVal').innerText =
-    Math.floor(pos / 10);
-
-  document.getElementById('lapVal').innerText = lap;
-
-}
-
 
 // Advanced 3D Car Renderer using Gradients
-function drawCar(x, y, scale, color, isPlayer, type="sport", angle=0) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    x = 0;
-    y = 0;
+function drawCar(x, y, scale, color, isPlayer) {
     let w = 260 * scale;
     let h = 130 * scale;
 
@@ -679,125 +496,34 @@ function drawCar(x, y, scale, color, isPlayer, type="sport", angle=0) {
     // License Plate
     ctx.fillStyle = '#eee';
     ctx.fillRect(x - w*0.12, y - h*0.3, w*0.24, h*0.1);
-
-    // Upgrade: wheels with rims
-    ctx.fillStyle = '#050505';
-    ctx.beginPath();
-    ctx.arc(x - w*0.34, y - h*0.05, w*0.09, 0, Math.PI*2);
-    ctx.arc(x + w*0.34, y - h*0.05, w*0.09, 0, Math.PI*2);
-    ctx.fill();
-
-    ctx.fillStyle = '#aaa';
-    ctx.beginPath();
-    ctx.arc(x - w*0.34, y - h*0.05, w*0.035, 0, Math.PI*2);
-    ctx.arc(x + w*0.34, y - h*0.05, w*0.035, 0, Math.PI*2);
-    ctx.fill();
-
-    // Headlights
-    ctx.fillStyle = '#fff';
-    ctx.shadowColor = '#fff';
-    ctx.shadowBlur = 12;
-    ctx.fillRect(x - w*0.32, y - h*0.5, w*0.08, h*0.05);
-    ctx.fillRect(x + w*0.24, y - h*0.5, w*0.08, h*0.05);
-    ctx.shadowBlur = 0;
-
-    // Vehicle type styling
-    if(type === "muscle"){
-        ctx.fillStyle = '#111';
-        ctx.fillRect(x-w*0.25,y-h*0.92,w*0.5,h*0.06);
-    }
-
-    if(type === "supercar"){
-        ctx.fillStyle = 'rgba(0,255,255,.5)';
-        ctx.shadowColor = '#00ffff';
-        ctx.shadowBlur = 15;
-        ctx.fillRect(x-w*0.35,y+h*0.05,w*0.7,h*0.04);
-        ctx.shadowBlur = 0;
-    }
-
-    if(type === "sport"){
-        ctx.fillStyle = '#222';
-        ctx.fillRect(x-w*0.15,y-h*0.98,w*0.3,h*0.05);
-    }
-
-    ctx.restore();
 }
 
 function drawBackground() {
-
-    // Enhanced sky
-    let sky = ctx.createLinearGradient(0,0,0,horizon_y);
-    sky.addColorStop(0,'#020617');
-    sky.addColorStop(.45,'#123b63');
-    sky.addColorStop(1,'#ff7b39');
+    // Sunset Sky Gradient
+    let sky = ctx.createLinearGradient(0, 0, 0, horizon_y);
+    sky.addColorStop(0, '#001a33');
+    sky.addColorStop(1, '#ff6600');
     ctx.fillStyle = sky;
-    ctx.fillRect(0,0,width,horizon_y);
+    ctx.fillRect(0, 0, width, horizon_y);
 
+    // Sun Parallax
+    let sunX = width / 2 - (camera_x * 0.05);
+    ctx.fillStyle = '#ffcc00';
+    ctx.beginPath(); ctx.arc(sunX, horizon_y - 20, 70, 0, Math.PI*2); ctx.fill();
 
-    // Clouds
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    let cloudOffset = -(camera_x * 0.03) % width;
-
-    for(let i=0;i<5;i++){
-        let cx = cloudOffset + i*260;
-        let cy = 80 + (i%3)*35;
-
-        ctx.beginPath();
-        ctx.arc(cx,cy,35,0,Math.PI*2);
-        ctx.arc(cx+35,cy+5,45,0,Math.PI*2);
-        ctx.arc(cx+75,cy,30,0,Math.PI*2);
-        ctx.fill();
-    }
-
-
-    // Sun glow
-    let sunX = width/2 - camera_x*0.05;
-
-    let glow = ctx.createRadialGradient(
-        sunX,horizon_y-40,10,
-        sunX,horizon_y-40,120
-    );
-
-    glow.addColorStop(0,'#fff4b0');
-    glow.addColorStop(1,'rgba(255,180,0,0)');
-
-    ctx.fillStyle = glow;
-    ctx.fillRect(0,0,width,horizon_y);
-
-    ctx.fillStyle='#ffd166';
+    // Mountains Parallax
+    ctx.fillStyle = '#111';
+    let mtx = -((camera_x * 0.15) % 600) - 300;
     ctx.beginPath();
-    ctx.arc(sunX,horizon_y-40,55,0,Math.PI*2);
-    ctx.fill();
-
-
-
-    // Layered mountains
-
-    for(let layer=0; layer<3; layer++){
-
-        ctx.fillStyle =
-          layer===0 ? '#111827' :
-          layer===1 ? '#1f2937' :
-          '#374151';
-
-        let offset = -((camera_x*(0.08+layer*.04))%500)-500;
-
-        ctx.beginPath();
-
-        for(let i=0;i<6;i++){
-
-            let x=offset+i*500;
-
-            ctx.moveTo(x,horizon_y);
-            ctx.lineTo(x+120,horizon_y-80-layer*30);
-            ctx.lineTo(x+250,horizon_y-10);
-            ctx.lineTo(x+370,horizon_y-150-layer*20);
-            ctx.lineTo(x+500,horizon_y);
-
-        }
-
-        ctx.fill();
+    for (let i = 0; i < 4; i++) {
+        let offset = mtx + (i * 600);
+        ctx.moveTo(offset, horizon_y);
+        ctx.lineTo(offset + 150, horizon_y - 100);
+        ctx.lineTo(offset + 300, horizon_y);
+        ctx.lineTo(offset + 450, horizon_y - 160);
+        ctx.lineTo(offset + 600, horizon_y);
     }
+    ctx.fill();
 }
 
 function draw() {
@@ -833,33 +559,10 @@ function draw() {
         // Project X (Width & Steering)
         let w_far = roadWidth * scale_far;
         let w_near = roadWidth * scale_near;
-        let trackPart = getTrackPart(i * seg_len);
-
-        let curve = 0;
-        let turnProgress = (i * seg_len % trackPart.length) / trackPart.length;
-          let smooth = Math.sin(turnProgress * Math.PI);
-
-          if(trackPart.type === "left") curve = -450 * smooth;
-        if(trackPart.type === "right") curve = 450 * smooth;
-        if(trackPart.type === "hairpin") curve = 900 * smooth;
-
-        let sx_far = width / 2 - (camera_x * scale_far) + (curve * scale_far);
-        let sx_near = width / 2 - (camera_x * scale_near) + (curve * scale_near);
+        let sx_far = width / 2 - (camera_x * scale_far);
+        let sx_near = width / 2 - (camera_x * scale_near);
 
         let colorIdx = i % 2; // Alternating segments for speed illusion
-
-// Start / Finish Line
-let segmentDistance = i * seg_len;
-
-if (segmentDistance % trackLength < seg_len) {
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(
-        sx_near - w_near/2,
-        sy_near - 10,
-        w_near,
-        10
-    );
-}
 
         // Grass
         ctx.fillStyle = colorIdx ? '#1d5e16' : '#24701d';
@@ -912,7 +615,7 @@ if (segmentDistance % trackLength < seg_len) {
         let scale = fov / dz;
         let sx = width / 2 + ((e.world_x - camera_x) * scale);
         let sy = horizon_y + (camera_height * scale);
-        drawCar(sx, sy, scale, e.color, false, e.type, 0);
+        drawCar(sx, sy, scale, e.color, false);
     }
 
     // Render Player (Anchored at bottom center plane)

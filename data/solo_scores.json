@@ -1,0 +1,66 @@
+[
+  {
+    "wallet": "testwallet",
+    "game": "racing",
+    "score": 12345,
+    "txId": null,
+    "submittedAt": "2026-06-24T09:30:46.917Z"
+  },
+  {
+    "wallet": "testwallet",
+    "game": "racing",
+    "score": 12345,
+    "txId": null,
+    "submittedAt": "2026-06-24T09:32:16.703Z"
+  },
+  {
+    "wallet": "guest",
+    "game": "racing",
+    "score": 580,
+    "laps": 3,
+    "time": 61334,
+    "finishedAt": "2026-06-24T09:52:04.870Z",
+    "txId": null,
+    "submittedAt": "2026-06-24T09:52:04.936Z"
+  },
+  {
+    "wallet": "guest",
+    "game": "racing",
+    "score": 610,
+    "laps": 3,
+    "time": 65375,
+    "finishedAt": "2026-06-24T09:56:50.036Z",
+    "txId": null,
+    "submittedAt": "2026-06-24T09:56:50.056Z"
+  },
+  {
+    "wallet": "guest",
+    "game": "racing",
+    "score": 360,
+    "laps": 3,
+    "time": 365127,
+    "finishedAt": "2026-06-24T10:16:41.703Z",
+    "txId": null,
+    "submittedAt": "2026-06-24T10:16:41.752Z"
+  },
+  {
+    "wallet": "guest",
+    "game": "racing",
+    "score": 600,
+    "laps": 3,
+    "time": 63498,
+    "finishedAt": "2026-06-24T21:15:16.634Z",
+    "txId": null,
+    "submittedAt": "2026-06-24T21:15:16.707Z"
+  },
+  {
+    "wallet": "guest",
+    "game": "racing",
+    "score": 480,
+    "laps": 3,
+    "time": 61053,
+    "finishedAt": "2026-06-24T21:30:35.566Z",
+    "txId": null,
+    "submittedAt": "2026-06-24T21:30:35.637Z"
+  }
+]
