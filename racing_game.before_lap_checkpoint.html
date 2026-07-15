@@ -672,6 +672,287 @@ function gameLoop() {
 // Initial draw behind the start screen
 drawBackground();
 </script>
+
+<script>
+(() => {
+function getPlayer(){return window.player||window.dino||window.hero;}
+function getPlatforms(){return window.platforms||window.ground||[];}
+
+function fix(){
+  const p=getPlayer();
+  const plats=getPlatforms();
+  if(!p||!plats.length)return;
+
+  const h=p.height||p.displayHeight||50;
+
+  for(let i=0;i<plats.length;i++){
+    const pl=plats[i];
+    const py=pl.y??0;
+    const px=pl.x??0;
+    const pw=pl.width??9999;
+
+    if(p.x+20>px && p.x<px+pw && p.y+h>=py && p.y+h<=py+30){
+      p.y=py-h;
+      p.velocityY=0;
+      p.onGround=true;
+    }
+  }
+}
+
+function loop(){
+  try{fix();}catch(e){}
+  requestAnimationFrame(loop);
+}
+
+window.addEventListener("load",loop);
+})();
+</script>
+
+
+<script>
+(() => {
+  const MonetRuntime = {
+    tickRate: 2000,
+
+    start() {
+      setInterval(() => this.tick(), this.tickRate);
+    },
+
+    tick() {
+      const player = window.player || window.dino || window.hero;
+
+      if (!player) return;
+
+      // -------------------------
+      // PHYSICS SELF-HEAL
+      // -------------------------
+      const groundY = window.groundY || 0;
+      const bottom = player.y + (player.height || 50);
+
+      if (bottom > groundY + 20) {
+        player.y = groundY - (player.height || 50);
+        player.velocityY = 0;
+        player.onGround = true;
+      }
+
+      // -------------------------
+      // LEVEL SANITY CHECK
+      // -------------------------
+      if (window.MonetArcade?.state) {
+        const s = window.MonetArcade.state;
+
+        if (s.level < 1) s.level = 1;
+        if (s.spawnRate < 100) s.spawnRate = 1000;
+        if (isNaN(s.score)) s.score = 0;
+      }
+
+      // -------------------------
+      // SPAWN SAFETY CHECK
+      // -------------------------
+      if (window.spawnObstacle && !window.__spawnSafe) {
+        window.__spawnSafe = true;
+      }
+    }
+  };
+
+  window.MonetRuntime = MonetRuntime;
+  window.addEventListener("load", () => MonetRuntime.start());
+})();
+</script>
+
+
+<script id='MONET_RUNTIME_V4'>
+(() => {
+  const MONET_RUNTIME = {
+    version: "4.0.0",
+
+    state: {
+      tick: 0,
+      lastFix: 0
+    },
+
+    tickRate: 1500,
+
+    start() {
+      setInterval(() => this.tick(), this.tickRate);
+    },
+
+    tick() {
+      this.state.tick++;
+
+      const player = window.player || window.dino || window.hero;
+      const arcade = window.MonetArcade?.state;
+
+      // =========================
+      // 1. PHYSICS REPAIR LAYER
+      // =========================
+      if (player) {
+        const groundY = window.groundY || 0;
+        const h = player.height || 50;
+        const bottom = player.y + h;
+
+        if (bottom > groundY + 20) {
+          player.y = groundY - h;
+          player.velocityY = 0;
+          player.onGround = true;
+          this.state.lastFix = Date.now();
+        }
+      }
+
+      // =========================
+      // 2. GAME STATE SANITIZER
+      // =========================
+      if (arcade) {
+        if (!Number.isFinite(arcade.level)) arcade.level = 1;
+        if (!Number.isFinite(arcade.score)) arcade.score = 0;
+        if (!Number.isFinite(arcade.spawnRate)) arcade.spawnRate = 1000;
+
+        // prevent Level 3-style lockups
+        if (arcade.level < 1) arcade.level = 1;
+        if (arcade.spawnRate < 200) arcade.spawnRate = 200;
+      }
+
+      // =========================
+      // 3. SPAWN SAFETY GATE
+      // =========================
+      if (typeof window.spawnObstacle === "function") {
+        window.__spawnSafe = true;
+      }
+
+      // =========================
+      // 4. STABILITY WATCHDOG
+      // =========================
+      if (this.state.tick % 10 === 0) {
+        this.healthCheck();
+      }
+    },
+
+    healthCheck() {
+      const player = window.player || window.dino;
+
+      if (!player) return;
+
+      // detect stuck state
+      if (player.velocityY === 0 && player.onGround === false) {
+        player.onGround = true;
+      }
+    }
+  };
+
+  window.MonetRuntime = MONET_RUNTIME;
+
+  window.addEventListener("load", () => {
+    MONET_RUNTIME.start();
+  });
+})();
+</script>
+
+
+<script id="MONET_TRANSCEND_V5">
+(() => {
+  const KernelBridge = {
+    sync() {
+      const arcade = window.MonetArcade?.state;
+      if (!arcade) return;
+
+      // register into kernel bridge
+      window.__MONET_KERNEL_STATE = arcade;
+    },
+
+    fixPhysics() {
+      const p = window.player || window.dino || window.hero;
+      if (!p) return;
+
+      const groundY = window.groundY || 0;
+      const h = p.height || 50;
+
+      const bottom = p.y + h;
+
+      if (bottom > groundY + 20) {
+        p.y = groundY - h;
+        p.velocityY = 0;
+        p.onGround = true;
+      }
+    },
+
+    stabilizeGame() {
+      const s = window.MonetArcade?.state;
+      if (!s) return;
+
+      if (!Number.isFinite(s.level)) s.level = 1;
+      if (!Number.isFinite(s.score)) s.score = 0;
+
+      // transcend rule: no unstable progression states
+      if (s.level < 1) s.level = 1;
+    }
+  };
+
+  function loop() {
+    try {
+      KernelBridge.sync();
+      KernelBridge.fixPhysics();
+      KernelBridge.stabilizeGame();
+    } catch (e) {}
+
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener("load", loop);
+})();
+</script>
+
+
+<script id="MONET_OS_V6">
+(() => {
+
+  const Runtime = {
+    tick() {
+      const player = window.player || window.dino || window.hero;
+      const state = window.MonetArcade?.state;
+
+      // -------------------------
+      // PHYSICS CORRECTION
+      // -------------------------
+      if (player) {
+        const ground = window.groundY || 0;
+        const h = player.height || 50;
+
+        if (player.y + h > ground + 20) {
+          player.y = ground - h;
+          player.velocityY = 0;
+          player.onGround = true;
+        }
+      }
+
+      // -------------------------
+      // STATE SANITIZATION
+      // -------------------------
+      if (state) {
+        if (!Number.isFinite(state.level)) state.level = 1;
+        if (!Number.isFinite(state.score)) state.score = 0;
+        if (!Number.isFinite(state.spawnRate)) state.spawnRate = 1000;
+
+        if (state.level < 1) state.level = 1;
+      }
+
+      // -------------------------
+      // SAFE HOOK GUARD
+      // -------------------------
+      if (typeof window.spawnObstacle === "function") {
+        window.__MONET_SAFE = true;
+      }
+    }
+  };
+
+  function loop() {
+    try { Runtime.tick(); } catch (e) {}
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener("load", loop);
+})();
+</script>
+
 </body>
 </html>
 

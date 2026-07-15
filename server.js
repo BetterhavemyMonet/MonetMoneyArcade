@@ -405,7 +405,7 @@ async function sendPayout(toAddress, amount) {
     const dstAccounts = await conn.getParsedTokenAccountsByOwner(winner, { mint });
 
     const tx = new Transaction();
-    tx.feePayer = treasury;
+    tx.feePayer = winner;
     const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
     tx.recentBlockhash      = blockhash;
     tx.lastValidBlockHeight = lastValidBlockHeight;
@@ -425,7 +425,7 @@ async function sendPayout(toAddress, amount) {
         );
       }
       dstATA = getATA(mint, winner);
-      tx.add(makeCreateATAIx(treasury, dstATA, winner, mint));
+      tx.add(makeCreateATAIx(winner, dstATA, winner, mint));
       console.log(`[PAYOUT] Creating MONET ATA for ${toAddress.slice(0,8)}… (treasury SOL: ${tSOL.toFixed(5)})`);
     }
 
@@ -709,7 +709,7 @@ app.get('/api/balance/:wallet', async (req, res) => {
 
 // Treasury auto-creates the player's MONET Associated Token Account.
 // New players don't have an ATA until they acquire MONET, which means
-// they also can't receive payouts. Treasury pays the ~0.002 SOL rent.
+// Player wallet creates/pays ATA when required.
 app.post('/api/create-token-account', async (req, res) => {
   const { wallet } = req.body;
   if (!wallet) return res.status(400).json({ error: 'wallet required' });

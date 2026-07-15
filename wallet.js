@@ -422,7 +422,7 @@ async function connectWallet() {
   if (WalletState.monetBalance === 0) {
     setTimeout(async () => { await refreshBalances(); }, 4000);
   }
-  ensureMonetAccount(); // fire-and-forget: treasury creates player ATA if missing
+  // Player wallet creates ATA when needed
   return address;
 }
 
@@ -464,7 +464,7 @@ async function tryAutoConnect() {
     if (WalletState.monetBalance === 0) {
       setTimeout(async () => { await refreshBalances(); }, 4000);
     }
-    ensureMonetAccount(); // fire-and-forget: treasury creates player ATA if missing
+    // Player wallet creates ATA when needed
   } catch(e) { /* not previously trusted */ }
 }
 
@@ -487,7 +487,7 @@ async function refreshBalances() {
       updated = true;
 
       // Auto-create MONET token account if the wallet doesn't have one yet.
-      // Treasury pays the ~0.002 SOL rent — completely transparent to the user.
+      // Player wallet pays ATA creation rent.
       if (!data.hasAta && WalletState.address) {
         fetch('https://api.betterhavemymonet.com/api/create-token-account', {
           method: 'POST',
@@ -568,7 +568,7 @@ async function getSolBalanceDirect() {
 }
 
 // Auto-create the player's MONET Associated Token Account if missing.
-// Treasury pays the ~0.002 SOL rent so the player needs no SOL to get started.
+// Player wallet pays network fees.
 async function ensureMonetAccount() {
   if (!WalletState.address) return;
   // Skip entirely if we already know the ATA exists — avoids unnecessary RPC calls
@@ -917,7 +917,7 @@ async function treasuryPayout(toAddress, amount, claimId, onProgress) {
   tx.feePayer        = payer;
   tx.recentBlockhash = blockhash;
 
-  // Create winner ATA if missing (treasury pays rent)
+  // Create winner ATA if missing (player pays rent)
   try {
     const r = await fetch(`/api/account-exists/${dstATA.toString()}`);
     if (r.ok) {
