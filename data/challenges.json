@@ -10,7 +10,7 @@
       "submittedAt": null
     },
     "player2": null,
-    "entryFee": 5,
+    "entryFee": 0.0125,
     "pot": 9,
     "rake": 1,
     "status": "expired",
@@ -31,7 +31,7 @@
       "submittedAt": null
     },
     "player2": null,
-    "entryFee": 5,
+    "entryFee": 0.0125,
     "pot": 8,
     "rake": 2,
     "status": "expired",

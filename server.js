@@ -98,7 +98,7 @@ if (!TREASURY_ADDR) {
   throw new Error("TREASURY_ADDRESS environment variable is required");
 }
 
-const ENTRY_FEE       = 100;   // fallback only — dynamic fee targets $0.99 USD
+const ENTRY_FEE       = 0.0125; // canonical MONET entry fee
 const TARGET_USD      = 0.99; // entry fee target in USD
 const PRICE_CACHE_MS  = 5 * 60 * 1000; // cache MONET price for 5 minutes
 
@@ -165,7 +165,7 @@ async function getMonetPrice() {
 }
 
 // Returns the current MONET entry fee (how many MONET = $0.99 USD)
-// Falls back to ENTRY_FEE (100) if price cannot be fetched.
+// Falls back to ENTRY_FEE (0.0125) if price cannot be fetched.
 async function getDynamicEntryFee() {
   return 100;
 }
@@ -176,9 +176,9 @@ fetchMonetPrice().then(p => {
 }).catch(() => {});
 
 const DECIMALS = 6;
-const HOUSE_RAKE      = 0.10;
+const HOUSE_RAKE      = 0.20; // canonical 80% winner / 20% treasury
 const CPU_PAYOUT_MAX  = 9;
-const SOL_ENTRY_LAMPORTS = 5_000_000;   // fallback only — dynamic fee targets $0.99 USD
+const SOL_ENTRY_LAMPORTS = 0; // calculated from live SOL/USD price
 const PRIZE_CUTS      = [0.50, 0.30, 0.10];
 const CHALLENGE_TTL   = 24 * 60 * 60 * 1000;
 const TOURNEY_WINDOW  = 60 * 60 * 1000;
@@ -841,7 +841,7 @@ app.get('/api/monet-price', async (_req, res) => {
   res.json({
     ok: true,
     priceUsd: 0.0099,
-    entryFeeMonet: ENTRY_FEE,
+    entryFeeMonet: 0.0125,
     entryFeeUsd: 0.99,
     solPriceUsd,
     solEntryLamports,
