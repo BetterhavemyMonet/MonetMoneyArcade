@@ -33,7 +33,7 @@
 <link rel="stylesheet" href="/styles.css">
 <script src="https://unpkg.com/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
 <script src="/wallet.js"></script>
-<script src="https://api.betterhavemymonet.com/levels.js"></script>
+<script src="https://monet-backend-95vi.onrender.com/levels.js"></script>
 <style>
 body {
   background-image: url('/background-image.jpg');
@@ -945,7 +945,7 @@ body::before {
 let _arcadeEntryFee = null;
 async function loadEntryFee() {
   try {
-    const r = await fetch('https://api.betterhavemymonet.com/api/monet-price');
+    const r = await fetch('https://monet-backend-95vi.onrender.com/api/monet-price');
     if (!r.ok) return;
     const d = await r.json();
     if (d.entryFeeMonet > 0) {
@@ -1357,6 +1357,41 @@ window.addEventListener("load",loop);
   }
 
   window.addEventListener("load", loop);
+})();
+</script>
+
+
+<script>
+(function () {
+  function repairGameMenu() {
+    document.querySelectorAll('.card[data-href]').forEach(function (card) {
+      var target = card.getAttribute('data-href');
+      if (!target) return;
+
+      card.setAttribute('href', target);
+      card.setAttribute('role', 'link');
+      card.setAttribute('tabindex', '0');
+
+      card.onclick = function (event) {
+        if (event.defaultPrevented) return;
+        event.preventDefault();
+        window.location.assign(target);
+      };
+
+      card.onkeydown = function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          window.location.assign(target);
+        }
+      };
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', repairGameMenu);
+  } else {
+    repairGameMenu();
+  }
 })();
 </script>
 
