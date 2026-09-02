@@ -981,6 +981,649 @@ body::before {
 }
 </style>
 
+<style>
+
+/* === MONET ARCADE REDESIGN START === */
+
+:root{
+  --mma-bg:#060812;
+  --mma-panel:#0d1220;
+  --mma-panel2:#111827;
+  --mma-line:#252f49;
+  --mma-text:#f4f7ff;
+  --mma-muted:#8994ad;
+  --mma-green:#70ff71;
+  --mma-cyan:#3ee7ff;
+  --mma-purple:#9b67ff;
+  --mma-pink:#ff5bc8;
+  --mma-gold:#ffd75e;
+}
+
+html{
+  scroll-behavior:smooth;
+}
+
+body{
+  margin:0 !important;
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 18% -5%,rgba(155,103,255,.16),transparent 29%),
+    radial-gradient(circle at 92% 4%,rgba(62,231,255,.09),transparent 27%),
+    linear-gradient(180deg,#070912,#04060b 75%) !important;
+  background-image:
+    radial-gradient(circle at 18% -5%,rgba(155,103,255,.16),transparent 29%),
+    radial-gradient(circle at 92% 4%,rgba(62,231,255,.09),transparent 27%),
+    linear-gradient(180deg,#070912,#04060b 75%) !important;
+  color:var(--mma-text);
+  font-family:Arial,sans-serif;
+}
+
+body::before{
+  display:none !important;
+}
+
+.page{
+  position:relative;
+  z-index:1;
+  max-width:1180px;
+  margin:auto;
+  padding:22px 14px 110px !important;
+}
+
+/* remove older oversized hero while leaving functionality */
+.hero-section{
+  display:none !important;
+}
+
+/* NEW HEADER */
+#mma-new-header{
+  position:sticky;
+  top:0;
+  z-index:999;
+  margin:-22px -14px 22px;
+  padding:10px 16px;
+  min-height:66px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  background:rgba(5,8,16,.91);
+  backdrop-filter:blur(18px);
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+
+.mma-brand{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-width:max-content;
+}
+
+.mma-logo{
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  font-family:'Orbitron',sans-serif;
+  font-weight:900;
+  font-size:20px;
+  color:var(--mma-cyan);
+  background:#0d1421;
+  border:2px solid var(--mma-purple);
+  box-shadow:
+    0 0 20px rgba(155,103,255,.28),
+    inset 0 0 0 4px rgba(112,255,113,.07);
+}
+
+.mma-brand-title{
+  font-family:'Orbitron',sans-serif;
+  font-size:14px;
+  font-weight:900;
+  letter-spacing:.5px;
+}
+
+.mma-brand-sub{
+  margin-top:3px;
+  font-family:'Orbitron',sans-serif;
+  font-size:8px;
+  letter-spacing:4px;
+  color:var(--mma-purple);
+}
+
+.mma-nav{
+  display:flex;
+  justify-content:center;
+  gap:4px;
+  flex:1;
+}
+
+.mma-nav a{
+  padding:9px 11px;
+  border-radius:9px;
+  color:#aab3c7;
+  text-decoration:none;
+  font-family:'Orbitron',sans-serif;
+  font-size:9px;
+  font-weight:800;
+}
+
+.mma-nav a:hover,
+.mma-nav a.active{
+  color:var(--mma-green);
+  background:#101725;
+}
+
+/* NEW HERO */
+#mma-new-hero{
+  position:relative;
+  overflow:hidden;
+  min-height:370px;
+  display:flex;
+  align-items:center;
+  margin-bottom:15px;
+  padding:38px 40px;
+  border-radius:24px;
+  border:1px solid #263252;
+  background:
+    linear-gradient(110deg,#101625 0%,#0b101c 55%,#090d17 100%);
+}
+
+#mma-new-hero::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity:.45;
+  background:
+    linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:38px 38px;
+}
+
+.mma-hero-copy{
+  width:62%;
+  position:relative;
+  z-index:2;
+}
+
+.mma-kicker{
+  display:inline-flex;
+  align-items:center;
+  padding:7px 12px;
+  border-radius:99px;
+  border:1px solid rgba(112,255,113,.31);
+  background:rgba(112,255,113,.04);
+  color:#c7d3c8;
+  font-family:'Orbitron',sans-serif;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:1px;
+}
+
+.mma-kicker b{
+  color:var(--mma-green);
+  margin-left:5px;
+}
+
+.mma-hero-title{
+  margin:20px 0 13px;
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(34px,6vw,62px);
+  line-height:1.02;
+  font-weight:900;
+  letter-spacing:-2px;
+}
+
+.mma-gradient{
+  display:block;
+  background:linear-gradient(
+    90deg,
+    var(--mma-green),
+    var(--mma-cyan),
+    var(--mma-purple)
+  );
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+.mma-hero-copy p{
+  max-width:560px;
+  color:#a1abc0;
+  font-size:14px;
+  line-height:1.7;
+}
+
+.mma-fee{
+  margin:20px 0;
+  display:inline-flex;
+  align-items:center;
+  gap:17px;
+  padding:12px 16px;
+  border-radius:12px;
+  border:1px solid #27314c;
+  background:#0a0f1b;
+}
+
+.mma-fee small{
+  display:block;
+  margin-bottom:5px;
+  color:#7d879d;
+  font-family:'Orbitron',sans-serif;
+  font-size:8px;
+}
+
+.mma-fee strong{
+  font-family:'Orbitron',sans-serif;
+  font-size:16px;
+}
+
+.mma-fee .monet{
+  color:var(--mma-green);
+}
+
+.mma-fee-divider{
+  width:1px;
+  height:32px;
+  background:#303b57;
+}
+
+.mma-hero-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.mma-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:42px;
+  padding:0 18px;
+  border-radius:10px;
+  text-decoration:none;
+  border:1px solid #313c59;
+  background:#111726;
+  color:white;
+  font-family:'Orbitron',sans-serif;
+  font-size:9px;
+  font-weight:900;
+}
+
+.mma-btn-primary{
+  color:#031006;
+  background:linear-gradient(135deg,#61ef64,#42d977);
+  border-color:#70ff71;
+  box-shadow:0 0 20px rgba(112,255,113,.15);
+}
+
+.mma-arcade-machine{
+  position:absolute;
+  right:6%;
+  bottom:-60px;
+  width:290px;
+  height:390px;
+  border-radius:36px 36px 16px 16px;
+  border:2px solid #8353ff;
+  background:linear-gradient(145deg,#151d30,#080b12);
+  box-shadow:
+    0 0 40px rgba(155,103,255,.28),
+    inset 0 0 30px rgba(62,231,255,.05);
+  transform:rotate(-3deg);
+}
+
+.mma-screen{
+  position:absolute;
+  left:32px;
+  right:32px;
+  top:54px;
+  height:174px;
+  display:grid;
+  place-items:center;
+  text-align:center;
+  border-radius:18px;
+  border:1px solid #29405a;
+  color:var(--mma-cyan);
+  background:
+    radial-gradient(circle,rgba(62,231,255,.09),#04060a 70%);
+  font-family:'Orbitron',sans-serif;
+  font-weight:900;
+  line-height:1.8;
+  box-shadow:inset 0 0 32px #000;
+}
+
+.mma-controls{
+  position:absolute;
+  left:24px;
+  right:24px;
+  bottom:80px;
+  height:62px;
+  border-radius:10px;
+  background:#0c1220;
+  border:1px solid #26324c;
+}
+
+.mma-controls::before{
+  content:'';
+  position:absolute;
+  width:15px;
+  height:46px;
+  left:48px;
+  bottom:22px;
+  border-radius:9px;
+  background:var(--mma-purple);
+  box-shadow:0 0 13px var(--mma-purple);
+}
+
+.mma-controls::after{
+  content:'●  ●  ●';
+  position:absolute;
+  right:30px;
+  top:18px;
+  color:var(--mma-green);
+  letter-spacing:8px;
+  text-shadow:0 0 10px var(--mma-green);
+}
+
+/* EXISTING NAV BUTTONS */
+.nav-row{
+  display:flex !important;
+  gap:9px !important;
+  margin:15px auto 20px !important;
+  max-width:1180px !important;
+}
+
+.nav-btn{
+  padding:10px 15px !important;
+  color:#aab4c8 !important;
+  border:1px solid #2a3551 !important;
+  background:#0c1220 !important;
+  border-radius:10px !important;
+  font-size:9px !important;
+}
+
+.nav-btn:hover{
+  color:var(--mma-green) !important;
+  border-color:var(--mma-green) !important;
+}
+
+/* POT / STATUS */
+.pot-banner{
+  max-width:1180px !important;
+  padding:0 !important;
+  margin:14px auto !important;
+}
+
+.pot-inner{
+  background:linear-gradient(135deg,#0d1423,#0b101c) !important;
+  border:1px solid #27324d !important;
+  border-radius:16px !important;
+  padding:16px 18px !important;
+}
+
+.pot-num{
+  color:var(--mma-green) !important;
+}
+
+/* COMPETE */
+.compete-grid{
+  max-width:1180px !important;
+  padding:0 !important;
+  gap:12px !important;
+}
+
+.compete-card{
+  background:#0b101d !important;
+  border:1px solid #27324d !important;
+  min-height:120px;
+}
+
+/* SECTION */
+.section-label{
+  max-width:1180px !important;
+  padding-left:0 !important;
+  margin:32px auto 14px !important;
+  font-size:12px !important;
+  color:#dce3f1 !important;
+  letter-spacing:1.5px !important;
+}
+
+.section-label::after{
+  content:'';
+  display:block;
+  margin-top:9px;
+  width:42px;
+  height:2px;
+  background:linear-gradient(90deg,var(--mma-green),var(--mma-cyan));
+}
+
+/* GAME GRID */
+.grid{
+  max-width:1180px !important;
+  padding:0 !important;
+  display:grid !important;
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  gap:14px !important;
+}
+
+.card{
+  position:relative !important;
+  min-height:205px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:flex-end !important;
+  overflow:hidden !important;
+  padding:20px 15px 16px !important;
+  border-radius:16px !important;
+  border:1px solid #27324d !important;
+  background:
+    radial-gradient(circle at 78% 18%,rgba(155,103,255,.18),transparent 35%),
+    linear-gradient(145deg,#11182a,#090d16 68%) !important;
+  box-shadow:none !important;
+  transition:
+    transform .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease !important;
+}
+
+.card::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(180deg,transparent 35%,rgba(4,7,13,.8) 100%);
+}
+
+.card:hover{
+  transform:translateY(-4px) !important;
+  border-color:#526587 !important;
+  box-shadow:0 18px 35px rgba(0,0,0,.27) !important;
+}
+
+.card-icon{
+  position:relative;
+  z-index:2;
+  font-size:48px !important;
+  margin:auto auto 20px !important;
+  filter:drop-shadow(0 0 18px rgba(255,255,255,.12));
+}
+
+.card-title{
+  position:relative;
+  z-index:2;
+  margin:0 0 5px !important;
+  font-size:12px !important;
+  line-height:1.3;
+}
+
+.card-desc{
+  position:relative;
+  z-index:2;
+  color:#8e98ae !important;
+  font-size:9px !important;
+}
+
+.badge,
+.badge-h2h{
+  position:relative;
+  z-index:2;
+  width:max-content;
+  margin-top:8px !important;
+}
+
+/* WALLET */
+.wallet-bar{
+  border:1px solid #26314c !important;
+  background:#0b111e !important;
+  border-radius:11px !important;
+}
+
+/* MOBILE BAR */
+#mma-mobile-nav{
+  display:none;
+}
+
+/* remove old clutter around titles where possible */
+.subtitle{
+  color:#717c92 !important;
+}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .mma-nav{
+    display:none;
+  }
+
+  .mma-hero-copy{
+    width:70%;
+  }
+
+  .mma-arcade-machine{
+    right:-60px;
+    opacity:.62;
+  }
+
+  .grid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+}
+
+@media(max-width:620px){
+  .page{
+    padding:12px 9px 100px !important;
+  }
+
+  #mma-new-header{
+    margin:-12px -9px 12px;
+    min-height:62px;
+    padding:8px 10px;
+  }
+
+  .mma-brand-title{
+    font-size:11px;
+  }
+
+  .mma-brand-sub{
+    font-size:7px;
+  }
+
+  .mma-logo{
+    width:39px;
+    height:39px;
+    font-size:17px;
+  }
+
+  #mma-new-hero{
+    min-height:0;
+    padding:28px 20px;
+    border-radius:18px;
+  }
+
+  .mma-hero-copy{
+    width:100%;
+  }
+
+  .mma-arcade-machine{
+    display:none;
+  }
+
+  .mma-hero-title{
+    font-size:34px;
+    letter-spacing:-1px;
+  }
+
+  .mma-hero-copy p{
+    font-size:12px;
+  }
+
+  .mma-fee{
+    width:100%;
+    justify-content:space-between;
+  }
+
+  .compete-grid{
+    grid-template-columns:1fr 1fr !important;
+  }
+
+  .grid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:9px !important;
+  }
+
+  .card{
+    min-height:180px !important;
+    padding:15px 11px 12px !important;
+  }
+
+  .card-icon{
+    font-size:39px !important;
+  }
+
+  .card-title{
+    font-size:10px !important;
+  }
+
+  #mma-mobile-nav{
+    position:fixed;
+    z-index:9999;
+    display:flex;
+    left:9px;
+    right:9px;
+    bottom:9px;
+    padding:7px;
+    border-radius:18px;
+    border:1px solid #28334e;
+    background:rgba(9,13,23,.95);
+    backdrop-filter:blur(18px);
+    box-shadow:0 8px 30px #000;
+  }
+
+  #mma-mobile-nav a{
+    flex:1;
+    text-align:center;
+    padding:7px 3px;
+    text-decoration:none;
+    color:#8994aa;
+    font-family:'Orbitron',sans-serif;
+    font-size:7px;
+    font-weight:800;
+  }
+
+  #mma-mobile-nav span{
+    display:block;
+    margin-bottom:3px;
+    font-size:18px;
+  }
+
+  #mma-mobile-nav .active{
+    color:var(--mma-green);
+  }
+}
+
+/* === MONET ARCADE REDESIGN END === */
+
+</style>
 </head>
 <body>
 <div class="wallet-bar" id="wbar"></div>
@@ -1715,6 +2358,199 @@ window.addEventListener("load",loop);
   }
 })();
 </script>
+
+
+<!-- === MONET ARCADE REDESIGN JS START === -->
+<script>
+(function () {
+  const API = 'https://monet-backend-95vi.onrender.com';
+
+  function buildArcadeUI() {
+    const page = document.querySelector('.page') || document.body;
+
+    if (!document.getElementById('mma-new-header')) {
+      const header = document.createElement('header');
+      header.id = 'mma-new-header';
+      header.innerHTML = `
+        <a class="mma-brand" href="/">
+          <div class="mma-logo">M</div>
+          <div>
+            <div class="mma-brand-title">MONET MONEY</div>
+            <div class="mma-brand-sub">ARCADE</div>
+          </div>
+        </a>
+
+        <nav class="mma-nav">
+          <a class="active" href="/arcade.html">ARCADE</a>
+          <a href="/tournament.html">TOURNAMENTS</a>
+          <a href="/leaderboard.html">LEADERBOARD</a>
+          <a href="/challenge.html?tab=lobby">CHALLENGES</a>
+        </nav>
+
+        <div id="mma-wallet-slot"></div>
+      `;
+
+      page.prepend(header);
+
+      const existingWallet = document.querySelector('.wallet-bar');
+      const walletSlot = header.querySelector('#mma-wallet-slot');
+
+      if (existingWallet && walletSlot) {
+        walletSlot.appendChild(existingWallet);
+      }
+    }
+
+    if (!document.getElementById('mma-new-hero')) {
+      const hero = document.createElement('section');
+      hero.id = 'mma-new-hero';
+
+      hero.innerHTML = `
+        <div class="mma-hero-copy">
+          <div class="mma-kicker">PLAY. COMPETE. <b>WIN.</b></div>
+
+          <div class="mma-hero-title">
+            SKILL FIRST.
+            <span class="mma-gradient">ARCADE ALWAYS.</span>
+          </div>
+
+          <p>
+            Pick a game, connect your wallet, compete for the high score
+            and take on live MONET challenges.
+          </p>
+
+          <div class="mma-fee">
+            <div>
+              <small>ENTRY FEE</small>
+              <strong class="monet">0.0125 MONET</strong>
+            </div>
+
+            <div class="mma-fee-divider"></div>
+
+            <div>
+              <small>USD REFERENCE</small>
+              <strong>$0.99</strong>
+            </div>
+          </div>
+
+          <div class="mma-hero-actions">
+            <a class="mma-btn mma-btn-primary" href="#mma-games-start">
+              ▶ BROWSE GAMES
+            </a>
+
+            <a class="mma-btn" href="/challenge.html?tab=lobby">
+              LIVE CHALLENGES
+            </a>
+          </div>
+        </div>
+
+        <div class="mma-arcade-machine">
+          <div class="mma-screen">
+            MONET<br>
+            ARCADE
+          </div>
+          <div class="mma-controls"></div>
+        </div>
+      `;
+
+      const firstContent =
+        page.querySelector('.pot-banner') ||
+        page.querySelector('.nav-row') ||
+        page.firstChild;
+
+      if (firstContent) {
+        firstContent.parentNode.insertBefore(hero, firstContent);
+      } else {
+        page.appendChild(hero);
+      }
+    }
+
+    const grid = document.querySelector('.grid');
+
+    if (grid && !document.getElementById('mma-games-start')) {
+      const anchor = document.createElement('div');
+      anchor.id = 'mma-games-start';
+      anchor.style.position = 'relative';
+      anchor.style.top = '-85px';
+      grid.parentNode.insertBefore(anchor, grid);
+    }
+
+    document.querySelectorAll('.card[data-href]').forEach(card => {
+      const target = card.getAttribute('data-href');
+
+      if (!target) return;
+
+      card.setAttribute('role', 'link');
+      card.setAttribute('tabindex', '0');
+
+      card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          window.location.href = target;
+        }
+      });
+    });
+
+    if (!document.getElementById('mma-mobile-nav')) {
+      const nav = document.createElement('nav');
+      nav.id = 'mma-mobile-nav';
+
+      nav.innerHTML = `
+        <a href="/">
+          <span>⌂</span>
+          HOME
+        </a>
+
+        <a class="active" href="/arcade.html">
+          <span>🎮</span>
+          ARCADE
+        </a>
+
+        <a href="/challenge.html?tab=lobby">
+          <span>◎</span>
+          PLAY
+        </a>
+
+        <a href="/leaderboard.html">
+          <span>♜</span>
+          RANK
+        </a>
+
+        <a href="/portfolio.html">
+          <span>▣</span>
+          WALLET
+        </a>
+      `;
+
+      document.body.appendChild(nav);
+    }
+
+    fetch(API + '/api/challenges', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        const count = Array.isArray(data.challenges)
+          ? data.challenges.filter(c => !c.status || c.status === 'open').length
+          : 0;
+
+        document.querySelectorAll('.pot-sub').forEach(el => {
+          if (/challenge/i.test(el.textContent || '')) {
+            el.textContent =
+              count === 1
+                ? '1 live challenge'
+                : count + ' live challenges';
+          }
+        });
+      })
+      .catch(() => {});
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', buildArcadeUI);
+  } else {
+    buildArcadeUI();
+  }
+})();
+</script>
+<!-- === MONET ARCADE REDESIGN JS END === -->
 
 </body>
 </html>
