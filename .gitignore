@@ -8,3 +8,8 @@ build/
 
 admin.html
 treasury-admin.html
+.env
+.env.local
+.env.production
+.env.development
+.env.test
