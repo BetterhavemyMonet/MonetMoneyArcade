@@ -150,6 +150,12 @@
         <div id="hud-timer" class="hud-box">⏱ Time: <span id="time-left">60</span></div>
 
         <!-- Fake Multiplayer Lobby Info -->
+        <div id="realm-display" class="hud-box"
+             style="position:absolute;top:15px;left:50%;transform:translateX(-50%);
+                    text-align:center;pointer-events:none;">
+            🌎 <span id="realm-name">Emerald Jungle</span>
+        </div>
+
         <div id="multiplayer-list" class="hud-box">
             <div style="border-bottom: 1px solid #ffd700; margin-bottom: 8px; padding-bottom: 3px;">Players (Online)</div>
             <div class="player-tag"><div class="color-dot" style="background: #4CAF50;"></div>GreenDino (You)</div>
@@ -176,8 +182,71 @@
         // --- GAME SETUP ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB);
-        scene.fog = new THREE.FogExp2(0x87CEEB, 0.015);
+
+        // =====================================================
+        // DINO REALMS — ORIGINAL BIOME BACKGROUNDS
+        // =====================================================
+        const REALMS = [
+            {
+                name: 'Emerald Jungle',
+                image: '/assets/bg-emerald-jungle.png',
+                fog: 0x173c2c
+            },
+            {
+                name: 'Crystal Valley',
+                image: '/assets/bg-crystal-valley.png',
+                fog: 0x322f61
+            },
+            {
+                name: 'Frozen Peaks',
+                image: '/assets/bg-frozen-peaks.png',
+                fog: 0xa7cce5
+            },
+            {
+                name: 'Magma Depths',
+                image: '/assets/bg-magma-depths.png',
+                fog: 0x401515
+            },
+            {
+                name: 'Portal Citadel',
+                image: '/assets/bg-portal-citadel.png',
+                fog: 0x22183c
+            }
+        ];
+
+        let currentRealm = 0;
+        const textureLoader = new THREE.TextureLoader();
+
+        scene.fog = new THREE.FogExp2(REALMS[0].fog, 0.008);
+
+        function loadRealm(index) {
+            currentRealm = ((index % REALMS.length) + REALMS.length) % REALMS.length;
+            const realm = REALMS[currentRealm];
+
+            textureLoader.load(
+                realm.image,
+                texture => {
+                    texture.minFilter = THREE.LinearFilter;
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.encoding = THREE.sRGBEncoding;
+
+                    scene.background = texture;
+                    scene.fog.color.setHex(realm.fog);
+
+                    const realmLabel = document.getElementById('realm-name');
+                    if (realmLabel) realmLabel.textContent = realm.name;
+
+                    console.log('[Dino Realms] Loaded:', realm.name, realm.image);
+                },
+                undefined,
+                err => {
+                    console.warn('[Dino Realms] Background failed:', realm.image, err);
+                    scene.background = new THREE.Color(realm.fog);
+                }
+            );
+        }
+
+        loadRealm(0);
 
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -329,7 +398,6 @@
         let matchTime = 60;
         let gameOver = false;
         let lastTick = Date.now();
-        let gameOver = false;
         let moveInput = { x: 0, y: 0 };
         let isCharging = false;
         const gravity = -0.015;
@@ -818,6 +886,25 @@ window.addEventListener("load",loop);
 
   window.addEventListener("load", loop);
 })();
+
+        // =====================================================
+        // REALM PROGRESSION
+        // Five environments during a full run.
+        // Does not modify keyboard, joystick, jump or charge.
+        // =====================================================
+        let realmTransitionTimer = null;
+
+        function startRealmProgression() {
+            if (realmTransitionTimer) clearInterval(realmTransitionTimer);
+
+            realmTransitionTimer = setInterval(() => {
+                if (typeof gameOver !== 'undefined' && gameOver) return;
+                loadRealm(currentRealm + 1);
+            }, 18000);
+        }
+
+        startRealmProgression();
+
 </script>
 
 </body>
