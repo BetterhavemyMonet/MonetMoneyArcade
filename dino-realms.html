@@ -165,7 +165,11 @@ function buildRealm(){
   document.getElementById('realmBanner').textContent =
     `REALM ${realm+1}/5 • ${r.name}`;
 
-  this.children.removeAll();
+  // Clear only realm objects. Do NOT destroy the whole Phaser scene.
+  if (this.realmBackground) {
+    this.realmBackground.destroy();
+    this.realmBackground = null;
+  }
 
   platforms.clear(true,true);
   enemies.clear(true,true);
@@ -177,6 +181,7 @@ function buildRealm(){
     .setScrollFactor(0.15);
 
   bg.setDepth(-20);
+  this.realmBackground = bg;
 
   // Main ground
   for(let x=100;x<5000;x+=220){
