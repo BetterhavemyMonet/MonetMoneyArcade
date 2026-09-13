@@ -22,6 +22,62 @@ canvas{
   display:block;
   margin:auto;
 }
+#mobileControls{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:max(18px, env(safe-area-inset-bottom));
+  z-index:200;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  padding:0 22px;
+  pointer-events:none;
+}
+
+.controlCluster{
+  display:flex;
+  gap:14px;
+}
+
+.gameControl{
+  width:72px;
+  height:72px;
+  border-radius:50%;
+  border:2px solid rgba(0,255,200,.9);
+  background:rgba(0,0,0,.62);
+  color:#fff;
+  font-size:30px;
+  font-weight:900;
+  box-shadow:
+    0 0 14px rgba(0,255,200,.55),
+    inset 0 0 14px rgba(0,255,200,.18);
+  pointer-events:auto;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+.gameControl:active{
+  transform:scale(.92);
+  background:rgba(0,255,200,.32);
+}
+
+#jumpBtn{
+  width:82px;
+  height:82px;
+  border-color:#ffd700;
+  box-shadow:
+    0 0 16px rgba(255,215,0,.6),
+    inset 0 0 14px rgba(255,215,0,.18);
+}
+
+@media (min-width:900px) and (pointer:fine){
+  #mobileControls{
+    opacity:.42;
+  }
+}
+
 #realmBanner{
   position:fixed;
   top:14px;
@@ -41,6 +97,15 @@ canvas{
 
 <div id="realmBanner">DINO REALMS</div>
 
+<div id="mobileControls">
+  <div class="controlCluster">
+    <button id="leftBtn" class="gameControl" aria-label="Move left">◀</button>
+    <button id="rightBtn" class="gameControl" aria-label="Move right">▶</button>
+  </div>
+
+  <button id="jumpBtn" class="gameControl" aria-label="Jump">▲</button>
+</div>
+
 <script>
 let player;
 let cursors;
@@ -54,6 +119,40 @@ let realmCoins = 0;
 let score = 0;
 let health = 5;
 let gameOver = false;
+
+const touchControls = {
+  left:false,
+  right:false,
+  jump:false
+};
+
+function bindTouchControls(){
+
+  const bind = (id,key)=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+
+    const down=(ev)=>{
+      ev.preventDefault();
+      touchControls[key]=true;
+    };
+
+    const up=(ev)=>{
+      ev.preventDefault();
+      touchControls[key]=false;
+    };
+
+    el.onpointerdown=down;
+    el.onpointerup=up;
+    el.onpointercancel=up;
+    el.onpointerleave=up;
+    el.oncontextmenu=(ev)=>ev.preventDefault();
+  };
+
+  bind('leftBtn','left');
+  bind('rightBtn','right');
+  bind('jumpBtn','jump');
+}
 
 const REALMS = [
   {
@@ -132,6 +231,7 @@ function create(){
   this.cameras.main.setBounds(0,0,5000,540);
 
   cursors = this.input.keyboard.createCursorKeys();
+  bindTouchControls();
 
   platforms = this.physics.add.staticGroup();
   enemies = this.physics.add.group();
@@ -276,7 +376,18 @@ function buildRealm(){
       'enemy'
     );
 
-    e.setScale(.055);
+    // Original working Silverback proportions
+    e.setScale(.08);
+    e.setDepth(8);
+
+    if(e.body){
+      e.body.setSize(
+        e.width * .62,
+        e.height * .82,
+        true
+      );
+    }
+
     e.setVelocityX(
       i%2 ? r.enemySpeed : -r.enemySpeed
     );
@@ -446,12 +557,12 @@ function update(){
 
   const speed = 300 + realm*20;
 
-  if(cursors.left.isDown){
+  if(cursors.left.isDown || touchControls.left){
 
     player.setVelocityX(-speed);
     player.flipX=true;
 
-  }else if(cursors.right.isDown){
+  }else if(cursors.right.isDown || touchControls.right){
 
     player.setVelocityX(speed);
     player.flipX=false;
@@ -462,10 +573,11 @@ function update(){
   }
 
   if(
-    cursors.up.isDown &&
+    (cursors.up.isDown || touchControls.jump) &&
     player.body.blocked.down
   ){
     player.setVelocityY(-620);
+    touchControls.jump=false;
   }
 
   enemies.children.iterate(e=>{
